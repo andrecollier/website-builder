@@ -462,35 +462,10 @@ export async function detectAllSections(
     return specificSections;
   }
 
-  // Use generic fallback if enabled and specific detection found few sections
+  // Use viewport-based splitting fallback for sites with obfuscated class names (like Framer)
   if (useGenericFallback) {
-    const genericSections = await detectGenericSections(page, options);
-
-    // Merge unique sections (avoid duplicates based on position)
-    const merged = [...specificSections];
-
-    for (const generic of genericSections) {
-      const isDuplicate = specificSections.some((specific) => {
-        const yDiff = Math.abs(specific.boundingBox.y - generic.boundingBox.y);
-        return yDiff < 100; // Consider within 100px as same section
-      });
-
-      if (!isDuplicate) {
-        merged.push(generic);
-      }
-    }
-
-    return sortSectionsByPosition(
-      merged.map((s) => ({
-        ...s,
-        boundingBox: s.boundingBox,
-      })) as DetectedElement[]
-    ).slice(0, options?.maxSections ?? CAPTURE_CONFIG.maxSections).map((el) => ({
-      id: el.type.startsWith('section-') ? el.type : `section-${randomUUID()}`,
-      type: (el as DetectedElement).type,
-      boundingBox: el.boundingBox,
-      screenshotPath: '',
-    }));
+    const viewportSections = await viewportBasedSplitting(page, options);
+    return viewportSections;
   }
 
   return specificSections;
