@@ -370,6 +370,32 @@ export interface DesignSystem {
   effects: EffectsExtraction;
 }
 
+// Editor State Types
+
+export type EditorPanel = 'colors' | 'typography' | 'spacing' | 'effects';
+
+export interface EditorState {
+  // State
+  originalTokens: DesignSystem | null;
+  modifiedTokens: DesignSystem | null;
+  activePanel: EditorPanel;
+  isDirty: boolean;
+  isLoading: boolean;
+  error: string | null;
+
+  // Actions
+  loadTokens: (tokens: DesignSystem) => void;
+  updateColors: (colors: Partial<ColorExtraction>) => void;
+  updateTypography: (typography: Partial<TypographyExtraction>) => void;
+  updateSpacing: (spacing: Partial<SpacingExtraction>) => void;
+  updateEffects: (effects: Partial<EffectsExtraction>) => void;
+  setActivePanel: (panel: EditorPanel) => void;
+  resetToOriginal: () => void;
+  saveTokens: () => Promise<void>;
+}
+
+// Token Cache Configuration
+
 export const TOKEN_CACHE_CONFIG = {
   ttlHours: 24,
   baseDir: 'cache/tokens',

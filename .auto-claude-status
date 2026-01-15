@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "001-website-generator-phase-1",
+  "spec": "003-website-cooker-phase-3",
   "state": "building",
   "subtasks": {
-    "completed": 28,
-    "total": 30,
+    "completed": 3,
+    "total": 27,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Integration & Verification",
+    "current": "Foundation - Types & Database",
     "id": null,
-    "total": 4
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 29,
-    "started_at": "2026-01-15T12:15:46.112250"
+    "number": 4,
+    "started_at": "2026-01-15T14:42:36.249294"
   },
-  "last_update": "2026-01-15T13:04:00.068886"
+  "last_update": "2026-01-15T14:46:07.404970"
 }
