@@ -84,6 +84,20 @@ CREATE TABLE error_log (
   FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE SET NULL
 )`;
 
+/**
+ * Design tokens table - Store extracted design tokens per website
+ */
+export const CREATE_TABLE_DESIGN_TOKENS = `
+CREATE TABLE design_tokens (
+  id TEXT PRIMARY KEY,
+  website_id TEXT NOT NULL,
+  tokens_json TEXT NOT NULL,
+  is_modified INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
+)`;
+
 // ====================
 // INDEX DEFINITIONS
 // ====================
@@ -124,6 +138,12 @@ CREATE INDEX idx_error_log_website ON error_log(website_id)`;
 export const CREATE_INDEX_ERROR_LOG_RESOLVED = `
 CREATE INDEX idx_error_log_resolved ON error_log(resolved)`;
 
+/**
+ * Index for design tokens lookups by website
+ */
+export const CREATE_INDEX_DESIGN_TOKENS_WEBSITE = `
+CREATE INDEX idx_design_tokens_website ON design_tokens(website_id)`;
+
 // ====================
 // ALL STATEMENTS
 // ====================
@@ -137,6 +157,7 @@ export const ALL_TABLE_STATEMENTS = [
   CREATE_TABLE_COMPONENTS,
   CREATE_TABLE_CACHE,
   CREATE_TABLE_ERROR_LOG,
+  CREATE_TABLE_DESIGN_TOKENS,
 ] as const;
 
 /**
@@ -150,6 +171,7 @@ export const ALL_INDEX_STATEMENTS = [
   CREATE_INDEX_CACHE_EXPIRES,
   CREATE_INDEX_ERROR_LOG_WEBSITE,
   CREATE_INDEX_ERROR_LOG_RESOLVED,
+  CREATE_INDEX_DESIGN_TOKENS_WEBSITE,
 ] as const;
 
 /**
@@ -174,6 +196,6 @@ export const SCHEMA_VERSION = 1;
  */
 export const SCHEMA_INFO = {
   version: SCHEMA_VERSION,
-  tables: ['websites', 'versions', 'components', 'cache', 'error_log'],
+  tables: ['websites', 'versions', 'components', 'cache', 'error_log', 'design_tokens'],
   description: 'Website Cooker database schema for tracking generated websites, versions, and extraction state',
 } as const;

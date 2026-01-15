@@ -11,7 +11,15 @@ import { createWebsite, initializeDatabase, updateWebsiteStatus } from '@/lib/db
 import { isValidUrl, getNameFromUrl } from '@/lib/utils';
 import { captureWebsite } from '@/lib/playwright/capture';
 import { publishCaptureProgress } from '@/app/api/capture-status/route';
-import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress } from '@/types';
+import {
+  getDefaultDesignSystem,
+  generateTailwindConfigString,
+  generateCSSVariables,
+} from '@/lib/design-system';
+import { setTokens } from '@/lib/cache';
+import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress, DesignSystem } from '@/types';
+import path from 'path';
+import fs from 'fs';
 
 /**
  * In-memory store for tracking capture progress.
@@ -20,8 +28,67 @@ import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress }
 export const captureProgressStore = new Map<string, CaptureProgress>();
 
 /**
+ * Get the base directory for website output
+ */
+function getWebsitesBaseDir(): string {
+  const envPath = process.env.WEBSITES_DIR;
+  if (envPath) {
+    if (envPath.startsWith('./') || envPath.startsWith('../')) {
+      return path.resolve(process.cwd(), envPath);
+    }
+    return envPath;
+  }
+  return path.resolve(process.cwd(), 'Websites');
+}
+
+/**
+ * Synthesize design system and save outputs to website folder.
+ * Generates design-system.json, tailwind.config.js, and variables.css.
+ *
+ * @param websiteId - The website ID for folder naming
+ * @param url - The source URL for meta information
+ * @returns The generated DesignSystem object
+ */
+async function synthesizeAndSaveDesignSystem(
+  websiteId: string,
+  url: string
+): Promise<DesignSystem> {
+  // Generate design system with default values
+  // TODO: Replace with actual raw data extraction from Playwright when implemented
+  const designSystem = getDefaultDesignSystem(url);
+
+  // Get the website output directory
+  const websiteDir = path.join(getWebsitesBaseDir(), websiteId);
+
+  // Ensure directory exists
+  if (!fs.existsSync(websiteDir)) {
+    fs.mkdirSync(websiteDir, { recursive: true });
+  }
+
+  // Save design-system.json
+  const designSystemPath = path.join(websiteDir, 'design-system.json');
+  fs.writeFileSync(designSystemPath, JSON.stringify(designSystem, null, 2), 'utf-8');
+
+  // Save tailwind.config.js
+  const tailwindConfig = generateTailwindConfigString(designSystem);
+  const tailwindPath = path.join(websiteDir, 'tailwind.config.js');
+  fs.writeFileSync(tailwindPath, tailwindConfig, 'utf-8');
+
+  // Save variables.css
+  const cssVariables = generateCSSVariables(designSystem);
+  const cssPath = path.join(websiteDir, 'variables.css');
+  fs.writeFileSync(cssPath, cssVariables, 'utf-8');
+
+  // Cache the design tokens for faster retrieval
+  setTokens(url, designSystem);
+
+  return designSystem;
+}
+
+/**
  * Run the capture process asynchronously and update website status on completion.
  * This function is fire-and-forget - it handles its own errors and updates the database.
+ * After successful capture, it also synthesizes the design system and saves output files.
  */
 async function runCaptureProcess(websiteId: string, url: string): Promise<void> {
   try {
@@ -37,7 +104,41 @@ async function runCaptureProcess(websiteId: string, url: string): Promise<void> 
     });
 
     if (result.success) {
-      updateWebsiteStatus(websiteId, 'completed');
+      // Publish progress update for design system extraction
+      publishCaptureProgress(websiteId, {
+        phase: 'complete',
+        percent: 95,
+        message: 'Synthesizing design system...',
+      });
+      captureProgressStore.set(websiteId, {
+        phase: 'complete',
+        percent: 95,
+        message: 'Synthesizing design system...',
+      });
+
+      // Synthesize design system after successful capture
+      // This generates design-system.json, tailwind.config.js, and variables.css
+      try {
+        await synthesizeAndSaveDesignSystem(websiteId, url);
+
+        // Final completion status
+        publishCaptureProgress(websiteId, {
+          phase: 'complete',
+          percent: 100,
+          message: 'Extraction complete',
+        });
+        captureProgressStore.set(websiteId, {
+          phase: 'complete',
+          percent: 100,
+          message: 'Extraction complete',
+        });
+
+        updateWebsiteStatus(websiteId, 'completed');
+      } catch {
+        // Design system synthesis failed, but capture succeeded
+        // Mark as completed since screenshots are available
+        updateWebsiteStatus(websiteId, 'completed');
+      }
     } else {
       updateWebsiteStatus(websiteId, 'failed');
     }
