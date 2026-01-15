@@ -48,12 +48,32 @@ CREATE TABLE components (
   website_id TEXT NOT NULL,
   version_id TEXT NOT NULL,
   name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  order_index INTEGER NOT NULL,
   selected_variant TEXT,
+  custom_code TEXT,
   approved BOOLEAN DEFAULT FALSE,
   accuracy_score REAL,
   error_message TEXT,
+  status TEXT DEFAULT 'pending',
   FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE,
   FOREIGN KEY (version_id) REFERENCES versions(id) ON DELETE CASCADE
+)`;
+
+/**
+ * Component variants table - Store generated variants for each component
+ */
+export const CREATE_TABLE_COMPONENT_VARIANTS = `
+CREATE TABLE component_variants (
+  id TEXT PRIMARY KEY,
+  component_id TEXT NOT NULL,
+  variant_name TEXT NOT NULL,
+  description TEXT,
+  code TEXT NOT NULL,
+  preview_image TEXT,
+  accuracy_score REAL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
 )`;
 
 /**
@@ -124,6 +144,12 @@ export const CREATE_INDEX_COMPONENTS_VERSION = `
 CREATE INDEX idx_components_version ON components(version_id)`;
 
 /**
+ * Index for variant lookups by component
+ */
+export const CREATE_INDEX_VARIANTS_COMPONENT = `
+CREATE INDEX idx_variants_component ON component_variants(component_id)`;
+
+/**
  * Index for cache expiry cleanup
  */
 export const CREATE_INDEX_CACHE_EXPIRES = `
@@ -155,6 +181,7 @@ export const ALL_TABLE_STATEMENTS = [
   CREATE_TABLE_WEBSITES,
   CREATE_TABLE_VERSIONS,
   CREATE_TABLE_COMPONENTS,
+  CREATE_TABLE_COMPONENT_VARIANTS,
   CREATE_TABLE_CACHE,
   CREATE_TABLE_ERROR_LOG,
   CREATE_TABLE_DESIGN_TOKENS,
@@ -168,6 +195,7 @@ export const ALL_INDEX_STATEMENTS = [
   CREATE_INDEX_VERSIONS_WEBSITE,
   CREATE_INDEX_COMPONENTS_WEBSITE,
   CREATE_INDEX_COMPONENTS_VERSION,
+  CREATE_INDEX_VARIANTS_COMPONENT,
   CREATE_INDEX_CACHE_EXPIRES,
   CREATE_INDEX_ERROR_LOG_WEBSITE,
   CREATE_INDEX_ERROR_LOG_RESOLVED,
@@ -196,6 +224,6 @@ export const SCHEMA_VERSION = 1;
  */
 export const SCHEMA_INFO = {
   version: SCHEMA_VERSION,
-  tables: ['websites', 'versions', 'components', 'cache', 'error_log', 'design_tokens'],
+  tables: ['websites', 'versions', 'components', 'component_variants', 'cache', 'error_log', 'design_tokens'],
   description: 'Website Cooker database schema for tracking generated websites, versions, and extraction state',
 } as const;

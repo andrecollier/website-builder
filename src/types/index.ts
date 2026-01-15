@@ -401,3 +401,98 @@ export const TOKEN_CACHE_CONFIG = {
   ttlHours: 24,
   baseDir: 'cache/tokens',
 } as const;
+
+// Extended Component Types (Phase 4)
+
+export type ComponentType =
+  | 'header'
+  | 'hero'
+  | 'features'
+  | 'testimonials'
+  | 'pricing'
+  | 'cta'
+  | 'footer'
+  | 'cards'
+  | 'gallery'
+  | 'contact'
+  | 'faq'
+  | 'stats'
+  | 'team'
+  | 'logos';
+
+// Detected Component from page analysis
+
+export interface DetectedComponent {
+  id: string;
+  type: ComponentType;
+  order: number;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  screenshotPath: string;
+  htmlSnapshot: string;
+  styles: Record<string, string>;
+}
+
+// Generated Component Variant
+
+export interface ComponentVariant {
+  id: string;
+  name: 'Variant A' | 'Variant B' | 'Variant C';
+  description: string;
+  code: string;
+  previewImage?: string;
+  accuracyScore?: number;
+}
+
+// Full Generated Component
+
+export interface GeneratedComponent {
+  id: string;
+  websiteId: string;
+  name: string;
+  type: ComponentType;
+  order: number;
+  variants: ComponentVariant[];
+  selectedVariant: string | null;
+  customCode?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'skipped' | 'failed';
+  errorMessage?: string;
+  createdAt: string;
+}
+
+// Preview/Approval State
+
+export interface PreviewState {
+  websiteId: string | null;
+  components: GeneratedComponent[];
+  currentIndex: number;
+  isLoading: boolean;
+  error: string | null;
+
+  // Actions
+  loadComponents: (websiteId: string) => Promise<void>;
+  selectVariant: (componentId: string, variantId: string) => void;
+  updateCustomCode: (componentId: string, code: string) => void;
+  approveComponent: (componentId: string) => Promise<void>;
+  rejectComponent: (componentId: string) => void;
+  skipComponent: (componentId: string) => void;
+  retryComponent: (componentId: string) => Promise<void>;
+  goToNext: () => void;
+  goToPrevious: () => void;
+  reset: () => void;
+}
+
+// Failed Component for Manual Review
+
+export interface FailedComponent {
+  id: string;
+  websiteId: string;
+  componentType: ComponentType;
+  error: string;
+  attemptedAt: string;
+  retryCount: number;
+}
