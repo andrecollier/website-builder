@@ -9,7 +9,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWebsite, initializeDatabase, updateWebsiteStatus } from '@/lib/db/client';
 import { isValidUrl, getNameFromUrl } from '@/lib/utils';
-import type { StartExtractionRequest, StartExtractionResponse } from '@/types';
+import { captureWebsite } from '@/lib/playwright/capture';
+import { publishCaptureProgress } from '@/app/api/capture-status/route';
+import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress } from '@/types';
+
+/**
+ * In-memory store for tracking capture progress.
+ * This can be accessed by the status endpoint for progress polling.
+ */
+export const captureProgressStore = new Map<string, CaptureProgress>();
+
+/**
+ * Run the capture process asynchronously and update website status on completion.
+ * This function is fire-and-forget - it handles its own errors and updates the database.
+ */
+async function runCaptureProcess(websiteId: string, url: string): Promise<void> {
+  try {
+    const result = await captureWebsite({
+      websiteId,
+      url,
+      onProgress: (progress) => {
+        // Publish to SSE subscribers for real-time updates
+        publishCaptureProgress(websiteId, progress);
+        // Also store for polling fallback
+        captureProgressStore.set(websiteId, progress);
+      },
+    });
+
+    if (result.success) {
+      updateWebsiteStatus(websiteId, 'completed');
+    } else {
+      updateWebsiteStatus(websiteId, 'failed');
+    }
+  } catch {
+    // Handle unexpected errors during capture
+    updateWebsiteStatus(websiteId, 'failed');
+  } finally {
+    // Clean up progress store after a delay to allow final status poll
+    setTimeout(() => {
+      captureProgressStore.delete(websiteId);
+    }, 30000);
+  }
+}
 
 /**
  * Validate the request body for start extraction
@@ -143,8 +184,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<StartExtr
     // Update status to in_progress to indicate extraction has started
     updateWebsiteStatus(website.id, 'in_progress');
 
-    // Return success response
-    // Note: Actual extraction logic will be implemented in Phase 2+
+    // Start capture process asynchronously (fire-and-forget)
+    // The process updates the database status on completion/failure
+    // Progress can be polled via the /api/status endpoint
+    runCaptureProcess(website.id, url).catch(() => {
+      // Error handling is done inside runCaptureProcess
+      // This catch prevents unhandled promise rejection warnings
+    });
+
+    // Return success response immediately
+    // Client should poll /api/status?websiteId=... for progress
     return NextResponse.json(
       {
         success: true,
