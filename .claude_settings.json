@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/**)",
+      "Write(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/**)",
+      "Edit(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/**)",
+      "Glob(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/**)",
+      "Grep(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/**)",
+      "Read(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/.auto-claude/specs/001-website-generator-phase-1/**)",
+      "Write(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/.auto-claude/specs/001-website-generator-phase-1/**)",
+      "Edit(/Users/andrecollier/Personal/website-builder/.auto-claude/worktrees/tasks/001-website-generator-phase-1/.auto-claude/specs/001-website-generator-phase-1/**)",
+      "Read(/Users/andrecollier/Personal/website-builder/.auto-claude/**)",
+      "Write(/Users/andrecollier/Personal/website-builder/.auto-claude/**)",
+      "Edit(/Users/andrecollier/Personal/website-builder/.auto-claude/**)",
+      "Glob(/Users/andrecollier/Personal/website-builder/.auto-claude/**)",
+      "Grep(/Users/andrecollier/Personal/website-builder/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}
