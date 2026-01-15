@@ -1,5 +1,7 @@
 // Database Models
 
+import type { RawPageData } from '@/lib/design-system/synthesizer';
+
 export type WebsiteStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
 export interface Website {
@@ -241,6 +243,8 @@ export interface CaptureResult {
     fullPageHeight: number;
   };
   error?: string;
+  /** Raw page data extracted for design system generation */
+  rawData?: RawPageData;
 }
 
 export interface CacheEntry {

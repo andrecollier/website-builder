@@ -693,6 +693,10 @@ export async function captureWebsite(options: CaptureOptions): Promise<CaptureRe
     // Update cache
     setCache(url, fullPagePath, successfulSections);
 
+    // Extract raw page data for design system generation (before browser closes)
+    emitProgress('complete', 95, 'Extracting design data...');
+    const rawData = await extractRawPageData(page, url);
+
     emitProgress('complete', 100, 'Capture complete');
 
     return {
@@ -707,6 +711,7 @@ export async function captureWebsite(options: CaptureOptions): Promise<CaptureRe
         viewportHeight,
         fullPageHeight: dimensions.scrollHeight,
       },
+      rawData,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
