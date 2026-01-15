@@ -3,13 +3,13 @@
   "spec": "004-website-cooker-phase-4",
   "state": "building",
   "subtasks": {
-    "completed": 7,
+    "completed": 22,
     "total": 34,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Generator Core",
+    "current": "Preview UI Advanced Components",
     "id": null,
     "total": 4
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 8,
+    "number": 1763,
     "started_at": "2026-01-15T17:25:53.774172"
   },
-  "last_update": "2026-01-15T17:40:10.574450"
+  "last_update": "2026-01-15T21:21:57.372643"
 }
