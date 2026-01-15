@@ -20,6 +20,7 @@ import {
 } from './scroll-loader';
 import { detectAllSections, getPageDimensions } from './section-detector';
 import { getCached, setCache, copyCacheToWebsite } from '@/lib/cache';
+import type { RawPageData } from '@/lib/design-system/synthesizer';
 
 // ====================
 // TYPE DEFINITIONS
@@ -325,6 +326,185 @@ function saveMetadata(
 
   const metadataPath = path.join(referenceDir, 'metadata.json');
   fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
+}
+
+// ====================
+// DESIGN EXTRACTION
+// ====================
+
+/**
+ * Extract raw page data for design system generation
+ * Uses page.evaluate() to extract computed styles from DOM elements
+ *
+ * @param page - Playwright Page instance
+ * @param url - Source URL for the page data
+ * @returns Promise with RawPageData containing colors, typography, spacing, and effects
+ *
+ * @example
+ * ```typescript
+ * const rawData = await extractRawPageData(page, 'https://example.com');
+ * // rawData contains all extracted CSS computed styles
+ * ```
+ */
+export async function extractRawPageData(page: Page, url: string): Promise<RawPageData> {
+  const rawData = await page.evaluate(() => {
+    // Arrays to collect data
+    const colors: string[] = [];
+    const backgrounds: string[] = [];
+    const borders: string[] = [];
+    const fontFamilies: string[] = [];
+    const fontSizes: string[] = [];
+    const fontWeights: string[] = [];
+    const lineHeights: string[] = [];
+    const elementTypes: string[] = [];
+    const paddings: string[] = [];
+    const margins: string[] = [];
+    const gaps: string[] = [];
+    const maxWidths: string[] = [];
+    const spacingElementTypes: string[] = [];
+    const boxShadows: string[] = [];
+    const borderRadii: string[] = [];
+    const transitions: string[] = [];
+
+    // Helper to check if a color is valid (not transparent or inherit)
+    const isValidColor = (color: string): boolean => {
+      if (!color) return false;
+      const lower = color.toLowerCase();
+      if (lower === 'transparent' || lower === 'inherit' || lower === 'initial') return false;
+      if (lower === 'rgba(0, 0, 0, 0)') return false;
+      return true;
+    };
+
+    // Query all visible elements
+    const elements = document.querySelectorAll('*');
+
+    for (const element of elements) {
+      // Skip script, style, and hidden elements
+      const tagName = element.tagName.toLowerCase();
+      if (tagName === 'script' || tagName === 'style' || tagName === 'noscript') {
+        continue;
+      }
+
+      // Get computed styles
+      const styles = window.getComputedStyle(element);
+
+      // Skip invisible elements
+      if (styles.display === 'none' || styles.visibility === 'hidden') {
+        continue;
+      }
+
+      // Extract colors
+      const color = styles.color;
+      if (isValidColor(color)) {
+        colors.push(color);
+      }
+
+      const backgroundColor = styles.backgroundColor;
+      if (isValidColor(backgroundColor)) {
+        backgrounds.push(backgroundColor);
+      }
+
+      const borderColor = styles.borderColor;
+      if (isValidColor(borderColor)) {
+        borders.push(borderColor);
+      }
+
+      // Extract typography
+      const fontFamily = styles.fontFamily;
+      if (fontFamily) {
+        fontFamilies.push(fontFamily);
+        elementTypes.push(tagName);
+      }
+
+      const fontSize = styles.fontSize;
+      if (fontSize) {
+        fontSizes.push(fontSize);
+      }
+
+      const fontWeight = styles.fontWeight;
+      if (fontWeight) {
+        fontWeights.push(fontWeight);
+      }
+
+      const lineHeight = styles.lineHeight;
+      if (lineHeight) {
+        lineHeights.push(lineHeight);
+      }
+
+      // Extract spacing
+      const padding = styles.padding;
+      if (padding && padding !== '0px') {
+        paddings.push(padding);
+        spacingElementTypes.push(tagName);
+      }
+
+      const margin = styles.margin;
+      if (margin && margin !== '0px') {
+        margins.push(margin);
+      }
+
+      const gap = styles.gap;
+      if (gap && gap !== 'normal' && gap !== '0px') {
+        gaps.push(gap);
+      }
+
+      const maxWidth = styles.maxWidth;
+      if (maxWidth && maxWidth !== 'none') {
+        maxWidths.push(maxWidth);
+      }
+
+      // Extract effects
+      const boxShadow = styles.boxShadow;
+      if (boxShadow && boxShadow !== 'none') {
+        boxShadows.push(boxShadow);
+      }
+
+      const borderRadius = styles.borderRadius;
+      if (borderRadius && borderRadius !== '0px') {
+        borderRadii.push(borderRadius);
+      }
+
+      const transition = styles.transition;
+      if (transition && transition !== 'none' && transition !== 'all 0s ease 0s') {
+        transitions.push(transition);
+      }
+    }
+
+    return {
+      colors: {
+        colors,
+        backgrounds,
+        borders,
+      },
+      typography: {
+        fontFamilies,
+        fontSizes,
+        fontWeights,
+        lineHeights,
+        elementTypes,
+      },
+      spacing: {
+        paddings,
+        margins,
+        gaps,
+        maxWidths,
+        elementTypes: spacingElementTypes,
+      },
+      effects: {
+        boxShadows,
+        borderRadii,
+        transitions,
+      },
+    };
+  });
+
+  return {
+    url,
+    colors: rawData.colors,
+    typography: rawData.typography,
+    spacing: rawData.spacing,
+    effects: rawData.effects,
+  };
 }
 
 // ====================
