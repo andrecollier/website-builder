@@ -196,3 +196,79 @@ export interface MixerCanvasProps {
   references: ReferenceUrl[];
   onReorder: (sections: SectionAssignment[]) => void;
 }
+
+// Screenshot Capture Types
+
+export type CapturePhase =
+  | 'initializing'
+  | 'scrolling'
+  | 'waiting_images'
+  | 'waiting_fonts'
+  | 'capturing'
+  | 'sections'
+  | 'complete';
+
+export interface CaptureProgress {
+  phase: CapturePhase;
+  percent: number;
+  message: string;
+  currentSection?: number;
+  totalSections?: number;
+}
+
+export interface SectionInfo {
+  id: string;
+  type: SectionType;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  screenshotPath: string;
+}
+
+export interface CaptureResult {
+  success: boolean;
+  websiteId: string;
+  fullPagePath: string;
+  sections: SectionInfo[];
+  metadata: {
+    url: string;
+    capturedAt: string;
+    viewportWidth: number;
+    viewportHeight: number;
+    fullPageHeight: number;
+  };
+  error?: string;
+}
+
+export interface CacheEntry {
+  domain: string;
+  capturedAt: string;
+  expiresAt: string;
+  fullPagePath: string;
+  sections: SectionInfo[];
+}
+
+export interface CacheConfig {
+  ttlHours: number;
+  cacheDir: string;
+}
+
+// Playwright Capture Configuration
+
+export const CAPTURE_CONFIG = {
+  viewport: { width: 1440, height: 900 },
+  scrollDistance: 300,
+  scrollDelay: 100,
+  animationWait: 2000,
+  maxRetries: 3,
+  pageTimeout: 30000,
+  maxSections: 10,
+} as const;
+
+export const CACHE_CONFIG = {
+  ttlHours: 12,
+  baseDir: 'cache',
+} as const;
