@@ -15,7 +15,7 @@
 
 // Code viewing and editing
 // export { CodeViewer } from './CodeViewer';
-// export { CodeEditor } from './CodeEditor';
+export { CodeEditor } from './CodeEditor';
 // export { OriginalComparison } from './OriginalComparison';
 
 // Types
@@ -24,7 +24,7 @@
 // export type { ProgressTrackerProps } from './ProgressTracker';
 // export type { ApprovalButtonsProps } from './ApprovalButtons';
 // export type { CodeViewerProps } from './CodeViewer';
-// export type { CodeEditorProps } from './CodeEditor';
+export type { CodeEditorProps } from './CodeEditor';
 // export type { OriginalComparisonProps } from './OriginalComparison';
 
 // Note: Exports will be uncommented as components are implemented
