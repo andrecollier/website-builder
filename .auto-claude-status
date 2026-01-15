@@ -3,23 +3,23 @@
   "spec": "004-website-cooker-phase-4",
   "state": "building",
   "subtasks": {
-    "completed": 26,
+    "completed": 28,
     "total": 34,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Preview Page",
+    "current": "Error Recovery",
     "id": null,
-    "total": 1
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 1767,
+    "number": 1769,
     "started_at": "2026-01-15T17:25:53.774172"
   },
-  "last_update": "2026-01-15T21:32:26.893898"
+  "last_update": "2026-01-15T21:38:04.676142"
 }
