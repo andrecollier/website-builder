@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "004-website-cooker-phase-4",
+  "spec": "006-website-cooker-phase-4-5-testing",
   "state": "building",
   "subtasks": {
-    "completed": 33,
-    "total": 34,
+    "completed": 0,
+    "total": 9,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Integration",
+    "current": "Fix Scroll Delay Configuration",
     "id": null,
-    "total": 4
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 1774,
-    "started_at": "2026-01-15T17:25:53.774172"
+    "number": 1,
+    "started_at": "2026-01-15T23:44:44.499636"
   },
-  "last_update": "2026-01-15T21:47:43.554430"
+  "last_update": "2026-01-15T23:44:44.563692"
 }

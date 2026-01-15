@@ -261,7 +261,7 @@ export interface CacheConfig {
 export const CAPTURE_CONFIG = {
   viewport: { width: 1440, height: 900 },
   scrollDistance: 300,
-  scrollDelay: 100,
+  scrollDelay: 500,
   animationWait: 2000,
   maxRetries: 3,
   pageTimeout: 30000,
