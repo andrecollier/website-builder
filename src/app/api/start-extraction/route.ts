@@ -12,9 +12,11 @@ import { isValidUrl, getNameFromUrl } from '@/lib/utils';
 import { captureWebsite } from '@/lib/playwright/capture';
 import { publishCaptureProgress } from '@/app/api/capture-status/route';
 import {
+  synthesizeDesignSystem,
   getDefaultDesignSystem,
   generateTailwindConfigString,
   generateCSSVariables,
+  type RawPageData,
 } from '@/lib/design-system';
 import { setTokens } from '@/lib/cache';
 import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress, DesignSystem } from '@/types';
@@ -47,15 +49,18 @@ function getWebsitesBaseDir(): string {
  *
  * @param websiteId - The website ID for folder naming
  * @param url - The source URL for meta information
+ * @param rawData - Raw page data from Playwright capture (optional, uses defaults if not provided)
  * @returns The generated DesignSystem object
  */
 async function synthesizeAndSaveDesignSystem(
   websiteId: string,
-  url: string
+  url: string,
+  rawData?: RawPageData | null
 ): Promise<DesignSystem> {
-  // Generate design system with default values
-  // TODO: Replace with actual raw data extraction from Playwright when implemented
-  const designSystem = getDefaultDesignSystem(url);
+  // Generate design system from raw data if available, otherwise use defaults
+  const designSystem = rawData
+    ? synthesizeDesignSystem(rawData)
+    : getDefaultDesignSystem(url);
 
   // Get the website output directory
   const websiteDir = path.join(getWebsitesBaseDir(), websiteId);
