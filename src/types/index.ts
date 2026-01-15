@@ -272,3 +272,105 @@ export const CACHE_CONFIG = {
   ttlHours: 12,
   baseDir: 'cache',
 } as const;
+
+// Design System Types
+
+export interface ColorExtraction {
+  primary: string[];      // Most used accent colors
+  secondary: string[];    // Secondary colors
+  neutral: string[];      // Grays, whites, blacks
+  semantic: {
+    success: string;
+    error: string;
+    warning: string;
+    info: string;
+  };
+  palettes: {
+    [colorName: string]: {
+      50: string;
+      100: string;
+      200: string;
+      300: string;
+      400: string;
+      500: string;
+      600: string;
+      700: string;
+      800: string;
+      900: string;
+      950: string;
+    };
+  };
+}
+
+export interface TypographyExtraction {
+  fonts: {
+    heading: string;
+    body: string;
+    mono?: string;
+  };
+  scale: {
+    display: string;
+    h1: string;
+    h2: string;
+    h3: string;
+    h4: string;
+    h5: string;
+    h6: string;
+    body: string;
+    small: string;
+    xs: string;
+  };
+  weights: number[];
+  lineHeights: {
+    tight: number;
+    normal: number;
+    relaxed: number;
+  };
+}
+
+export interface SpacingExtraction {
+  baseUnit: number;       // 4 or 8
+  scale: number[];        // [4, 8, 12, 16, 24, 32, 48, 64, 96]
+  containerMaxWidth: string;
+  sectionPadding: {
+    mobile: string;
+    desktop: string;
+  };
+}
+
+export interface EffectsExtraction {
+  shadows: {
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+  };
+  radii: {
+    sm: string;
+    md: string;
+    lg: string;
+    full: string;
+  };
+  transitions: {
+    fast: string;
+    normal: string;
+    slow: string;
+  };
+}
+
+export interface DesignSystem {
+  meta: {
+    sourceUrl: string;
+    extractedAt: string;
+    version: number;
+  };
+  colors: ColorExtraction;
+  typography: TypographyExtraction;
+  spacing: SpacingExtraction;
+  effects: EffectsExtraction;
+}
+
+export const TOKEN_CACHE_CONFIG = {
+  ttlHours: 24,
+  baseDir: 'cache/tokens',
+} as const;
