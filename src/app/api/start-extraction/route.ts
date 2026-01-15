@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createWebsite, initializeDatabase, updateWebsiteStatus } from '@/lib/db/client';
 import { isValidUrl, getNameFromUrl } from '@/lib/utils';
 import { captureWebsite } from '@/lib/playwright/capture';
+import { publishCaptureProgress } from '@/app/api/capture-status/route';
 import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress } from '@/types';
 
 /**
@@ -28,7 +29,9 @@ async function runCaptureProcess(websiteId: string, url: string): Promise<void> 
       websiteId,
       url,
       onProgress: (progress) => {
-        // Store progress for status polling
+        // Publish to SSE subscribers for real-time updates
+        publishCaptureProgress(websiteId, progress);
+        // Also store for polling fallback
         captureProgressStore.set(websiteId, progress);
       },
     });
