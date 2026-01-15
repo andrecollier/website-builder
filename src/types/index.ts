@@ -392,6 +392,7 @@ export interface EditorState {
   setActivePanel: (panel: EditorPanel) => void;
   resetToOriginal: () => void;
   saveTokens: () => Promise<void>;
+  reset: () => void;
 }
 
 // Token Cache Configuration

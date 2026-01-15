@@ -215,13 +215,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // TODO: Implement API call to save tokens
-      // const response = await fetch('/api/tokens', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(state.modifiedTokens),
-      // });
-      // if (!response.ok) throw new Error('Failed to save tokens');
+      const response = await fetch('/api/tokens', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: state.modifiedTokens.meta.sourceUrl,
+          tokens: state.modifiedTokens,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save tokens');
+      }
 
       // After successful save, update original to match modified
       set({
