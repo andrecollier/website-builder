@@ -10,7 +10,79 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { ALL_SCHEMA_STATEMENTS } from './schema';
-import type { Website, WebsiteInsert, WebsiteStatus } from '@/types';
+import type {
+  Website,
+  WebsiteInsert,
+  WebsiteStatus,
+  ComponentType,
+} from '@/types';
+
+// ====================
+// DATABASE TYPES
+// ====================
+
+/**
+ * Component record from database
+ */
+export interface ComponentRecord {
+  id: string;
+  website_id: string;
+  version_id: string;
+  name: string;
+  type: ComponentType;
+  order_index: number;
+  selected_variant: string | null;
+  custom_code: string | null;
+  approved: number; // SQLite boolean as 0/1
+  accuracy_score: number | null;
+  error_message: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'skipped' | 'failed';
+}
+
+/**
+ * Component insert data
+ */
+export interface ComponentInsert {
+  id?: string;
+  website_id: string;
+  version_id: string;
+  name: string;
+  type: ComponentType;
+  order_index: number;
+  selected_variant?: string | null;
+  custom_code?: string | null;
+  approved?: boolean;
+  accuracy_score?: number | null;
+  error_message?: string | null;
+  status?: 'pending' | 'approved' | 'rejected' | 'skipped' | 'failed';
+}
+
+/**
+ * Component variant record from database
+ */
+export interface VariantRecord {
+  id: string;
+  component_id: string;
+  variant_name: string;
+  description: string | null;
+  code: string;
+  preview_image: string | null;
+  accuracy_score: number | null;
+  created_at: string;
+}
+
+/**
+ * Variant insert data
+ */
+export interface VariantInsert {
+  id?: string;
+  component_id: string;
+  variant_name: string;
+  description?: string | null;
+  code: string;
+  preview_image?: string | null;
+  accuracy_score?: number | null;
+}
 
 // ====================
 // DATABASE SINGLETON
@@ -281,6 +353,489 @@ export function countWebsitesByStatus(status: WebsiteStatus): number {
 }
 
 // ====================
+// COMPONENT OPERATIONS
+// ====================
+
+/**
+ * Get all components for a website
+ */
+export function getComponentsByWebsite(websiteId: string): ComponentRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, website_id, version_id, name, type, order_index,
+           selected_variant, custom_code, approved, accuracy_score, error_message, status
+    FROM components
+    WHERE website_id = ?
+    ORDER BY order_index ASC
+  `);
+  return stmt.all(websiteId) as ComponentRecord[];
+}
+
+/**
+ * Get all components for a specific version
+ */
+export function getComponentsByVersion(versionId: string): ComponentRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, website_id, version_id, name, type, order_index,
+           selected_variant, custom_code, approved, accuracy_score, error_message, status
+    FROM components
+    WHERE version_id = ?
+    ORDER BY order_index ASC
+  `);
+  return stmt.all(versionId) as ComponentRecord[];
+}
+
+/**
+ * Get a single component by ID
+ */
+export function getComponentById(id: string): ComponentRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, website_id, version_id, name, type, order_index,
+           selected_variant, custom_code, approved, accuracy_score, error_message, status
+    FROM components
+    WHERE id = ?
+  `);
+  const result = stmt.get(id);
+  return (result as ComponentRecord) || null;
+}
+
+/**
+ * Create a new component record
+ */
+export function createComponent(data: ComponentInsert): ComponentRecord {
+  const database = getDb();
+  const id = data.id || `component-${randomUUID()}`;
+  const status = data.status || 'pending';
+  const approved = data.approved ? 1 : 0;
+
+  const stmt = database.prepare(`
+    INSERT INTO components (id, website_id, version_id, name, type, order_index,
+                            selected_variant, custom_code, approved, accuracy_score, error_message, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.website_id,
+    data.version_id,
+    data.name,
+    data.type,
+    data.order_index,
+    data.selected_variant ?? null,
+    data.custom_code ?? null,
+    approved,
+    data.accuracy_score ?? null,
+    data.error_message ?? null,
+    status
+  );
+
+  const component = getComponentById(id);
+  if (!component) {
+    throw new Error('Failed to create component record');
+  }
+  return component;
+}
+
+/**
+ * Update a component's status
+ */
+export function updateComponentStatus(
+  id: string,
+  status: 'pending' | 'approved' | 'rejected' | 'skipped' | 'failed'
+): ComponentRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE components
+    SET status = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(status, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getComponentById(id);
+}
+
+/**
+ * Update a component's selected variant
+ */
+export function updateComponentSelectedVariant(
+  id: string,
+  variantId: string | null
+): ComponentRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE components
+    SET selected_variant = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(variantId, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getComponentById(id);
+}
+
+/**
+ * Update a component's custom code
+ */
+export function updateComponentCustomCode(
+  id: string,
+  customCode: string | null
+): ComponentRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE components
+    SET custom_code = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(customCode, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getComponentById(id);
+}
+
+/**
+ * Update a component record
+ */
+export function updateComponent(
+  id: string,
+  data: Partial<Omit<ComponentInsert, 'id' | 'website_id' | 'version_id'>>
+): ComponentRecord | null {
+  const database = getDb();
+  const updates: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (data.name !== undefined) {
+    updates.push('name = ?');
+    values.push(data.name);
+  }
+  if (data.type !== undefined) {
+    updates.push('type = ?');
+    values.push(data.type);
+  }
+  if (data.order_index !== undefined) {
+    updates.push('order_index = ?');
+    values.push(data.order_index);
+  }
+  if (data.selected_variant !== undefined) {
+    updates.push('selected_variant = ?');
+    values.push(data.selected_variant);
+  }
+  if (data.custom_code !== undefined) {
+    updates.push('custom_code = ?');
+    values.push(data.custom_code);
+  }
+  if (data.approved !== undefined) {
+    updates.push('approved = ?');
+    values.push(data.approved ? 1 : 0);
+  }
+  if (data.accuracy_score !== undefined) {
+    updates.push('accuracy_score = ?');
+    values.push(data.accuracy_score);
+  }
+  if (data.error_message !== undefined) {
+    updates.push('error_message = ?');
+    values.push(data.error_message);
+  }
+  if (data.status !== undefined) {
+    updates.push('status = ?');
+    values.push(data.status);
+  }
+
+  if (updates.length === 0) {
+    return getComponentById(id);
+  }
+
+  values.push(id);
+
+  const stmt = database.prepare(`
+    UPDATE components
+    SET ${updates.join(', ')}
+    WHERE id = ?
+  `);
+  const result = stmt.run(...values);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getComponentById(id);
+}
+
+/**
+ * Delete a component by ID
+ */
+export function deleteComponent(id: string): boolean {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM components WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Delete all components for a website
+ */
+export function deleteComponentsByWebsite(websiteId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM components WHERE website_id = ?');
+  const result = stmt.run(websiteId);
+  return result.changes;
+}
+
+/**
+ * Count components by website
+ */
+export function countComponentsByWebsite(websiteId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('SELECT COUNT(*) as count FROM components WHERE website_id = ?');
+  const result = stmt.get(websiteId) as { count: number };
+  return result.count;
+}
+
+/**
+ * Count components by status for a website
+ */
+export function countComponentsByStatus(
+  websiteId: string,
+  status: 'pending' | 'approved' | 'rejected' | 'skipped' | 'failed'
+): number {
+  const database = getDb();
+  const stmt = database.prepare(
+    'SELECT COUNT(*) as count FROM components WHERE website_id = ? AND status = ?'
+  );
+  const result = stmt.get(websiteId, status) as { count: number };
+  return result.count;
+}
+
+// ====================
+// VARIANT OPERATIONS
+// ====================
+
+/**
+ * Get all variants for a component
+ */
+export function getVariantsByComponent(componentId: string): VariantRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, component_id, variant_name, description, code, preview_image, accuracy_score, created_at
+    FROM component_variants
+    WHERE component_id = ?
+    ORDER BY created_at ASC
+  `);
+  return stmt.all(componentId) as VariantRecord[];
+}
+
+/**
+ * Get a single variant by ID
+ */
+export function getVariantById(id: string): VariantRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, component_id, variant_name, description, code, preview_image, accuracy_score, created_at
+    FROM component_variants
+    WHERE id = ?
+  `);
+  const result = stmt.get(id);
+  return (result as VariantRecord) || null;
+}
+
+/**
+ * Create a new variant record
+ */
+export function createVariant(data: VariantInsert): VariantRecord {
+  const database = getDb();
+  const id = data.id || `variant-${randomUUID()}`;
+
+  const stmt = database.prepare(`
+    INSERT INTO component_variants (id, component_id, variant_name, description, code, preview_image, accuracy_score)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.component_id,
+    data.variant_name,
+    data.description ?? null,
+    data.code,
+    data.preview_image ?? null,
+    data.accuracy_score ?? null
+  );
+
+  const variant = getVariantById(id);
+  if (!variant) {
+    throw new Error('Failed to create variant record');
+  }
+  return variant;
+}
+
+/**
+ * Update a variant's code
+ */
+export function updateVariantCode(id: string, code: string): VariantRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE component_variants
+    SET code = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(code, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getVariantById(id);
+}
+
+/**
+ * Update a variant's accuracy score
+ */
+export function updateVariantAccuracyScore(
+  id: string,
+  accuracyScore: number | null
+): VariantRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE component_variants
+    SET accuracy_score = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(accuracyScore, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getVariantById(id);
+}
+
+/**
+ * Update a variant record
+ */
+export function updateVariant(
+  id: string,
+  data: Partial<Omit<VariantInsert, 'id' | 'component_id'>>
+): VariantRecord | null {
+  const database = getDb();
+  const updates: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (data.variant_name !== undefined) {
+    updates.push('variant_name = ?');
+    values.push(data.variant_name);
+  }
+  if (data.description !== undefined) {
+    updates.push('description = ?');
+    values.push(data.description);
+  }
+  if (data.code !== undefined) {
+    updates.push('code = ?');
+    values.push(data.code);
+  }
+  if (data.preview_image !== undefined) {
+    updates.push('preview_image = ?');
+    values.push(data.preview_image);
+  }
+  if (data.accuracy_score !== undefined) {
+    updates.push('accuracy_score = ?');
+    values.push(data.accuracy_score);
+  }
+
+  if (updates.length === 0) {
+    return getVariantById(id);
+  }
+
+  values.push(id);
+
+  const stmt = database.prepare(`
+    UPDATE component_variants
+    SET ${updates.join(', ')}
+    WHERE id = ?
+  `);
+  const result = stmt.run(...values);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getVariantById(id);
+}
+
+/**
+ * Delete a variant by ID
+ */
+export function deleteVariant(id: string): boolean {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM component_variants WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Delete all variants for a component
+ */
+export function deleteVariantsByComponent(componentId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM component_variants WHERE component_id = ?');
+  const result = stmt.run(componentId);
+  return result.changes;
+}
+
+/**
+ * Count variants by component
+ */
+export function countVariantsByComponent(componentId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('SELECT COUNT(*) as count FROM component_variants WHERE component_id = ?');
+  const result = stmt.get(componentId) as { count: number };
+  return result.count;
+}
+
+/**
+ * Create multiple variants in a transaction
+ */
+export function createVariantsBatch(variants: VariantInsert[]): VariantRecord[] {
+  const database = getDb();
+  const createdVariants: VariantRecord[] = [];
+
+  const insertStmt = database.prepare(`
+    INSERT INTO component_variants (id, component_id, variant_name, description, code, preview_image, accuracy_score)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  database.transaction(() => {
+    for (const data of variants) {
+      const id = data.id || `variant-${randomUUID()}`;
+      insertStmt.run(
+        id,
+        data.component_id,
+        data.variant_name,
+        data.description ?? null,
+        data.code,
+        data.preview_image ?? null,
+        data.accuracy_score ?? null
+      );
+      const variant = getVariantById(id);
+      if (variant) {
+        createdVariants.push(variant);
+      }
+    }
+  })();
+
+  return createdVariants;
+}
+
+// ====================
 // SEARCH OPERATIONS
 // ====================
 
@@ -330,6 +885,8 @@ export function resetDatabase(): void {
     // Drop all tables in reverse order of dependencies
     database.exec('DROP TABLE IF EXISTS error_log');
     database.exec('DROP TABLE IF EXISTS cache');
+    database.exec('DROP TABLE IF EXISTS design_tokens');
+    database.exec('DROP TABLE IF EXISTS component_variants');
     database.exec('DROP TABLE IF EXISTS components');
     database.exec('DROP TABLE IF EXISTS versions');
     database.exec('DROP TABLE IF EXISTS websites');
