@@ -3,23 +3,23 @@
   "spec": "003-website-cooker-phase-3",
   "state": "building",
   "subtasks": {
-    "completed": 4,
+    "completed": 6,
     "total": 27,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Foundation - Types & Database",
+    "current": "Design Token Extractors",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 5,
+    "number": 693,
     "started_at": "2026-01-15T14:42:36.249294"
   },
-  "last_update": "2026-01-15T14:47:12.125310"
+  "last_update": "2026-01-15T16:02:23.080432"
 }
