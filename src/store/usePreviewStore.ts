@@ -132,7 +132,7 @@ export const usePreviewStore = create<PreviewState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           componentId,
-          selectedVariant: component.selectedVariant,
+          variantId: component.selectedVariant,
           customCode: component.customCode,
         }),
       });
