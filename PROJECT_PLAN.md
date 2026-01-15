@@ -848,10 +848,10 @@ Når planen er godkjent:
 
 ---
 
-## Spørsmål Før Vi Starter
+## Beslutninger
 
-1. **Bildehåndtering?** Skal bilder lastes ned og inkluderes, eller bruke placeholder?
+1. **Bildehåndtering:** Last ned og inkluder alle bilder (optimalisert)
 
-2. **Interaktivitet?** Skal genererte sider ha JavaScript-funksjonalitet (dropdowns, modals, etc.)?
+2. **Interaktivitet:** Ja - full JavaScript-funksjonalitet (dropdowns, modals, accordions, tabs, etc.)
 
-3. **Fler-sides støtte?** Kun landingssider, eller hele websites med flere sider?
+3. **Fler-sides støtte:** Hele websites med flere sider (ikke kun landingssider)
