@@ -20,6 +20,7 @@
     "@radix-ui/react-dropdown-menu": "^2.1.4",
     "@radix-ui/react-slider": "^1.2.2",
     "@radix-ui/react-switch": "^1.1.2",
+    "archiver": "^7.0.0",
     "better-sqlite3": "^11.7.0",
     "chroma-js": "^2.6.0",
     "monaco-editor": "^0.52.0",
