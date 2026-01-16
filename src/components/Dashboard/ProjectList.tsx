@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { ProjectListProps, Website, WebsiteStatus } from '@/types';
 import { cn, formatRelativeTime, truncate } from '@/lib/utils';
 
@@ -264,6 +265,24 @@ export function ProjectList({
                     </>
                   ) : (
                     <>
+                      {/* Compare Button - only for completed projects */}
+                      {project.status === 'completed' && (
+                        <Link
+                          href={`/compare/${project.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className={cn(
+                            'px-2 py-1 text-xs font-medium rounded',
+                            'bg-[rgb(var(--accent)/0.1)] text-[rgb(var(--accent))]',
+                            'hover:bg-[rgb(var(--accent)/0.2)]',
+                            'opacity-0 group-hover:opacity-100',
+                            'focus:outline-none focus:opacity-100 focus:ring-2 focus:ring-[rgb(var(--accent)/0.3)]',
+                            'transition-all duration-150'
+                          )}
+                          aria-label={`Compare project: ${project.name}`}
+                        >
+                          Compare
+                        </Link>
+                      )}
                       {/* View Arrow */}
                       <span
                         className="text-[rgb(var(--muted-foreground))] opacity-0 group-hover:opacity-100 transition-opacity"
