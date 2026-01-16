@@ -21,57 +21,6 @@ export interface WebsiteInsert {
   status?: WebsiteStatus;
 }
 
-export interface Version {
-  id: string;
-  website_id: string;
-  version_number: string;
-  created_at: string;
-  tokens_json: string | null;
-  accuracy_score: number | null;
-  changelog: string | null;
-  is_active: number; // SQLite boolean as 0/1
-  parent_version_id: string | null;
-}
-
-export interface VersionInsert {
-  id?: string;
-  website_id: string;
-  version_number: string;
-  tokens_json?: string | null;
-  accuracy_score?: number | null;
-  changelog?: string | null;
-  is_active?: boolean;
-  parent_version_id?: string | null;
-}
-
-export interface VersionFile {
-  id: string;
-  version_id: string;
-  file_path: string;
-  file_hash: string;
-  created_at: string;
-}
-
-export interface VersionFileInsert {
-  id?: string;
-  version_id: string;
-  file_path: string;
-  file_hash: string;
-}
-
-export interface ChangelogEntry {
-  type: 'color' | 'typography' | 'spacing' | 'effects' | 'component' | 'layout' | 'other';
-  description: string;
-  timestamp: string;
-}
-
-export interface Change {
-  field: string;
-  oldValue: string | null;
-  newValue: string | null;
-  changeType: 'added' | 'removed' | 'modified';
-}
-
 // Extraction Phases
 
 export type PhaseName =
@@ -199,6 +148,59 @@ export interface TemplateConfig {
   sections: SectionAssignment[];
 }
 
+// Template Project
+export interface TemplateProject {
+  id: string;
+  name: string;
+  references: Reference[];
+  sectionMapping: SectionMapping;
+  primaryTokenSource: string | null;
+  status: 'configuring' | 'processing' | 'complete';
+  harmonyScore: number | null;
+  createdAt: string;
+}
+
+// Processed Reference
+export interface Reference {
+  id: string;
+  url: string;
+  name: string;
+  tokens: DesignSystem;
+  sections: SectionInfo[];
+  status: 'pending' | 'processing' | 'ready' | 'error';
+}
+
+// Section Mapping
+export interface SectionMapping {
+  [sectionType: string]: string; // Maps SectionType to Reference ID
+}
+
+// Merge Strategy
+export interface MergeStrategy {
+  base: string; // Primary reference ID
+  overrides: TokenOverride[];
+}
+
+export interface TokenOverride {
+  referenceId: string;
+  path: string; // e.g., "colors.primary"
+  value: unknown;
+}
+
+// Harmony Results
+export interface HarmonyResult {
+  score: number; // 0-100
+  issues: HarmonyIssue[];
+  suggestions: string[];
+}
+
+export interface HarmonyIssue {
+  type: 'color_clash' | 'typography_mismatch' | 'spacing_inconsistent';
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  affectedSections: SectionType[];
+}
+
 // Component Props Types
 
 export interface UrlInputProps {
@@ -256,6 +258,17 @@ export interface MixerCanvasProps {
   sections: SectionAssignment[];
   references: ReferenceUrl[];
   onReorder: (sections: SectionAssignment[]) => void;
+}
+
+export interface TokenSourceSelectorProps {
+  references: ReferenceUrl[];
+  primaryTokenSource: string | null;
+  onSelect: (sourceId: string | null) => void;
+}
+
+export interface HarmonyIndicatorProps {
+  harmonyResult: HarmonyResult | null;
+  isCalculating?: boolean;
 }
 
 // Screenshot Capture Types

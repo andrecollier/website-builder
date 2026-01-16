@@ -15,10 +15,6 @@ import type {
   WebsiteInsert,
   WebsiteStatus,
   ComponentType,
-  Version,
-  VersionInsert,
-  VersionFile,
-  VersionFileInsert,
 } from '@/types';
 
 // ====================
@@ -86,6 +82,56 @@ export interface VariantInsert {
   code: string;
   preview_image?: string | null;
   accuracy_score?: number | null;
+}
+
+/**
+ * Template project record from database
+ */
+export interface TemplateProjectRecord {
+  id: string;
+  name: string;
+  primary_token_source: string | null;
+  section_mapping_json: string | null;
+  harmony_score: number | null;
+  status: string;
+  created_at: string;
+}
+
+/**
+ * Template project insert data
+ */
+export interface TemplateProjectInsert {
+  id?: string;
+  name: string;
+  primary_token_source?: string | null;
+  section_mapping_json?: string | null;
+  harmony_score?: number | null;
+  status?: string;
+}
+
+/**
+ * Template reference record from database
+ */
+export interface TemplateReferenceRecord {
+  id: string;
+  project_id: string;
+  url: string;
+  name: string | null;
+  tokens_json: string | null;
+  sections_json: string | null;
+  created_at: string;
+}
+
+/**
+ * Template reference insert data
+ */
+export interface TemplateReferenceInsert {
+  id?: string;
+  project_id: string;
+  url: string;
+  name?: string | null;
+  tokens_json?: string | null;
+  sections_json?: string | null;
 }
 
 // ====================
@@ -440,303 +486,6 @@ export function countWebsitesByStatus(status: WebsiteStatus): number {
   const database = getDb();
   const stmt = database.prepare('SELECT COUNT(*) as count FROM websites WHERE status = ?');
   const result = stmt.get(status) as { count: number };
-  return result.count;
-}
-
-// ====================
-// VERSION OPERATIONS
-// ====================
-
-/**
- * Get all versions for a website ordered by creation date (newest first)
- */
-export function getVersions(websiteId: string): Version[] {
-  const database = getDb();
-  const stmt = database.prepare(`
-    SELECT id, website_id, version_number, created_at, tokens_json,
-           accuracy_score, changelog, is_active, parent_version_id
-    FROM versions
-    WHERE website_id = ?
-    ORDER BY created_at DESC
-  `);
-  return stmt.all(websiteId) as Version[];
-}
-
-/**
- * Get a single version by ID
- */
-export function getVersionById(id: string): Version | null {
-  const database = getDb();
-  const stmt = database.prepare(`
-    SELECT id, website_id, version_number, created_at, tokens_json,
-           accuracy_score, changelog, is_active, parent_version_id
-    FROM versions
-    WHERE id = ?
-  `);
-  const result = stmt.get(id);
-  return (result as Version) || null;
-}
-
-/**
- * Get the active version for a website
- */
-export function getActiveVersion(websiteId: string): Version | null {
-  const database = getDb();
-  const stmt = database.prepare(`
-    SELECT id, website_id, version_number, created_at, tokens_json,
-           accuracy_score, changelog, is_active, parent_version_id
-    FROM versions
-    WHERE website_id = ? AND is_active = 1
-    LIMIT 1
-  `);
-  const result = stmt.get(websiteId);
-  return (result as Version) || null;
-}
-
-/**
- * Create a new version record
- */
-export function createVersion(data: VersionInsert): Version {
-  const database = getDb();
-  const id = data.id || `version-${randomUUID()}`;
-  const isActive = data.is_active ? 1 : 0;
-
-  const stmt = database.prepare(`
-    INSERT INTO versions (id, website_id, version_number, tokens_json,
-                          accuracy_score, changelog, is_active, parent_version_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  stmt.run(
-    id,
-    data.website_id,
-    data.version_number,
-    data.tokens_json ?? null,
-    data.accuracy_score ?? null,
-    data.changelog ?? null,
-    isActive,
-    data.parent_version_id ?? null
-  );
-
-  const version = getVersionById(id);
-  if (!version) {
-    throw new Error('Failed to create version record');
-  }
-  return version;
-}
-
-/**
- * Set a version as active and deactivate all others for the website
- */
-export function setActiveVersion(versionId: string): Version | null {
-  const database = getDb();
-
-  // First get the version to find the website_id
-  const version = getVersionById(versionId);
-  if (!version) {
-    return null;
-  }
-
-  // Use a transaction to ensure consistency
-  database.transaction(() => {
-    // Deactivate all versions for this website
-    const deactivateStmt = database.prepare(`
-      UPDATE versions
-      SET is_active = 0
-      WHERE website_id = ?
-    `);
-    deactivateStmt.run(version.website_id);
-
-    // Activate the target version
-    const activateStmt = database.prepare(`
-      UPDATE versions
-      SET is_active = 1
-      WHERE id = ?
-    `);
-    activateStmt.run(versionId);
-  })();
-
-  return getVersionById(versionId);
-}
-
-/**
- * Update a version record
- */
-export function updateVersion(
-  id: string,
-  data: Partial<Omit<VersionInsert, 'id' | 'website_id' | 'version_number'>>
-): Version | null {
-  const database = getDb();
-  const updates: string[] = [];
-  const values: (string | number | null)[] = [];
-
-  if (data.tokens_json !== undefined) {
-    updates.push('tokens_json = ?');
-    values.push(data.tokens_json);
-  }
-  if (data.accuracy_score !== undefined) {
-    updates.push('accuracy_score = ?');
-    values.push(data.accuracy_score);
-  }
-  if (data.changelog !== undefined) {
-    updates.push('changelog = ?');
-    values.push(data.changelog);
-  }
-  if (data.is_active !== undefined) {
-    updates.push('is_active = ?');
-    values.push(data.is_active ? 1 : 0);
-  }
-  if (data.parent_version_id !== undefined) {
-    updates.push('parent_version_id = ?');
-    values.push(data.parent_version_id);
-  }
-
-  if (updates.length === 0) {
-    return getVersionById(id);
-  }
-
-  values.push(id);
-
-  const stmt = database.prepare(`
-    UPDATE versions
-    SET ${updates.join(', ')}
-    WHERE id = ?
-  `);
-  const result = stmt.run(...values);
-
-  if (result.changes === 0) {
-    return null;
-  }
-
-  return getVersionById(id);
-}
-
-/**
- * Delete a version by ID
- */
-export function deleteVersion(id: string): boolean {
-  const database = getDb();
-  const stmt = database.prepare('DELETE FROM versions WHERE id = ?');
-  const result = stmt.run(id);
-  return result.changes > 0;
-}
-
-/**
- * Count versions by website
- */
-export function countVersionsByWebsite(websiteId: string): number {
-  const database = getDb();
-  const stmt = database.prepare('SELECT COUNT(*) as count FROM versions WHERE website_id = ?');
-  const result = stmt.get(websiteId) as { count: number };
-  return result.count;
-}
-
-// ====================
-// VERSION FILE OPERATIONS
-// ====================
-
-/**
- * Get all files for a version
- */
-export function getVersionFiles(versionId: string): VersionFile[] {
-  const database = getDb();
-  const stmt = database.prepare(`
-    SELECT id, version_id, file_path, file_hash, created_at
-    FROM version_files
-    WHERE version_id = ?
-    ORDER BY file_path ASC
-  `);
-  return stmt.all(versionId) as VersionFile[];
-}
-
-/**
- * Get a single version file by ID
- */
-export function getVersionFileById(id: string): VersionFile | null {
-  const database = getDb();
-  const stmt = database.prepare(`
-    SELECT id, version_id, file_path, file_hash, created_at
-    FROM version_files
-    WHERE id = ?
-  `);
-  const result = stmt.get(id);
-  return (result as VersionFile) || null;
-}
-
-/**
- * Create a new version file record
- */
-export function createVersionFile(data: VersionFileInsert): VersionFile {
-  const database = getDb();
-  const id = data.id || `version-file-${randomUUID()}`;
-
-  const stmt = database.prepare(`
-    INSERT INTO version_files (id, version_id, file_path, file_hash)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  stmt.run(id, data.version_id, data.file_path, data.file_hash);
-
-  const versionFile = getVersionFileById(id);
-  if (!versionFile) {
-    throw new Error('Failed to create version file record');
-  }
-  return versionFile;
-}
-
-/**
- * Create multiple version files in a transaction
- */
-export function createVersionFilesBatch(files: VersionFileInsert[]): VersionFile[] {
-  const database = getDb();
-  const createdFiles: VersionFile[] = [];
-
-  const insertStmt = database.prepare(`
-    INSERT INTO version_files (id, version_id, file_path, file_hash)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  database.transaction(() => {
-    for (const data of files) {
-      const id = data.id || `version-file-${randomUUID()}`;
-      insertStmt.run(id, data.version_id, data.file_path, data.file_hash);
-      const versionFile = getVersionFileById(id);
-      if (versionFile) {
-        createdFiles.push(versionFile);
-      }
-    }
-  })();
-
-  return createdFiles;
-}
-
-/**
- * Delete a version file by ID
- */
-export function deleteVersionFile(id: string): boolean {
-  const database = getDb();
-  const stmt = database.prepare('DELETE FROM version_files WHERE id = ?');
-  const result = stmt.run(id);
-  return result.changes > 0;
-}
-
-/**
- * Delete all files for a version
- */
-export function deleteVersionFilesByVersion(versionId: string): number {
-  const database = getDb();
-  const stmt = database.prepare('DELETE FROM version_files WHERE version_id = ?');
-  const result = stmt.run(versionId);
-  return result.changes;
-}
-
-/**
- * Count files by version
- */
-export function countVersionFiles(versionId: string): number {
-  const database = getDb();
-  const stmt = database.prepare('SELECT COUNT(*) as count FROM version_files WHERE version_id = ?');
-  const result = stmt.get(versionId) as { count: number };
   return result.count;
 }
 
@@ -1221,6 +970,322 @@ export function createVariantsBatch(variants: VariantInsert[]): VariantRecord[] 
   })();
 
   return createdVariants;
+}
+
+// ====================
+// TEMPLATE PROJECT OPERATIONS
+// ====================
+
+/**
+ * Get all template projects ordered by creation date (newest first)
+ */
+export function getTemplateProjects(): TemplateProjectRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, name, primary_token_source, section_mapping_json, harmony_score, status, created_at
+    FROM template_projects
+    ORDER BY created_at DESC
+  `);
+  return stmt.all() as TemplateProjectRecord[];
+}
+
+/**
+ * Get a single template project by ID
+ */
+export function getTemplateProjectById(id: string): TemplateProjectRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, name, primary_token_source, section_mapping_json, harmony_score, status, created_at
+    FROM template_projects
+    WHERE id = ?
+  `);
+  const result = stmt.get(id);
+  return (result as TemplateProjectRecord) || null;
+}
+
+/**
+ * Get template projects by status
+ */
+export function getTemplateProjectsByStatus(status: string): TemplateProjectRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, name, primary_token_source, section_mapping_json, harmony_score, status, created_at
+    FROM template_projects
+    WHERE status = ?
+    ORDER BY created_at DESC
+  `);
+  return stmt.all(status) as TemplateProjectRecord[];
+}
+
+/**
+ * Create a new template project record
+ */
+export function createTemplateProject(data: TemplateProjectInsert): TemplateProjectRecord {
+  const database = getDb();
+  const id = data.id || `template-${randomUUID()}`;
+  const status = data.status || 'configuring';
+
+  const stmt = database.prepare(`
+    INSERT INTO template_projects (id, name, primary_token_source, section_mapping_json, harmony_score, status)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.name,
+    data.primary_token_source ?? null,
+    data.section_mapping_json ?? null,
+    data.harmony_score ?? null,
+    status
+  );
+
+  const project = getTemplateProjectById(id);
+  if (!project) {
+    throw new Error('Failed to create template project record');
+  }
+  return project;
+}
+
+/**
+ * Update a template project's status
+ */
+export function updateTemplateProjectStatus(
+  id: string,
+  status: string
+): TemplateProjectRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE template_projects
+    SET status = ?
+    WHERE id = ?
+  `);
+  const result = stmt.run(status, id);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getTemplateProjectById(id);
+}
+
+/**
+ * Update a template project record
+ */
+export function updateTemplateProject(
+  id: string,
+  data: Partial<Omit<TemplateProjectInsert, 'id'>>
+): TemplateProjectRecord | null {
+  const database = getDb();
+  const updates: string[] = [];
+  const values: (string | number | null)[] = [];
+
+  if (data.name !== undefined) {
+    updates.push('name = ?');
+    values.push(data.name);
+  }
+  if (data.primary_token_source !== undefined) {
+    updates.push('primary_token_source = ?');
+    values.push(data.primary_token_source);
+  }
+  if (data.section_mapping_json !== undefined) {
+    updates.push('section_mapping_json = ?');
+    values.push(data.section_mapping_json);
+  }
+  if (data.harmony_score !== undefined) {
+    updates.push('harmony_score = ?');
+    values.push(data.harmony_score);
+  }
+  if (data.status !== undefined) {
+    updates.push('status = ?');
+    values.push(data.status);
+  }
+
+  if (updates.length === 0) {
+    return getTemplateProjectById(id);
+  }
+
+  values.push(id);
+
+  const stmt = database.prepare(`
+    UPDATE template_projects
+    SET ${updates.join(', ')}
+    WHERE id = ?
+  `);
+  const result = stmt.run(...values);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getTemplateProjectById(id);
+}
+
+/**
+ * Delete a template project by ID
+ */
+export function deleteTemplateProject(id: string): boolean {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM template_projects WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Count total template projects
+ */
+export function countTemplateProjects(): number {
+  const database = getDb();
+  const stmt = database.prepare('SELECT COUNT(*) as count FROM template_projects');
+  const result = stmt.get() as { count: number };
+  return result.count;
+}
+
+/**
+ * Count template projects by status
+ */
+export function countTemplateProjectsByStatus(status: string): number {
+  const database = getDb();
+  const stmt = database.prepare('SELECT COUNT(*) as count FROM template_projects WHERE status = ?');
+  const result = stmt.get(status) as { count: number };
+  return result.count;
+}
+
+// ====================
+// TEMPLATE REFERENCE OPERATIONS
+// ====================
+
+/**
+ * Get all template references for a project
+ */
+export function getTemplateReferencesByProject(projectId: string): TemplateReferenceRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, project_id, url, name, tokens_json, sections_json, created_at
+    FROM template_references
+    WHERE project_id = ?
+    ORDER BY created_at ASC
+  `);
+  return stmt.all(projectId) as TemplateReferenceRecord[];
+}
+
+/**
+ * Get a single template reference by ID
+ */
+export function getTemplateReferenceById(id: string): TemplateReferenceRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, project_id, url, name, tokens_json, sections_json, created_at
+    FROM template_references
+    WHERE id = ?
+  `);
+  const result = stmt.get(id);
+  return (result as TemplateReferenceRecord) || null;
+}
+
+/**
+ * Create a new template reference record
+ */
+export function createTemplateReference(data: TemplateReferenceInsert): TemplateReferenceRecord {
+  const database = getDb();
+  const id = data.id || `reference-${randomUUID()}`;
+
+  const stmt = database.prepare(`
+    INSERT INTO template_references (id, project_id, url, name, tokens_json, sections_json)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.project_id,
+    data.url,
+    data.name ?? null,
+    data.tokens_json ?? null,
+    data.sections_json ?? null
+  );
+
+  const reference = getTemplateReferenceById(id);
+  if (!reference) {
+    throw new Error('Failed to create template reference record');
+  }
+  return reference;
+}
+
+/**
+ * Update a template reference record
+ */
+export function updateTemplateReference(
+  id: string,
+  data: Partial<Omit<TemplateReferenceInsert, 'id' | 'project_id'>>
+): TemplateReferenceRecord | null {
+  const database = getDb();
+  const updates: string[] = [];
+  const values: (string | null)[] = [];
+
+  if (data.url !== undefined) {
+    updates.push('url = ?');
+    values.push(data.url);
+  }
+  if (data.name !== undefined) {
+    updates.push('name = ?');
+    values.push(data.name);
+  }
+  if (data.tokens_json !== undefined) {
+    updates.push('tokens_json = ?');
+    values.push(data.tokens_json);
+  }
+  if (data.sections_json !== undefined) {
+    updates.push('sections_json = ?');
+    values.push(data.sections_json);
+  }
+
+  if (updates.length === 0) {
+    return getTemplateReferenceById(id);
+  }
+
+  values.push(id);
+
+  const stmt = database.prepare(`
+    UPDATE template_references
+    SET ${updates.join(', ')}
+    WHERE id = ?
+  `);
+  const result = stmt.run(...values);
+
+  if (result.changes === 0) {
+    return null;
+  }
+
+  return getTemplateReferenceById(id);
+}
+
+/**
+ * Delete a template reference by ID
+ */
+export function deleteTemplateReference(id: string): boolean {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM template_references WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Delete all template references for a project
+ */
+export function deleteTemplateReferencesByProject(projectId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM template_references WHERE project_id = ?');
+  const result = stmt.run(projectId);
+  return result.changes;
+}
+
+/**
+ * Count template references by project
+ */
+export function countTemplateReferencesByProject(projectId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('SELECT COUNT(*) as count FROM template_references WHERE project_id = ?');
+  const result = stmt.get(projectId) as { count: number };
+  return result.count;
 }
 
 // ====================

@@ -6,6 +6,9 @@ import { useSearchParams } from 'next/navigation';
 import { ReferenceList } from '@/components/Template/ReferenceList';
 import { SectionPicker } from '@/components/Template/SectionPicker';
 import { MixerCanvas } from '@/components/Template/MixerCanvas';
+import { MixedPreview } from '@/components/Template/MixedPreview';
+import { TokenSourceSelector } from '@/components/Template/TokenSourceSelector';
+import { HarmonyIndicator } from '@/components/Template/HarmonyIndicator';
 import { useStore } from '@/store/useStore';
 import { cn, generateId, isValidUrl, getNameFromUrl } from '@/lib/utils';
 import type {
@@ -14,6 +17,7 @@ import type {
   SectionType,
   TemplateConfig,
   StartExtractionResponse,
+  HarmonyResult,
 } from '@/types';
 
 /**
@@ -86,6 +90,13 @@ function TemplatePageContent() {
   // Section assignments state
   const [sections, setSections] = useState<SectionAssignment[]>(createInitialSections);
 
+  // Primary token source state
+  const [primaryTokenSource, setPrimaryTokenSource] = useState<string | null>(null);
+
+  // Harmony state
+  const [harmonyResult, setHarmonyResult] = useState<HarmonyResult | null>(null);
+  const [isCalculatingHarmony, setIsCalculatingHarmony] = useState(false);
+
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -112,6 +123,9 @@ function TemplatePageContent() {
         section.sourceId === id ? { ...section, sourceId: null } : section
       )
     );
+
+    // Clear primary token source if this reference was selected
+    setPrimaryTokenSource((prev) => (prev === id ? null : prev));
   }, []);
 
   /**
@@ -151,6 +165,80 @@ function TemplatePageContent() {
   }, []);
 
   /**
+   * Select primary token source
+   */
+  const handleSelectTokenSource = useCallback((sourceId: string | null) => {
+    setPrimaryTokenSource(sourceId);
+  }, []);
+
+  /**
+   * Calculate harmony when section mappings or references change
+   */
+  useEffect(() => {
+    // Don't calculate if no valid references or no assigned sections
+    const validRefs = references.filter((ref) => ref.isValid);
+    const assignedSecs = sections.filter((sec) => sec.sourceId !== null);
+
+    if (validRefs.length === 0 || assignedSecs.length === 0) {
+      setHarmonyResult(null);
+      return;
+    }
+
+    // Debounce harmony calculation
+    const timeoutId = setTimeout(async () => {
+      try {
+        setIsCalculatingHarmony(true);
+
+        // Build section mapping for harmony calculation
+        const sectionMapping: Record<string, string> = {};
+        sections.forEach((section) => {
+          if (section.sourceId) {
+            sectionMapping[section.sectionType] = section.sourceId;
+          }
+        });
+
+        // Mock references structure for API (will be replaced with actual reference processing)
+        const referencesForApi = validRefs.map((ref) => ({
+          id: ref.id,
+          name: ref.name || getNameFromUrl(ref.url),
+          url: ref.url,
+          status: 'ready' as const,
+          tokens: {
+            colors: { primary: '#000000' },
+            typography: { fontFamily: 'Inter' },
+            spacing: { base: 8 },
+            effects: {},
+          },
+          sections: [],
+        }));
+
+        // Call harmony API
+        const response = await fetch('/api/template/harmony', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            references: referencesForApi,
+            sectionMapping,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHarmonyResult(data);
+        } else {
+          setHarmonyResult(null);
+        }
+      } catch (error) {
+        setHarmonyResult(null);
+      } finally {
+        setIsCalculatingHarmony(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [references, sections]);
+
+  /**
    * Check if configuration is valid for generation
    */
   const isValidConfiguration = useMemo(() => {
@@ -186,49 +274,73 @@ function TemplatePageContent() {
     try {
       setIsGenerating(true);
 
-      // Build template config
-      const templateConfig: TemplateConfig = {
-        urls: references.filter((ref) => ref.isValid),
-        sections: sections.filter((section) => section.sourceId !== null),
-      };
+      // Get valid references
+      const validRefs = references.filter((ref) => ref.isValid);
 
-      // Start extraction via API
-      const response = await fetch('/api/start-extraction', {
+      // Build reference URLs array
+      const referenceUrls = validRefs.map((ref) => ref.url);
+
+      // Build reference ID to index mapping
+      const idToIndexMap = new Map<string, number>();
+      validRefs.forEach((ref, index) => {
+        idToIndexMap.set(ref.id, index);
+      });
+
+      // Build section mapping with indices as strings
+      const sectionMapping: Record<string, string> = {};
+      sections.forEach((section) => {
+        if (section.sourceId !== null) {
+          const index = idToIndexMap.get(section.sourceId);
+          if (index !== undefined) {
+            sectionMapping[section.sectionType] = String(index);
+          }
+        }
+      });
+
+      // Get primary token source index
+      let primaryTokenSourceIndex: number | undefined;
+      if (primaryTokenSource) {
+        primaryTokenSourceIndex = idToIndexMap.get(primaryTokenSource);
+      }
+
+      // Generate project name
+      const projectName = `Mixed Website - ${validRefs.length} sources`;
+
+      // Call template generation API
+      const response = await fetch('/api/template/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: templateConfig.urls[0]?.url || '',
-          mode: 'template',
-          name: `Mixed Website - ${templateConfig.urls.length} sources`,
-          templateConfig,
+          projectName,
+          referenceUrls,
+          sectionMapping,
+          primaryTokenSourceIndex,
         }),
       });
 
-      const data: StartExtractionResponse = await response.json();
+      const data = await response.json();
 
-      if (data.success) {
-        // Update store with extraction state
-        store.startExtraction(templateConfig.urls[0]?.url || '');
-        store.setWebsiteId(data.websiteId);
-
-        // Redirect to dashboard to show progress
-        window.location.href = '/';
+      if (data.success && data.projectId) {
+        // Redirect to preview page
+        window.location.href = `/preview/${data.projectId}`;
       } else {
+        // Show error message
         store.setError({
           id: `error-${Date.now()}`,
           phase: 0,
-          message: data.error || 'Failed to start template generation',
+          message: data.error || 'Failed to generate template. Please try again.',
           timestamp: new Date().toISOString(),
           recoverable: true,
         });
       }
     } catch (error) {
+      // Handle network or unexpected errors
       store.setError({
         id: `error-${Date.now()}`,
         phase: 0,
-        message: 'Network error. Please check your connection.',
+        message: error instanceof Error ? error.message : 'Network error. Please check your connection.',
         timestamp: new Date().toISOString(),
         recoverable: true,
       });
@@ -243,6 +355,8 @@ function TemplatePageContent() {
   const handleReset = useCallback(() => {
     setReferences([createReference()]);
     setSections(createInitialSections());
+    setPrimaryTokenSource(null);
+    setHarmonyResult(null);
   }, []);
 
   return (
@@ -433,6 +547,31 @@ function TemplatePageContent() {
               />
             </section>
           </div>
+
+          {/* Mixed Preview Section */}
+          <section className="mt-8">
+            <MixedPreview
+              sections={sections}
+              references={references}
+            />
+          </section>
+
+          {/* Token Source Selector */}
+          <section className="mt-8 flex justify-center">
+            <TokenSourceSelector
+              references={references}
+              primaryTokenSource={primaryTokenSource}
+              onSelect={handleSelectTokenSource}
+            />
+          </section>
+
+          {/* Harmony Indicator */}
+          <section className="mt-8 flex justify-center">
+            <HarmonyIndicator
+              harmonyResult={harmonyResult}
+              isCalculating={isCalculatingHarmony}
+            />
+          </section>
 
           {/* Generate Button */}
           <div className="mt-12 flex flex-col items-center">

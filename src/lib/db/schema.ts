@@ -30,15 +30,13 @@ export const CREATE_TABLE_VERSIONS = `
 CREATE TABLE versions (
   id TEXT PRIMARY KEY,
   website_id TEXT NOT NULL,
-  version_number TEXT NOT NULL,
+  version_number INTEGER NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   tokens_json TEXT,
   accuracy_score REAL,
   changelog TEXT,
   is_active BOOLEAN DEFAULT FALSE,
-  parent_version_id TEXT,
-  FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE,
-  FOREIGN KEY (parent_version_id) REFERENCES versions(id)
+  FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
 )`;
 
 /**
@@ -121,16 +119,32 @@ CREATE TABLE design_tokens (
 )`;
 
 /**
- * Version files table - Track files associated with each version
+ * Template projects table - Store multi-reference mixing projects
  */
-export const CREATE_TABLE_VERSION_FILES = `
-CREATE TABLE version_files (
+export const CREATE_TABLE_TEMPLATE_PROJECTS = `
+CREATE TABLE template_projects (
   id TEXT PRIMARY KEY,
-  version_id TEXT NOT NULL,
-  file_path TEXT NOT NULL,
-  file_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  primary_token_source TEXT,
+  section_mapping_json TEXT,
+  harmony_score REAL,
+  status TEXT DEFAULT 'configuring',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)`;
+
+/**
+ * Template references table - Store reference URLs for template projects
+ */
+export const CREATE_TABLE_TEMPLATE_REFERENCES = `
+CREATE TABLE template_references (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  url TEXT NOT NULL,
+  name TEXT,
+  tokens_json TEXT,
+  sections_json TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (version_id) REFERENCES versions(id) ON DELETE CASCADE
+  FOREIGN KEY (project_id) REFERENCES template_projects(id) ON DELETE CASCADE
 )`;
 
 // ====================
@@ -186,10 +200,10 @@ export const CREATE_INDEX_DESIGN_TOKENS_WEBSITE = `
 CREATE INDEX idx_design_tokens_website ON design_tokens(website_id)`;
 
 /**
- * Index for version files lookups by version
+ * Index for template references lookups by project
  */
-export const CREATE_INDEX_VERSION_FILES_VERSION = `
-CREATE INDEX idx_version_files_version ON version_files(version_id)`;
+export const CREATE_INDEX_TEMPLATE_REFERENCES_PROJECT = `
+CREATE INDEX idx_template_references_project ON template_references(project_id)`;
 
 // ====================
 // ALL STATEMENTS
@@ -206,7 +220,8 @@ export const ALL_TABLE_STATEMENTS = [
   CREATE_TABLE_CACHE,
   CREATE_TABLE_ERROR_LOG,
   CREATE_TABLE_DESIGN_TOKENS,
-  CREATE_TABLE_VERSION_FILES,
+  CREATE_TABLE_TEMPLATE_PROJECTS,
+  CREATE_TABLE_TEMPLATE_REFERENCES,
 ] as const;
 
 /**
@@ -222,7 +237,7 @@ export const ALL_INDEX_STATEMENTS = [
   CREATE_INDEX_ERROR_LOG_WEBSITE,
   CREATE_INDEX_ERROR_LOG_RESOLVED,
   CREATE_INDEX_DESIGN_TOKENS_WEBSITE,
-  CREATE_INDEX_VERSION_FILES_VERSION,
+  CREATE_INDEX_TEMPLATE_REFERENCES_PROJECT,
 ] as const;
 
 /**
@@ -247,6 +262,6 @@ export const SCHEMA_VERSION = 1;
  */
 export const SCHEMA_INFO = {
   version: SCHEMA_VERSION,
-  tables: ['websites', 'versions', 'components', 'component_variants', 'cache', 'error_log', 'design_tokens', 'version_files'],
+  tables: ['websites', 'versions', 'components', 'component_variants', 'cache', 'error_log', 'design_tokens', 'template_projects', 'template_references'],
   description: 'Website Cooker database schema for tracking generated websites, versions, and extraction state',
 } as const;
