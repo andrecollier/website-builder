@@ -67,6 +67,8 @@ export default function PreviewPage() {
   const [isEditorDirty, setIsEditorDirty] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
+  const [isScaffolding, setIsScaffolding] = useState(false);
+  const [scaffoldSuccess, setScaffoldSuccess] = useState(false);
 
   /**
    * Load components on mount
@@ -192,6 +194,41 @@ export default function PreviewPage() {
       setIsGenerating(false);
     }
   }, [isGenerating, websiteId, loadComponents]);
+
+  /**
+   * Handle scaffolding the generated site
+   */
+  const handleScaffold = useCallback(async () => {
+    if (isScaffolding) return;
+
+    setIsScaffolding(true);
+    setScaffoldSuccess(false);
+
+    try {
+      const response = await fetch('/api/scaffold', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          websiteId,
+          siteName: 'Generated Site',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to scaffold site');
+      }
+
+      setScaffoldSuccess(true);
+    } catch (error) {
+      console.error('Scaffold error:', error);
+    } finally {
+      setIsScaffolding(false);
+    }
+  }, [isScaffolding, websiteId]);
 
   /**
    * Render loading state
@@ -486,7 +523,7 @@ export default function PreviewPage() {
             </button>
           </div>
 
-          {/* Right: Progress Summary */}
+          {/* Right: Progress Summary & Actions */}
           <div className="flex items-center gap-4">
             <span className="text-sm text-[rgb(var(--muted-foreground))]">
               <span className="font-medium text-[rgb(var(--foreground))]">{progress.approved}</span>
@@ -510,6 +547,58 @@ export default function PreviewPage() {
                 </svg>
                 Complete
               </span>
+            )}
+
+            {/* Scaffold Button */}
+            {components.length > 0 && (
+              <button
+                type="button"
+                onClick={handleScaffold}
+                disabled={isScaffolding}
+                className={cn(
+                  'px-3 py-1.5 text-sm font-medium rounded-lg',
+                  scaffoldSuccess
+                    ? 'bg-[rgb(var(--success)/0.1)] text-[rgb(var(--success))]'
+                    : 'bg-[rgb(var(--accent)/0.1)] text-[rgb(var(--accent))] hover:bg-[rgb(var(--accent)/0.2)]',
+                  'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center gap-1.5'
+                )}
+              >
+                {isScaffolding ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Building...
+                  </>
+                ) : scaffoldSuccess ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Ready
+                  </>
+                ) : (
+                  'Build Site'
+                )}
+              </button>
+            )}
+
+            {/* Compare Link */}
+            {scaffoldSuccess && (
+              <Link
+                href={`/compare/${websiteId}`}
+                className={cn(
+                  'px-3 py-1.5 text-sm font-medium rounded-lg',
+                  'bg-[rgb(var(--accent))] text-white',
+                  'hover:bg-[rgb(var(--accent)/0.9)]',
+                  'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))]'
+                )}
+              >
+                Compare
+              </Link>
             )}
           </div>
         </div>
