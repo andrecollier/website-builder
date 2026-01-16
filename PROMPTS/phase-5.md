@@ -3,49 +3,84 @@
 ## Oppgave: Implementer Phase 5 av Website Cooker
 
 Les først disse filene for full kontekst:
-- PROJECT_PLAN.md (hovedplan med alle 8 faser)
-- TEST_RESULTS.md (Phase 4.5 testresultater - alle bugs fikset)
+- PROJECT_PLAN.md - Se Phase 5 seksjonen
+- ROADMAP.md - Versjonsoversikt
 
 ### Nåværende Status (2026-01-16)
 - ✅ Phase 1: Dashboard & UI - FERDIG
-- ✅ Phase 2: Playwright Integration - FERDIG (anti-lazy-load, section detection)
-- ✅ Phase 3: Design System Extraction - FERDIG (farger, fonts, spacing)
-- ✅ Phase 4.5: E2E Testing - FERDIG (Fluence URL testet, 10 seksjoner, alle bugs fikset)
+- ✅ Phase 2: Playwright Integration - FERDIG
+- ✅ Phase 3: Design System Extraction - FERDIG
+- ✅ Phase 4: Component Generation - FERDIG
+- ✅ Phase 4.5: E2E Testing - FERDIG
 
-### Tilgjengelig for Phase 5
+### Hva som er tilgjengelig
+
+**Reference screenshots (original):**
+```
+Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/reference/
+├── full-page.png           # Komplett side (14394px høyde)
+├── metadata.json           # 10 seksjoner med boundingBox
+└── sections/
+    ├── 01-header.png
+    ├── 02-hero.png
+    ├── 03-features.png
+    ├── 04-testimonials.png
+    ├── 05-pricing.png
+    ├── 06-features.png
+    ├── 07-testimonials.png
+    ├── 08-pricing.png
+    ├── 09-cta.png
+    └── 10-footer.png
+```
+
+**Genererte React-komponenter:**
+```
+Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/generated/
+├── src/
+│   ├── components/
+│   │   ├── Header/Header.tsx
+│   │   ├── Hero/Hero.tsx
+│   │   ├── Features/Features.tsx
+│   │   ├── About/About.tsx
+│   │   ├── CTA/CTA.tsx
+│   │   └── Footer/Footer.tsx
+│   ├── pages/
+│   │   ├── index.tsx
+│   │   └── _app.tsx
+│   └── styles/globals.css
+├── package.json
+├── tailwind.config.js
+└── tsconfig.json
+```
+
+**Design tokens:**
 ```
 Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/
-├── design-system.json      # Ekstraherte tokens (lilla farger, General Sans)
-├── tailwind.config.js      # Generert Tailwind config
-├── variables.css           # CSS variables
-└── reference/
-    ├── full-page.png       # Komplett side-screenshot (14394px)
-    ├── metadata.json       # 10 seksjoner med boundingBox
-    └── sections/
-        ├── 01-header.png
-        ├── 02-hero.png
-        ├── 03-features.png
-        ├── 04-testimonials.png
-        ├── 05-pricing.png
-        ├── 06-features.png
-        ├── 07-testimonials.png
-        ├── 08-pricing.png
-        ├── 09-cta.png
-        └── 10-footer.png
+├── design-system.json      # Ekstraherte farger, fonts, spacing
+├── tailwind.config.js      # Tailwind config med tokens
+└── variables.css           # CSS custom properties
 ```
-
-**Merk:** Phase 4 (Component Generation) kan implementeres parallelt eller før Phase 5.
 
 ---
 
 ## Din oppgave: Phase 5 - Visual Comparison System
 
-### 5.1 Comparison Engine
+### 5.1 Install Dependencies
+
+```bash
+cd /Users/andrecollier/Personal/website-builder
+npm install pixelmatch pngjs sharp
+npm install -D @types/pngjs
+```
+
+### 5.2 Comparison Engine
+
 Lag `src/lib/comparison/visual-diff.ts`:
 
 ```typescript
 import Pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
+import sharp from 'sharp';
 
 interface ComparisonResult {
   sectionName: string;
@@ -59,181 +94,102 @@ interface ComparisonResult {
 interface Mismatch {
   type: 'color' | 'spacing' | 'typography' | 'layout' | 'missing';
   description: string;
-  expected: string;
-  actual: string;
-  location: BoundingBox;
   severity: 'low' | 'medium' | 'high';
 }
-
-interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-```
-
-### 5.2 Install Dependencies
-
-```bash
-npm install pixelmatch pngjs sharp
-npm install -D @types/pngjs
 ```
 
 ### 5.3 Comparison Process
+
 Lag `src/lib/comparison/compare-section.ts`:
 
-1. **Render generert komponent:**
-   - Start lokal dev server for generated website
-   - Bruk Playwright til å ta screenshot
+1. **Ta screenshot av generert komponent:**
+   - Start Playwright
+   - Naviger til `http://localhost:3000` (generert site)
+   - Ta screenshot av hver seksjon
+   - Lagre i `generated/screenshots/`
 
 2. **Sammenlign med original:**
-   - Last original section screenshot
-   - Last generated section screenshot
-   - Kjør Pixelmatch for pixel-diff
+   - Last reference screenshot fra `reference/sections/`
+   - Last generated screenshot
+   - Resize til samme dimensjoner hvis nødvendig
+   - Kjør Pixelmatch
 
 3. **Generer diff-bilde:**
-   - Lag visuelt diff-bilde (røde pixels = forskjell)
-   - Lagre i `Websites/website-XXX/comparison/`
+   ```typescript
+   const diff = new PNG({ width, height });
+   const mismatchedPixels = pixelmatch(
+     img1.data, img2.data, diff.data,
+     width, height,
+     { threshold: 0.1 }
+   );
+   ```
 
-4. **Beregn accuracy score:**
+4. **Beregn accuracy:**
    ```typescript
    const accuracy = 100 - (mismatchedPixels / totalPixels * 100);
    ```
 
-5. **Identifiser mismatch-typer:**
-   - Analyser diff-regioner
-   - Kategoriser som color/spacing/typography/layout
+### 5.4 API Endpoint
 
-### 5.4 Iterative Improvement
-Lag `src/lib/comparison/auto-refine.ts`:
+Lag `src/app/api/compare/route.ts`:
 
 ```typescript
-interface RefinementAttempt {
-  iteration: number;
-  changes: string[];
-  accuracyBefore: number;
-  accuracyAfter: number;
-}
-
-async function autoRefine(
-  componentPath: string,
-  targetAccuracy: number = 95,
-  maxIterations: number = 5
-): Promise<RefinementResult> {
-  // 1. Compare current state
-  // 2. Identify issues
-  // 3. Apply fixes (spacing, colors, etc.)
-  // 4. Re-compare
-  // 5. Repeat until accuracy >= target or max iterations
-}
+// POST /api/compare
+// Body: { websiteId: string }
+// Returns: { sections: ComparisonResult[], overallAccuracy: number }
 ```
 
-Auto-refinement strategies:
-- **Color mismatch:** Juster farge-verdier i Tailwind classes
-- **Spacing mismatch:** Juster padding/margin/gap
-- **Typography mismatch:** Juster font-size/weight/line-height
-- **Layout mismatch:** Juster flex/grid properties
-
 ### 5.5 Comparison Dashboard UI
+
 Lag `src/app/compare/[id]/page.tsx`:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Visual Comparison: Website 001            Overall: 94.7%   │
+│  Visual Comparison: Fluence AI Clone      Overall: 87.3%    │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  Section: Hero                                    96.2% ✓   │
+│  Section: Header                                   92.1% ✓  │
 │  ┌────────────────────┐  ┌────────────────────┐            │
-│  │                    │  │                    │            │
 │  │     Original       │  │    Generated       │            │
-│  │                    │  │                    │            │
 │  └────────────────────┘  └────────────────────┘            │
 │                                                             │
-│  View: [Side-by-Side ●] [Overlay] [Diff] [Slider]          │
+│  View: [Side-by-Side ●] [Overlay] [Diff]                   │
 │                                                             │
-│  Issues Found (2):                                          │
-│  ├─ [Medium] Button color #3B82F6 → #2563EB               │
-│  └─ [Low] Padding-bottom 48px → 44px                       │
-│                                                             │
-│  [Auto-Fix Issues]  [Manual Edit]  [Accept as-is]          │
+│  Issues Found:                                              │
+│  ├─ [Medium] Logo size differs by 4px                      │
+│  └─ [Low] Nav spacing 8px → 6px                            │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
-│  Section: Features                                91.4%     │
-│  ... (collapsed)                                            │
+│  Section: Hero                                     85.4%    │
+│  ... (expand for details)                                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.6 View Modes
+
 Lag `src/components/Comparison/`:
 
-**Side-by-Side View:**
-- Original til venstre, generated til høyre
-- Synkronisert scroll
-- Zoom controls
+1. **SideBySideView.tsx** - Original og generert side ved side
+2. **OverlayView.tsx** - Generert over original med opacity slider
+3. **DiffView.tsx** - Viser kun forskjeller (røde pixels)
 
-**Overlay View:**
-- Generated over original
-- Opacity slider (0-100%)
-- Toggle visibility
-
-**Diff View:**
-- Viser kun forskjeller (rødt highlight)
-- Mismatch areas markert
-- Click to see details
-
-**Slider View:**
-- Drag-slider for å veksle mellom original/generated
-- Smooth transition
-- Good for spotting differences
-
-### 5.7 Iteration History
-Lag `src/components/Comparison/IterationHistory.tsx`:
+### 5.7 Storage Structure
 
 ```
-┌─────────────────────────────────────────┐
-│  Refinement History: Hero Section       │
-├─────────────────────────────────────────┤
-│  Iteration 3 (current)         96.2%    │
-│  └─ Fixed button color                  │
-│                                         │
-│  Iteration 2                   94.1%    │
-│  └─ Adjusted heading size               │
-│                                         │
-│  Iteration 1                   89.7%    │
-│  └─ Initial generation                  │
-│                                         │
-│  [Revert to iteration 2]               │
-└─────────────────────────────────────────┘
-```
-
-### 5.8 Per-Section Actions
-
-For hver seksjon:
-- **Auto-Fix:** Kjør auto-refine
-- **Manual Edit:** Åpne code editor
-- **Accept:** Godkjenn selv om < 95%
-- **Regenerate:** Start helt på nytt
-
-### 5.9 Overall Report
-Lag `src/lib/comparison/report-generator.ts`:
-
-```typescript
-interface ComparisonReport {
-  websiteId: string;
-  generatedAt: Date;
-  overallAccuracy: number;
-  sections: SectionReport[];
-  totalIssues: number;
-  issuesByType: {
-    color: number;
-    spacing: number;
-    typography: number;
-    layout: number;
-  };
-  iterationsUsed: number;
-  recommendations: string[];
-}
+Websites/website-XXX/
+├── reference/
+│   └── sections/           # Original screenshots
+├── generated/
+│   └── screenshots/        # Screenshots av genererte komponenter
+│       ├── 01-header.png
+│       ├── 02-hero.png
+│       └── ...
+├── comparison/
+│   ├── diffs/              # Diff-bilder
+│   │   ├── 01-header-diff.png
+│   │   └── ...
+│   └── report.json         # Comparison results
+└── metadata.json
 ```
 
 ---
@@ -243,16 +199,16 @@ interface ComparisonReport {
 ```
 src/lib/comparison/
 ├── visual-diff.ts           # Pixelmatch integration
-├── compare-section.ts       # Section comparison logic
-├── accuracy-score.ts        # Calculate accuracy
-├── auto-refine.ts           # Iterative improvement
-├── mismatch-detector.ts     # Categorize mismatches
-├── report-generator.ts      # Generate reports
+├── compare-section.ts       # Screenshot + compare logic
+├── accuracy-score.ts        # Calculate scores
 └── index.ts
+
+src/app/api/compare/
+└── route.ts                 # POST endpoint
 
 src/app/compare/
 └── [id]/
-    └── page.tsx             # Comparison dashboard
+    └── page.tsx             # Dashboard UI
 
 src/components/Comparison/
 ├── ComparisonDashboard.tsx
@@ -260,104 +216,40 @@ src/components/Comparison/
 ├── SideBySideView.tsx
 ├── OverlayView.tsx
 ├── DiffView.tsx
-├── SliderView.tsx
-├── MismatchList.tsx
-├── IterationHistory.tsx
 ├── AccuracyBadge.tsx
-├── ViewModeToggle.tsx
 └── index.ts
 ```
 
 ---
 
-## Storage Structure
+## Test når ferdig
 
-```
-Websites/website-001/
-├── reference/
-│   └── sections/
-│       ├── 01-header.png
-│       └── ...
-├── generated/
-│   └── sections/
-│       ├── 01-header.png      # Screenshot of generated
-│       └── ...
-├── comparison/
-│   ├── diffs/
-│   │   ├── 01-header-diff.png
-│   │   └── ...
-│   ├── iterations/
-│   │   ├── header-v1.png
-│   │   ├── header-v2.png
-│   │   └── ...
-│   └── report.json
-└── metadata.json
-```
+1. Start generated site: `cd Websites/website-7f967219-.../generated && npm run dev`
+2. Kjør comparison: `curl -X POST http://localhost:3000/api/compare -d '{"websiteId":"website-7f967219-b93c-41b7-bdbf-2aab3a7fc868"}'`
+3. Åpne dashboard: `http://localhost:3000/compare/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868`
+4. Verifiser:
+   - Accuracy scores vises per seksjon
+   - Side-by-side view fungerer
+   - Diff view highlighter forskjeller
+   - Diff-bilder lagres i `comparison/diffs/`
 
 ---
 
-## Database Update
+## Viktig
 
-```sql
-CREATE TABLE comparisons (
-  id TEXT PRIMARY KEY,
-  website_id TEXT NOT NULL,
-  section_name TEXT NOT NULL,
-  accuracy_score REAL NOT NULL,
-  diff_image_path TEXT,
-  mismatches_json TEXT,
-  iteration_count INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'pending',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (website_id) REFERENCES websites(id)
-);
-
-CREATE TABLE refinement_history (
-  id TEXT PRIMARY KEY,
-  comparison_id TEXT NOT NULL,
-  iteration INTEGER NOT NULL,
-  accuracy_before REAL,
-  accuracy_after REAL,
-  changes_json TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (comparison_id) REFERENCES comparisons(id)
-);
-```
+- Target accuracy: Start med å måle, forbedring kommer i Phase 6
+- Diff-bilder skal være lesbare (tydelig markering av forskjeller)
+- Må håndtere ulike bildestørrelser (resize før compare)
+- Bruk Playwright for å ta screenshots av generert site
 
 ---
 
 ## Deliverables
 
 - [ ] Pixelmatch integration fungerer
+- [ ] Screenshots tas av genererte komponenter
 - [ ] Section-by-section comparison
 - [ ] Accuracy score beregnes korrekt
-- [ ] Diff-bilder genereres
-- [ ] Mismatch categorization fungerer
-- [ ] Auto-refine forbedrer accuracy
-- [ ] Comparison Dashboard UI komplett
-- [ ] Alle view modes (side-by-side, overlay, diff, slider)
-- [ ] Iteration history vises
-- [ ] Comparison report genereres
-
----
-
-## Test når ferdig
-
-1. Generer komponenter for en website (Phase 4)
-2. Gå til `/compare/[website-id]`
-3. Verifiser:
-   - Accuracy scores vises per section
-   - Side-by-side view fungerer
-   - Diff view highlighter forskjeller
-   - Auto-fix forbedrer accuracy
-   - Iteration history oppdateres
-4. Sjekk at diff-bilder lagres i `comparison/diffs/`
-
----
-
-## Viktig
-
-- Target accuracy: 95% eller høyere
-- Max 5 iterasjoner før manual review
-- Diff-bilder skal være lesbare (tydelig rødt for forskjeller)
-- Behold alle iterasjoner for rollback
+- [ ] Diff-bilder genereres og lagres
+- [ ] Comparison Dashboard UI viser resultater
+- [ ] Side-by-side og diff view modes
