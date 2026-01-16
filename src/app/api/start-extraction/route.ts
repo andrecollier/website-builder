@@ -124,7 +124,7 @@ async function runCaptureProcess(websiteId: string, url: string): Promise<void> 
       // Synthesize design system after successful capture
       // This generates design-system.json, tailwind.config.js, and variables.css
       try {
-        await synthesizeAndSaveDesignSystem(websiteId, url);
+        await synthesizeAndSaveDesignSystem(websiteId, url, result.rawData);
 
         // Final completion status
         publishCaptureProgress(websiteId, {
