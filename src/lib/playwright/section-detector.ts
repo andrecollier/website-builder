@@ -454,15 +454,25 @@ export async function detectAllSections(
 ): Promise<SectionInfo[]> {
   const useGenericFallback = options?.useGenericFallback ?? true;
 
+  // Get page dimensions to check coverage
+  const pageHeight = await page.evaluate(() =>
+    Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+  );
+
   // Try specific detection first
   const specificSections = await detectSections(page, options);
 
-  // If we found enough sections, return them
+  // Check if detected sections cover most of the page (> 80%)
   if (specificSections.length >= 3) {
-    return specificSections;
+    const coveredHeight = specificSections.reduce((sum, s) => sum + s.boundingBox.height, 0);
+    const coverage = coveredHeight / pageHeight;
+
+    if (coverage > 0.8) {
+      return specificSections;
+    }
   }
 
-  // Use viewport-based splitting fallback for sites with obfuscated class names (like Framer)
+  // Use viewport-based splitting to ensure full page coverage
   if (useGenericFallback) {
     const viewportSections = await viewportBasedSplitting(page, options);
     return viewportSections;
