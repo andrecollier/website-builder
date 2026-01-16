@@ -14,9 +14,10 @@
 - [x] Token Editor UI
 
 #### Under utvikling
-- [ ] Visual Comparison System (Phase 5)
-- [ ] Component generation fra screenshots
-- [ ] Accuracy scoring
+- [x] Visual Comparison System (Phase 5) - UI ferdig, screenshot capture bug gjenstår
+- [x] Component generation fra screenshots (placeholder-templates)
+- [x] Accuracy scoring (Pixelmatch integration)
+- [ ] Phase 5 fix: DOM-basert screenshot capture
 
 #### Planlagt
 - [ ] Version history og rollback
@@ -158,7 +159,8 @@ Alle bilder som ekstraheres fra referanse-URLer lagres som detaljerte prompts so
 |---------|---------|--------|
 | Design extraction fungerer | v1.0-alpha | ✅ Ferdig |
 | Component generation | v1.0-beta | ✅ Ferdig |
-| Visual comparison | v1.0-beta | ⏳ Neste |
+| Visual comparison UI | v1.0-beta | ✅ Ferdig |
+| Visual comparison fix | v1.0-beta | ⏳ Neste (screenshot capture bug) |
 | Version history | v1.0 | ⏳ Planlagt |
 | Next.js boilerplate | v2.0 | 📋 Roadmap |
 | One-click deploy | v2.0 | 📋 Roadmap |
