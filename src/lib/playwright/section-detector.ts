@@ -340,6 +340,93 @@ export async function detectGenericSections(
 }
 
 // ====================
+// VIEWPORT-BASED SPLITTING
+// ====================
+
+/**
+ * Split page into sections based on viewport height
+ * Used as a fallback for sites with obfuscated class names (like Framer)
+ * where semantic section detection fails
+ *
+ * @param page - Playwright Page instance
+ * @param options - Optional configuration
+ * @returns Promise with array of SectionInfo objects
+ *
+ * @example
+ * ```typescript
+ * const sections = await viewportBasedSplitting(page);
+ * // Returns viewport-height segments as sections
+ * ```
+ */
+async function viewportBasedSplitting(
+  page: Page,
+  options?: {
+    maxSections?: number;
+    minHeight?: number;
+  }
+): Promise<SectionInfo[]> {
+  const maxSections = options?.maxSections ?? CAPTURE_CONFIG.maxSections;
+  const minHeight = options?.minHeight ?? 100;
+
+  // Get page dimensions
+  const dimensions = await page.evaluate(() => ({
+    viewportHeight: window.innerHeight,
+    pageHeight: Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight
+    ),
+    pageWidth: document.body.scrollWidth || window.innerWidth,
+  }));
+
+  const { viewportHeight, pageHeight, pageWidth } = dimensions;
+
+  // Calculate number of sections based on page height divided by viewport height
+  const numSections = Math.min(
+    Math.max(1, Math.ceil(pageHeight / viewportHeight)),
+    maxSections
+  );
+
+  const sections: SectionInfo[] = [];
+  const sectionHeight = Math.ceil(pageHeight / numSections);
+
+  // Section type assignment based on position
+  const getSectionType = (index: number, total: number): SectionType => {
+    if (index === 0) return 'header';
+    if (index === 1) return 'hero';
+    if (index === total - 1) return 'footer';
+    if (index === total - 2) return 'cta';
+
+    // Middle sections rotate through features, testimonials, pricing
+    const middleTypes: SectionType[] = ['features', 'testimonials', 'pricing'];
+    return middleTypes[(index - 2) % middleTypes.length];
+  };
+
+  for (let i = 0; i < numSections; i++) {
+    const y = i * sectionHeight;
+    const height = Math.min(sectionHeight, pageHeight - y);
+
+    // Skip sections that are too small
+    if (height < minHeight) continue;
+
+    sections.push({
+      id: `section-${randomUUID()}`,
+      type: getSectionType(i, numSections),
+      boundingBox: {
+        x: 0,
+        y: Math.round(y),
+        width: Math.round(pageWidth),
+        height: Math.round(height),
+      },
+      screenshotPath: '',
+    });
+  }
+
+  return sections;
+}
+
+// ====================
 // COMBINED DETECTION
 // ====================
 
@@ -375,35 +462,10 @@ export async function detectAllSections(
     return specificSections;
   }
 
-  // Use generic fallback if enabled and specific detection found few sections
+  // Use viewport-based splitting fallback for sites with obfuscated class names (like Framer)
   if (useGenericFallback) {
-    const genericSections = await detectGenericSections(page, options);
-
-    // Merge unique sections (avoid duplicates based on position)
-    const merged = [...specificSections];
-
-    for (const generic of genericSections) {
-      const isDuplicate = specificSections.some((specific) => {
-        const yDiff = Math.abs(specific.boundingBox.y - generic.boundingBox.y);
-        return yDiff < 100; // Consider within 100px as same section
-      });
-
-      if (!isDuplicate) {
-        merged.push(generic);
-      }
-    }
-
-    return sortSectionsByPosition(
-      merged.map((s) => ({
-        ...s,
-        boundingBox: s.boundingBox,
-      })) as DetectedElement[]
-    ).slice(0, options?.maxSections ?? CAPTURE_CONFIG.maxSections).map((el) => ({
-      id: el.type.startsWith('section-') ? el.type : `section-${randomUUID()}`,
-      type: (el as DetectedElement).type,
-      boundingBox: el.boundingBox,
-      screenshotPath: '',
-    }));
+    const viewportSections = await viewportBasedSplitting(page, options);
+    return viewportSections;
   }
 
   return specificSections;
