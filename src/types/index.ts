@@ -21,6 +21,57 @@ export interface WebsiteInsert {
   status?: WebsiteStatus;
 }
 
+export interface Version {
+  id: string;
+  website_id: string;
+  version_number: string;
+  created_at: string;
+  tokens_json: string | null;
+  accuracy_score: number | null;
+  changelog: string | null;
+  is_active: number; // SQLite boolean as 0/1
+  parent_version_id: string | null;
+}
+
+export interface VersionInsert {
+  id?: string;
+  website_id: string;
+  version_number: string;
+  tokens_json?: string | null;
+  accuracy_score?: number | null;
+  changelog?: string | null;
+  is_active?: boolean;
+  parent_version_id?: string | null;
+}
+
+export interface VersionFile {
+  id: string;
+  version_id: string;
+  file_path: string;
+  file_hash: string;
+  created_at: string;
+}
+
+export interface VersionFileInsert {
+  id?: string;
+  version_id: string;
+  file_path: string;
+  file_hash: string;
+}
+
+export interface ChangelogEntry {
+  type: 'color' | 'typography' | 'spacing' | 'effects' | 'component' | 'layout' | 'other';
+  description: string;
+  timestamp: string;
+}
+
+export interface Change {
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changeType: 'added' | 'removed' | 'modified';
+}
+
 // Extraction Phases
 
 export type PhaseName =
