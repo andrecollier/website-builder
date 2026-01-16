@@ -96,6 +96,55 @@
 
 ---
 
+### v4.0 - AI Image Asset Recreation (Fremtidig)
+**Mål:** Ekstrahere og gjenskape bilde-assets med AI (Nano Banana Pro)
+
+#### Konsept
+Alle bilder som ekstraheres fra referanse-URLer lagres som detaljerte prompts som senere kan gjenskapes med AI-bildegenerering. Dette gjør det mulig å:
+- Erstatte stock-bilder med unike, merkevare-tilpassede bilder
+- Generere nye bilder basert på eksisterende design-stil
+- Tilpasse bilder til spesifikk brand identity
+
+#### Planlagte features
+- [ ] **Image Prompt Extraction**
+  - Analysere bilder fra referanse-URL
+  - Generere detaljerte text-to-image prompts
+  - Lagre prompts sammen med original metadata
+  - Kategorisere bilder (hero, product, team, icons, etc.)
+
+- [ ] **Prompt Generation Factors**
+  - **Brand/Innhold**: Tilpasse prompts basert på bransje og merkevare
+  - **Fargepalett**: Integrere design system farger i prompts
+  - **Kunststil**: Identifisere og matche visuell stil (minimal, corporate, playful, etc.)
+  - **Ikon-stil**: Line icons, filled, 3D, isometric, etc.
+  - **Foto-stil**: Stock, editorial, lifestyle, product photography
+
+- [ ] **Realisme-parametre**
+  - Kamera-innstillinger (focal length, aperture, DOF)
+  - Lyssetting (natural, studio, dramatic, soft)
+  - Komposisjon og framing
+  - Post-processing stil (film grain, color grading)
+
+- [ ] **Custom Prompt Override**
+  - Manuell redigering av genererte prompts
+  - Prompt templates per kategori
+  - Brand guideline integration
+  - A/B testing av ulike prompts
+
+- [ ] **Nano Banana Pro Integration**
+  - API-kobling for bildegenerering
+  - Batch-generering av alle assets
+  - Varianter per bilde (3-5 alternativer)
+  - Kvalitetskontroll og scoring
+
+- [ ] **Asset Management**
+  - Versjonering av genererte bilder
+  - Sammenligning original vs generert
+  - Export i multiple formater/størrelser
+  - CDN-optimalisert lagring
+
+---
+
 ## Milepæler
 
 | Milepæl | Versjon | Status |
@@ -110,6 +159,9 @@
 | SEO-pakke | v3.0 | 📋 Roadmap |
 | Mailgun integration | v3.0 | 📋 Roadmap |
 | Vercel env setup | v3.0 | 📋 Roadmap |
+| Image prompt extraction | v4.0 | 📋 Roadmap |
+| Nano Banana Pro integration | v4.0 | 📋 Roadmap |
+| Asset management | v4.0 | 📋 Roadmap |
 
 ---
 
@@ -123,6 +175,18 @@ Reference URL → Playwright → Screenshots → Design Tokens → Component Cod
 ### v2.0
 ```
 Component Code → Next.js Boilerplate → Configured Project → Deploy
+```
+
+### v3.0
+```
+Generated Site → AI Content → SEO Optimization → Email Integration → Production Ready
+```
+
+### v4.0
+```
+Extracted Images → Vision AI Analysis → Prompt Generation → Nano Banana Pro → Brand-Matched Assets
+                                              ↓
+                        [Brand Guidelines, Colors, Style, Camera Settings]
 ```
 
 ---
