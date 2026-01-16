@@ -3,10 +3,16 @@
  *
  * POST /api/scaffold
  * Creates a runnable Next.js project from generated components
+ * Automatically creates v1.0 version on first website generation
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { scaffoldGeneratedSite } from '@/lib/scaffold';
+import {
+  createNewVersion,
+  getNextVersionNumber,
+  listVersions
+} from '@/lib/versioning';
 import path from 'path';
 
 interface ScaffoldRequest {
@@ -17,6 +23,8 @@ interface ScaffoldRequest {
 interface ScaffoldResponse {
   success: boolean;
   generatedPath?: string;
+  versionCreated?: boolean;
+  versionNumber?: string;
   error?: string;
 }
 
@@ -65,9 +73,43 @@ export async function POST(request: NextRequest): Promise<NextResponse<ScaffoldR
     });
 
     if (result.success) {
+      // Check if this is the first website generation (no versions exist yet)
+      const existingVersions = listVersions(websiteId);
+      let versionCreated = false;
+      let versionNumber: string | undefined;
+
+      if (existingVersions.length === 0) {
+        // First generation - create v1.0 automatically
+        try {
+          versionNumber = getNextVersionNumber(websiteId, 'initial');
+          const versionResult = createNewVersion({
+            websiteId,
+            versionNumber,
+            sourceDir: result.generatedPath,
+            changelog: 'Initial version',
+            setActive: true,
+          });
+          versionCreated = true;
+        } catch (versionError) {
+          // Log error but don't fail the scaffold request
+          // The generated/ folder is still valid even if versioning fails
+          const versionMessage = versionError instanceof Error
+            ? versionError.message
+            : 'Unknown error';
+          return NextResponse.json({
+            success: true,
+            generatedPath: result.generatedPath,
+            versionCreated: false,
+            error: `Scaffolding succeeded but version creation failed: ${versionMessage}`,
+          });
+        }
+      }
+
       return NextResponse.json({
         success: true,
         generatedPath: result.generatedPath,
+        versionCreated,
+        versionNumber,
       });
     } else {
       return NextResponse.json(
