@@ -320,7 +320,6 @@ export const useEffectsTokens = () =>
  */
 export const useEditorIsLoading = () => useEditorStore((state) => state.isLoading);
 export const useEditorIsDirty = () => useEditorStore((state) => state.isDirty);
-export const useEditorError = () => useEditorStore((state) => state.error);
 
 /**
  * Get editor status (loading, dirty, error)

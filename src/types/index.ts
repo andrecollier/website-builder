@@ -81,6 +81,14 @@ export interface ExtractionState {
   clearError: (errorId: string) => void;
   reset: () => void;
   setWebsiteId: (id: string | null) => void;
+  completeExtraction: () => void;
+  updateFromStatus: (status: {
+    phase: number;
+    subStatus: string;
+    progress: number;
+    isRunning: boolean;
+    errors?: ExtractionError[];
+  }) => void;
 }
 
 // API Types
@@ -208,7 +216,9 @@ export type CapturePhase =
   | 'waiting_fonts'
   | 'capturing'
   | 'sections'
-  | 'complete';
+  | 'extracting'
+  | 'complete'
+  | 'failed';
 
 export interface CaptureProgress {
   phase: CapturePhase;

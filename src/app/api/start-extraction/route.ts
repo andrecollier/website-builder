@@ -19,7 +19,7 @@ import {
   type RawPageData,
 } from '@/lib/design-system';
 import { setTokens } from '@/lib/cache';
-import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress, DesignSystem } from '@/types';
+import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress, CapturePhase, DesignSystem } from '@/types';
 import path from 'path';
 import fs from 'fs';
 
@@ -89,7 +89,7 @@ async function synthesizeAndSaveDesignSystem(
 /**
  * Helper to save progress to both in-memory store and database
  */
-function saveProgress(websiteId: string, phase: string, percent: number, message: string): void {
+function saveProgress(websiteId: string, phase: CapturePhase, percent: number, message: string): void {
   const progress = { phase, percent, message };
   // Publish to SSE subscribers for real-time updates
   publishCaptureProgress(websiteId, progress);
