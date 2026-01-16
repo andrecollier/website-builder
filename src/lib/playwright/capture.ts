@@ -270,14 +270,44 @@ async function captureSections(
     );
 
     try {
-      // Clip screenshot to section bounding box
+      // Scroll to section first (clip only works within viewport)
+      // Scroll past the section then back to trigger intersection observers
+      await page.evaluate((y) => window.scrollTo(0, Math.max(0, y - 200)), section.boundingBox.y);
+      await page.waitForTimeout(300);
+      await page.evaluate((y) => window.scrollTo(0, y + 500), section.boundingBox.y);
+      await page.waitForTimeout(300);
+      await page.evaluate((y) => window.scrollTo(0, y), section.boundingBox.y);
+      await page.waitForTimeout(500); // Wait for lazy-loaded content to appear
+
+      // Wait for images in viewport to load
+      await page.evaluate(async () => {
+        const images = Array.from(document.querySelectorAll('img'));
+        await Promise.all(
+          images
+            .filter(img => {
+              const rect = img.getBoundingClientRect();
+              return rect.top < window.innerHeight && rect.bottom > 0;
+            })
+            .map(img => img.complete ? Promise.resolve() :
+              new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                setTimeout(resolve, 2000); // Max 2s per image
+              })
+            )
+        );
+      });
+
+      // Calculate clip relative to current viewport
+      const clipY = section.boundingBox.y - await page.evaluate(() => window.scrollY);
+
       await page.screenshot({
         path: sectionPath,
         clip: {
           x: section.boundingBox.x,
-          y: section.boundingBox.y,
+          y: Math.max(0, clipY),
           width: section.boundingBox.width,
-          height: section.boundingBox.height,
+          height: Math.min(section.boundingBox.height, 900), // Limit to viewport height
         },
         type: 'png',
       });
@@ -287,8 +317,7 @@ async function captureSections(
         screenshotPath: sectionPath,
       });
     } catch {
-      // Log warning but continue capturing other sections
-      // Some sections may have invalid bounding boxes
+      // Continue capturing other sections if one fails
       capturedSections.push({
         ...section,
         screenshotPath: '',
