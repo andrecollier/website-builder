@@ -9,6 +9,7 @@ import { chromium, Browser, Page } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import { compareAllSections, ComparisonReport } from './visual-diff';
+import { startGeneratedSite, checkGeneratedSiteStatus } from './server-manager';
 
 // ====================
 // INTERFACES
@@ -173,9 +174,10 @@ export async function captureGeneratedScreenshots(
 
 /**
  * Run full comparison workflow:
- * 1. Capture screenshots of generated site
- * 2. Compare with reference screenshots
- * 3. Generate diff images and report
+ * 1. Auto-start generated site if not running
+ * 2. Capture screenshots of generated site
+ * 3. Compare with reference screenshots
+ * 4. Generate diff images and report
  *
  * @param options - Comparison options
  * @returns Comparison report
@@ -184,14 +186,44 @@ export async function runComparison(options: {
   websiteId: string;
   websitesDir: string;
   generatedSiteUrl?: string;
+  autoStartServer?: boolean;
 }): Promise<ComparisonReport> {
   const {
     websiteId,
     websitesDir,
-    generatedSiteUrl = 'http://localhost:3001',
+    generatedSiteUrl,
+    autoStartServer = true,
   } = options;
 
+  const port = 3002;
+  let siteUrl = generatedSiteUrl || `http://localhost:${port}`;
+
   console.log(`Starting comparison for website: ${websiteId}`);
+
+  // Step 0: Auto-start the generated site if needed
+  if (autoStartServer && !generatedSiteUrl) {
+    console.log('Checking if generated site is running...');
+    const status = await checkGeneratedSiteStatus(port);
+
+    if (!status.running) {
+      console.log('Generated site not running. Starting it...');
+      const startResult = await startGeneratedSite({
+        websiteId,
+        websitesDir,
+        port,
+      });
+
+      if (!startResult.success) {
+        throw new Error(`Failed to start generated site: ${startResult.error}`);
+      }
+
+      siteUrl = startResult.url || siteUrl;
+      console.log(`Generated site started at ${siteUrl}`);
+    } else {
+      console.log(`Generated site already running at ${status.url}`);
+      siteUrl = status.url || siteUrl;
+    }
+  }
 
   // Step 1: Capture screenshots of generated site
   console.log('Capturing generated screenshots...');
@@ -199,7 +231,7 @@ export async function runComparison(options: {
     await captureGeneratedScreenshots({
       websiteId,
       websitesDir,
-      generatedSiteUrl,
+      generatedSiteUrl: siteUrl,
     });
   } catch (error) {
     console.error('Error capturing screenshots:', error);

@@ -111,6 +111,13 @@ Alle bilder som ekstraheres fra referanse-URLer lagres som detaljerte prompts so
   - Generere detaljerte text-to-image prompts
   - Lagre prompts sammen med original metadata
   - Kategorisere bilder (hero, product, team, icons, etc.)
+  - **Asset Metadata Capture:**
+    - Bildestørrelse (width, height, aspect ratio)
+    - Border radius (rounded corners)
+    - Object-fit og object-position
+    - Shadow og filter effekter
+    - Mask og clip-path
+    - Overlay og gradient overlays
 
 - [ ] **Prompt Generation Factors**
   - **Brand/Innhold**: Tilpasse prompts basert på bransje og merkevare

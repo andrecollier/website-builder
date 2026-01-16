@@ -17,3 +17,9 @@ export {
   runComparison,
   getExistingReport,
 } from './compare-section';
+
+export {
+  checkGeneratedSiteStatus,
+  startGeneratedSite,
+  stopGeneratedSite,
+} from './server-manager';

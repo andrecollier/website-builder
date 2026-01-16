@@ -80,9 +80,11 @@ export async function GET(request: NextRequest): Promise<NextResponse<CompareRes
  *
  * Body: {
  *   websiteId: string,
- *   generatedSiteUrl?: string (default: http://localhost:3001),
+ *   generatedSiteUrl?: string (default: http://localhost:3002, auto-started),
  *   forceRecapture?: boolean (default: false)
  * }
+ *
+ * The generated site will be automatically started on port 3002 if not running.
  */
 export async function POST(request: NextRequest): Promise<NextResponse<CompareResponse>> {
   try {
@@ -123,11 +125,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<CompareRe
       }
     }
 
-    // Run comparison
+    // Run comparison (auto-starts generated site if not running)
     const report = await runComparison({
       websiteId,
       websitesDir,
-      generatedSiteUrl: generatedSiteUrl || 'http://localhost:3001',
+      generatedSiteUrl: generatedSiteUrl || undefined,
+      autoStartServer: true,
     });
 
     return NextResponse.json({
