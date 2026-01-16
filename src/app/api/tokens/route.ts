@@ -4,11 +4,20 @@
  * Provides endpoints for getting and updating design tokens.
  * GET: Retrieve current design tokens for a URL
  * PUT: Update/save modified design tokens
+ * Automatically creates v1.x versions when tokens are edited for a website
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokens, setTokens, extractDomain } from '@/lib/cache/token-cache';
 import { getDefaultDesignSystem } from '@/lib/design-system/synthesizer';
+import {
+  createNewVersion,
+  getNextVersionNumber,
+  getCurrentPath,
+  listVersions
+} from '@/lib/versioning';
+import fs from 'fs';
+import path from 'path';
 import type { DesignSystem } from '@/types';
 
 // ====================
@@ -84,6 +93,7 @@ export async function GET(request: NextRequest) {
  * - url: The source URL for these tokens (required)
  * - tokens: The DesignSystem object to save (required)
  * - ttlHours: Optional TTL in hours (default: 24)
+ * - websiteId: Optional website ID for automatic version creation
  *
  * Returns:
  * - 200: Tokens saved successfully
@@ -92,7 +102,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { url, tokens, ttlHours } = body;
+    const { url, tokens, ttlHours, websiteId } = body;
 
     // Validate required fields
     if (!url) {
@@ -122,14 +132,74 @@ export async function PUT(request: NextRequest) {
       ttlHours: ttlHours ?? 24,
     });
 
+    // If websiteId is provided, create a new version automatically
+    let versionCreated = false;
+    let versionNumber: string | undefined;
+    let versionError: string | undefined;
+
+    if (websiteId) {
+      try {
+        // Check if versions exist (we should have at least v1.0)
+        const existingVersions = listVersions(websiteId);
+
+        if (existingVersions.length === 0) {
+          // No versions exist yet - skip version creation
+          // This shouldn't happen in normal flow, but handle gracefully
+          versionError = 'No initial version exists for this website';
+        } else {
+          // Get the current/ directory as the source
+          const currentPath = getCurrentPath(websiteId);
+
+          // Verify current/ exists
+          if (!fs.existsSync(currentPath)) {
+            throw new Error('Current version directory not found');
+          }
+
+          // Get next version number with 'edit' change type (1.0 -> 1.1, 1.1 -> 1.2, etc.)
+          versionNumber = getNextVersionNumber(websiteId, 'edit');
+
+          // Create new version from current/ directory
+          const versionResult = createNewVersion({
+            websiteId,
+            versionNumber,
+            sourceDir: currentPath,
+            tokensJson: JSON.stringify(tokens),
+            changelog: 'Updated design tokens',
+            setActive: true,
+          });
+
+          // Update the design-system.json file in the new version directory
+          const designSystemPath = path.join(
+            versionResult.versionPath,
+            'design-system.json'
+          );
+          fs.writeFileSync(
+            designSystemPath,
+            JSON.stringify(tokens, null, 2),
+            'utf-8'
+          );
+
+          versionCreated = true;
+        }
+      } catch (error) {
+        // Log error but don't fail the token save
+        // The cache update succeeded, version creation is supplementary
+        versionError = error instanceof Error
+          ? error.message
+          : 'Unknown version creation error';
+      }
+    }
+
     return NextResponse.json({
       success: true,
       domain: cacheEntry.domain,
       extractedAt: cacheEntry.extractedAt,
       expiresAt: cacheEntry.expiresAt,
+      versionCreated,
+      versionNumber,
+      versionError,
     });
   } catch (error) {
-    console.error('Error saving tokens:', error);
     return NextResponse.json(
       {
         success: false,
