@@ -316,11 +316,18 @@ export const useEffectsTokens = () =>
   useEditorStore((state) => state.modifiedTokens?.effects ?? null);
 
 /**
+ * Get individual editor status values
+ */
+export const useEditorIsLoading = () => useEditorStore((state) => state.isLoading);
+export const useEditorIsDirty = () => useEditorStore((state) => state.isDirty);
+export const useEditorError = () => useEditorStore((state) => state.error);
+
+/**
  * Get editor status (loading, dirty, error)
  */
-export const useEditorStatus = () =>
-  useEditorStore((state) => ({
-    isLoading: state.isLoading,
-    isDirty: state.isDirty,
-    error: state.error,
-  }));
+export function useEditorStatus() {
+  const isLoading = useEditorIsLoading();
+  const isDirty = useEditorIsDirty();
+  const error = useEditorError();
+  return { isLoading, isDirty, error };
+}

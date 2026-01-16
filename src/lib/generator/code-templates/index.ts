@@ -16,7 +16,77 @@
  */
 
 // ====================
-// HEADER TEMPLATES
+// IMPORTS FOR LOCAL USE
+// ====================
+
+import {
+  generatePixelPerfectHeader,
+  generateSemanticHeader,
+  generateModernizedHeader,
+  headerTemplates,
+  getHeaderTemplate,
+  generateAllHeaderVariants,
+  type HeaderTemplateProps,
+  type HeaderVariantStrategy,
+} from './header';
+
+import {
+  generatePixelPerfectHero,
+  generateSemanticHero,
+  generateModernizedHero,
+  heroTemplates,
+  getHeroTemplate,
+  generateAllHeroVariants,
+  type HeroTemplateProps,
+  type HeroVariantStrategy,
+} from './hero';
+
+import {
+  generatePixelPerfectFeatures,
+  generateSemanticFeatures,
+  generateModernizedFeatures,
+  featuresTemplates,
+  getFeaturesTemplate,
+  generateAllFeaturesVariants,
+  type FeaturesTemplateProps,
+  type FeaturesVariantStrategy,
+} from './features';
+
+import {
+  generatePixelPerfectTestimonials,
+  generateSemanticTestimonials,
+  generateModernizedTestimonials,
+  testimonialsTemplates,
+  getTestimonialsTemplate,
+  generateAllTestimonialsVariants,
+  type TestimonialsTemplateProps,
+  type TestimonialsVariantStrategy,
+} from './testimonials';
+
+import {
+  generatePixelPerfectPricing,
+  generateSemanticPricing,
+  generateModernizedPricing,
+  pricingTemplates,
+  getPricingTemplate,
+  generateAllPricingVariants,
+  type PricingTemplateProps,
+  type PricingVariantStrategy,
+} from './pricing';
+
+import {
+  generatePixelPerfectFooter,
+  generateSemanticFooter,
+  generateModernizedFooter,
+  footerTemplates,
+  getFooterTemplate,
+  generateAllFooterVariants,
+  type FooterTemplateProps,
+  type FooterVariantStrategy,
+} from './footer';
+
+// ====================
+// RE-EXPORTS
 // ====================
 
 export {
@@ -28,11 +98,7 @@ export {
   generateAllHeaderVariants,
   type HeaderTemplateProps,
   type HeaderVariantStrategy,
-} from './header';
-
-// ====================
-// HERO TEMPLATES
-// ====================
+};
 
 export {
   generatePixelPerfectHero,
@@ -43,11 +109,7 @@ export {
   generateAllHeroVariants,
   type HeroTemplateProps,
   type HeroVariantStrategy,
-} from './hero';
-
-// ====================
-// FEATURES TEMPLATES
-// ====================
+};
 
 export {
   generatePixelPerfectFeatures,
@@ -58,11 +120,7 @@ export {
   generateAllFeaturesVariants,
   type FeaturesTemplateProps,
   type FeaturesVariantStrategy,
-} from './features';
-
-// ====================
-// TESTIMONIALS TEMPLATES
-// ====================
+};
 
 export {
   generatePixelPerfectTestimonials,
@@ -73,11 +131,7 @@ export {
   generateAllTestimonialsVariants,
   type TestimonialsTemplateProps,
   type TestimonialsVariantStrategy,
-} from './testimonials';
-
-// ====================
-// PRICING TEMPLATES
-// ====================
+};
 
 export {
   generatePixelPerfectPricing,
@@ -88,11 +142,7 @@ export {
   generateAllPricingVariants,
   type PricingTemplateProps,
   type PricingVariantStrategy,
-} from './pricing';
-
-// ====================
-// FOOTER TEMPLATES
-// ====================
+};
 
 export {
   generatePixelPerfectFooter,
@@ -103,7 +153,7 @@ export {
   generateAllFooterVariants,
   type FooterTemplateProps,
   type FooterVariantStrategy,
-} from './footer';
+};
 
 // ====================
 // UNIFIED TYPES

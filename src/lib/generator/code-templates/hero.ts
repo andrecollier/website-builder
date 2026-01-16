@@ -136,7 +136,7 @@ function parseHeroContent(htmlSnapshot: string): HeroContent {
 
   // Extract stats (value + label pairs)
   const stats: { value: string; label: string }[] = [];
-  const statsMatches = htmlSnapshot.matchAll(/<(?:div|span)[^>]*>\s*(\d+[+%kKmM]?)\s*<\/(?:div|span)>\s*<(?:div|span|p)[^>]*>([^<]+)</gi);
+  const statsMatches = Array.from(htmlSnapshot.matchAll(/<(?:div|span)[^>]*>\s*(\d+[+%kKmM]?)\s*<\/(?:div|span)>\s*<(?:div|span|p)[^>]*>([^<]+)</gi));
   for (const match of statsMatches) {
     stats.push({ value: match[1], label: match[2].trim() });
     if (stats.length >= 4) break;

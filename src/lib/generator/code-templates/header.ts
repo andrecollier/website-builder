@@ -85,7 +85,7 @@ function parseHeaderContent(htmlSnapshot: string): HeaderContent {
   const logoText = logoMatch ? logoMatch[1].trim() : 'Company';
 
   // Extract navigation items
-  const navItemsMatches = htmlSnapshot.matchAll(/<a[^>]*>([^<]+)</gi);
+  const navItemsMatches = Array.from(htmlSnapshot.matchAll(/<a[^>]*>([^<]+)</gi));
   const navItems: string[] = [];
   for (const match of navItemsMatches) {
     const text = match[1].trim();

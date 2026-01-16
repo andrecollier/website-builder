@@ -5,45 +5,40 @@
 Les først disse filene for full kontekst:
 - PROJECT_PLAN.md - Se Phase 5 seksjonen
 - ROADMAP.md - Versjonsoversikt
+- src/types/index.ts - Se PHASES definisjon
 
 ### Nåværende Status (2026-01-16)
 - ✅ Phase 1: Dashboard & UI - FERDIG
 - ✅ Phase 2: Playwright Integration - FERDIG
 - ✅ Phase 3: Design System Extraction - FERDIG
 - ✅ Phase 4: Component Generation - FERDIG
-- ✅ Phase 4.5: E2E Testing - FERDIG
+- ✅ Phase 4.5: E2E Testing & Bug Fixes - FERDIG
+  - Progress bar fungerer korrekt med real-time updates
+  - Project list refresher etter extraction completes
+  - Testet med flere sites (awwwards.com, vg.no, etc.)
 
-### Hva som er tilgjengelig
+### Hva som er tilgjengelig etter en extraction
 
 **Reference screenshots (original):**
 ```
-Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/reference/
-├── full-page.png           # Komplett side (14394px høyde)
-├── metadata.json           # 10 seksjoner med boundingBox
+Websites/<website-id>/reference/
+├── full-page.png           # Komplett side screenshot
+├── metadata.json           # Seksjoner med boundingBox
 └── sections/
     ├── 01-header.png
     ├── 02-hero.png
     ├── 03-features.png
-    ├── 04-testimonials.png
-    ├── 05-pricing.png
-    ├── 06-features.png
-    ├── 07-testimonials.png
-    ├── 08-pricing.png
-    ├── 09-cta.png
-    └── 10-footer.png
+    └── ... (varierer per site)
 ```
 
-**Genererte React-komponenter:**
+**Genererte React-komponenter (etter "Generate Components"):**
 ```
-Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/generated/
+Websites/<website-id>/generated/
 ├── src/
 │   ├── components/
 │   │   ├── Header/Header.tsx
 │   │   ├── Hero/Hero.tsx
-│   │   ├── Features/Features.tsx
-│   │   ├── About/About.tsx
-│   │   ├── CTA/CTA.tsx
-│   │   └── Footer/Footer.tsx
+│   │   └── ... (varierer per site)
 │   ├── pages/
 │   │   ├── index.tsx
 │   │   └── _app.tsx
@@ -55,7 +50,7 @@ Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/generated/
 
 **Design tokens:**
 ```
-Websites/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868/
+Websites/<website-id>/
 ├── design-system.json      # Ekstraherte farger, fonts, spacing
 ├── tailwind.config.js      # Tailwind config med tokens
 └── variables.css           # CSS custom properties
@@ -224,10 +219,12 @@ src/components/Comparison/
 
 ## Test når ferdig
 
-1. Start generated site: `cd Websites/website-7f967219-.../generated && npm run dev`
-2. Kjør comparison: `curl -X POST http://localhost:3000/api/compare -d '{"websiteId":"website-7f967219-b93c-41b7-bdbf-2aab3a7fc868"}'`
-3. Åpne dashboard: `http://localhost:3000/compare/website-7f967219-b93c-41b7-bdbf-2aab3a7fc868`
-4. Verifiser:
+1. Først: Ekstraher en nettside via dashboard (f.eks. https://fluence.framer.website/)
+2. Generer komponenter via Preview-siden ("Generate Components" knappen)
+3. Start generated site: `cd Websites/<website-id>/generated && npm install && npm run dev`
+4. Kjør comparison: `curl -X POST http://localhost:3000/api/compare -d '{"websiteId":"<website-id>"}'`
+5. Åpne dashboard: `http://localhost:3000/compare/<website-id>`
+6. Verifiser:
    - Accuracy scores vises per seksjon
    - Side-by-side view fungerer
    - Diff view highlighter forskjeller

@@ -77,8 +77,8 @@ function ColorSwatch({
           'rounded-lg border-2 transition-all duration-200',
           'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))] focus:ring-offset-2 focus:ring-offset-[rgb(var(--background))]',
           {
-            'border-[rgb(var(--accent))] ring-2 ring-[rgb(var(--accent)/0.3)]': isSelected,
-            'border-[rgb(var(--border))] hover:border-[rgb(var(--accent))]': !isSelected && onClick,
+            'border-[rgb(var(--accent))] ring-2 ring-[rgb(var(--accent)/0.3)]': !!isSelected,
+            'border-[rgb(var(--border))] hover:border-[rgb(var(--accent))]': !isSelected && !!onClick,
             'border-transparent cursor-default': !onClick,
           }
         )}

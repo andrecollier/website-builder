@@ -11,7 +11,7 @@ import type { GeneratedComponent, ComponentVariant } from '@/types';
 
 export type ComparisonViewMode = 'side-by-side' | 'overlay' | 'slider';
 
-interface OriginalComparisonProps {
+export interface OriginalComparisonProps {
   /** Initial view mode for comparison */
   defaultViewMode?: ComparisonViewMode;
   /** Optional class name for the container */

@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import * as Switch from '@radix-ui/react-switch';
 import { UrlInput } from '@/components/Dashboard/UrlInput';
 import { StatusBar } from '@/components/Dashboard/StatusBar';
 import { ProjectList } from '@/components/Dashboard/ProjectList';
 import { ErrorRecoveryPanel } from '@/components/Dashboard/ErrorRecoveryPanel';
-import { useStore, useExtractionErrors, useExtractionStatus } from '@/store/useStore';
+import { useStore, useExtractionErrors, useExtractionStatus, useCurrentWebsiteId } from '@/store/useStore';
 import { isValidUrl, cn } from '@/lib/utils';
 import type { Website, StartExtractionResponse } from '@/types';
 
@@ -40,6 +39,7 @@ export default function Home() {
   const { isRunning } = useExtractionStatus();
   const errors = useExtractionErrors();
   const store = useStore();
+  const currentWebsiteId = useCurrentWebsiteId();
 
   /**
    * Validate URL when input changes
@@ -56,7 +56,52 @@ export default function Home() {
   }, []);
 
   /**
+   * Poll for status updates when extraction is running
+   */
+  useEffect(() => {
+    if (!isRunning || !currentWebsiteId) return;
+
+    const pollStatus = async () => {
+      try {
+        const response = await fetch(`/api/status?websiteId=${currentWebsiteId}`);
+        if (response.ok) {
+          const data = await response.json();
+
+          // Check if extraction is complete
+          if (data.phase === 8 || data.progress === 100) {
+            store.completeExtraction();
+            // Refresh project list after a small delay to ensure database is updated
+            setTimeout(() => {
+              fetchProjects();
+            }, 500);
+          } else {
+            // Update store with current progress
+            store.updateFromStatus({
+              phase: data.phase,
+              subStatus: data.subStatus,
+              progress: data.progress,
+              isRunning: true,
+              errors: data.errors,
+            });
+          }
+        }
+      } catch {
+        // Silently fail - will retry on next poll
+      }
+    };
+
+    // Poll immediately
+    pollStatus();
+
+    // Then poll every 1 second
+    const interval = setInterval(pollStatus, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRunning, currentWebsiteId, store]);
+
+  /**
    * Fetch project history from API
+   * Also checks for in-progress extractions to resume polling
    */
   const fetchProjects = async () => {
     try {
@@ -64,9 +109,18 @@ export default function Home() {
       const response = await fetch('/api/websites');
       if (response.ok) {
         const data = await response.json();
-        setProjects(data.websites || []);
+        const websites = data.websites || [];
+        setProjects(websites);
+
+        // Check for in-progress extractions to resume polling after refresh
+        const inProgressWebsite = websites.find((w: Website) => w.status === 'in_progress');
+        if (inProgressWebsite && !isRunning) {
+          // Resume extraction polling
+          store.setWebsiteId(inProgressWebsite.id);
+          store.startExtraction(inProgressWebsite.reference_url);
+        }
       }
-    } catch (error) {
+    } catch {
       // Silently fail - empty project list is acceptable
     } finally {
       setIsLoadingProjects(false);
@@ -136,10 +190,10 @@ export default function Home() {
   };
 
   /**
-   * Handle project selection
+   * Handle project selection - navigate to preview page
    */
   const handleSelectProject = useCallback((project: Website) => {
-    // For now, just log - future phases will implement project view
+    window.location.href = `/preview/${project.id}`;
   }, []);
 
   /**
@@ -225,26 +279,27 @@ export default function Home() {
             >
               Template Mode
             </label>
-            <Switch.Root
+            <button
               id="template-mode"
-              checked={isTemplateMode}
-              onCheckedChange={setIsTemplateMode}
+              type="button"
+              role="switch"
+              aria-checked={isTemplateMode}
+              onClick={() => setIsTemplateMode(!isTemplateMode)}
               className={cn(
                 'w-11 h-6 rounded-full relative',
-                'bg-[rgb(var(--muted))]',
-                'data-[state=checked]:bg-[rgb(var(--accent))]',
+                isTemplateMode ? 'bg-[rgb(var(--accent))]' : 'bg-[rgb(var(--muted))]',
                 'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--ring)/0.3)]',
                 'transition-colors duration-200'
               )}
             >
-              <Switch.Thumb
+              <span
                 className={cn(
                   'block w-5 h-5 rounded-full bg-white shadow-md',
-                  'translate-x-0.5 transition-transform duration-200',
-                  'data-[state=checked]:translate-x-[22px]'
+                  'absolute top-0.5 transition-transform duration-200',
+                  isTemplateMode ? 'translate-x-[22px]' : 'translate-x-0.5'
                 )}
               />
-            </Switch.Root>
+            </button>
           </div>
         </div>
       </header>

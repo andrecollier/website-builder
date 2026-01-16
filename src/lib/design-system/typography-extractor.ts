@@ -251,14 +251,14 @@ export function isMonospaceFont(fontFamily: string): boolean {
  * Check if an element tag is a heading
  */
 export function isHeadingTag(tag: string): boolean {
-  return TYPOGRAPHY_CONFIG.headingTags.includes(tag.toLowerCase());
+  return (TYPOGRAPHY_CONFIG.headingTags as readonly string[]).includes(tag.toLowerCase());
 }
 
 /**
  * Check if an element tag is typically body text
  */
 export function isBodyTag(tag: string): boolean {
-  return TYPOGRAPHY_CONFIG.bodyTags.includes(tag.toLowerCase());
+  return (TYPOGRAPHY_CONFIG.bodyTags as readonly string[]).includes(tag.toLowerCase());
 }
 
 // ====================

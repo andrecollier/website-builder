@@ -110,9 +110,9 @@ function parseTestimonialsContent(htmlSnapshot: string): TestimonialsContent {
   const testimonials: TestimonialItem[] = [];
 
   // Try to match testimonial cards
-  const testimonialMatches = htmlSnapshot.matchAll(
+  const testimonialMatches = Array.from(htmlSnapshot.matchAll(
     /<(?:div|article|blockquote)[^>]*class="[^"]*(?:testimonial|review|quote)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|article|blockquote)>/gi
-  );
+  ));
 
   for (const match of testimonialMatches) {
     const cardHtml = match[1];
@@ -157,7 +157,7 @@ function parseTestimonialsContent(htmlSnapshot: string): TestimonialsContent {
 
   // Fallback: try matching blockquotes
   if (testimonials.length === 0) {
-    const blockquoteMatches = htmlSnapshot.matchAll(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi);
+    const blockquoteMatches = Array.from(htmlSnapshot.matchAll(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi));
     for (const match of blockquoteMatches) {
       const quoteHtml = match[1];
       const textMatch = quoteHtml.match(/<p[^>]*>([^<]+)</i) ||

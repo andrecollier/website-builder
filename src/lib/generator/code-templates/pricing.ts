@@ -104,7 +104,7 @@ function parsePricingContent(htmlSnapshot: string): PricingContent {
   const tiers: PricingTier[] = [];
 
   // Try to find pricing cards/tiers
-  const tierMatches = htmlSnapshot.matchAll(/<(?:div|article)[^>]*class="[^"]*(?:pricing|plan|tier|card)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|article)>/gi);
+  const tierMatches = Array.from(htmlSnapshot.matchAll(/<(?:div|article)[^>]*class="[^"]*(?:pricing|plan|tier|card)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|article)>/gi));
 
   for (const match of tierMatches) {
     const tierHtml = match[1];
@@ -129,7 +129,7 @@ function parsePricingContent(htmlSnapshot: string): PricingContent {
 
     // Extract features
     const features: string[] = [];
-    const featureMatches = tierHtml.matchAll(/<li[^>]*>([^<]+)</gi);
+    const featureMatches = Array.from(tierHtml.matchAll(/<li[^>]*>([^<]+)</gi));
     for (const fMatch of featureMatches) {
       const feature = fMatch[1].trim();
       if (feature && feature.length < 100) {

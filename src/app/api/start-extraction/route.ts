@@ -7,10 +7,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createWebsite, initializeDatabase, updateWebsiteStatus } from '@/lib/db/client';
+import { createWebsite, initializeDatabase, updateWebsiteStatus, updateWebsiteProgress, clearWebsiteProgress } from '@/lib/db/client';
 import { isValidUrl, getNameFromUrl } from '@/lib/utils';
 import { captureWebsite } from '@/lib/playwright/capture';
-import { publishCaptureProgress } from '@/app/api/capture-status/route';
+import { publishCaptureProgress, captureProgressStore } from '@/lib/capture-progress';
 import {
   synthesizeDesignSystem,
   getDefaultDesignSystem,
@@ -23,11 +23,7 @@ import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress, 
 import path from 'path';
 import fs from 'fs';
 
-/**
- * In-memory store for tracking capture progress.
- * This can be accessed by the status endpoint for progress polling.
- */
-export const captureProgressStore = new Map<string, CaptureProgress>();
+// captureProgressStore is imported from @/lib/capture-progress
 
 /**
  * Get the base directory for website output
@@ -91,35 +87,40 @@ async function synthesizeAndSaveDesignSystem(
 }
 
 /**
+ * Helper to save progress to both in-memory store and database
+ */
+function saveProgress(websiteId: string, phase: string, percent: number, message: string): void {
+  const progress = { phase, percent, message };
+  // Publish to SSE subscribers for real-time updates
+  publishCaptureProgress(websiteId, progress);
+  // Store in memory for polling fallback
+  captureProgressStore.set(websiteId, progress);
+  // Persist to database for recovery after refresh
+  updateWebsiteProgress(websiteId, progress);
+}
+
+/**
  * Run the capture process asynchronously and update website status on completion.
  * This function is fire-and-forget - it handles its own errors and updates the database.
  * After successful capture, it also synthesizes the design system and saves output files.
  */
 async function runCaptureProcess(websiteId: string, url: string): Promise<void> {
   try {
+    // Initial progress
+    saveProgress(websiteId, 'capturing', 5, 'Starting capture...');
+
     const result = await captureWebsite({
       websiteId,
       url,
       onProgress: (progress) => {
-        // Publish to SSE subscribers for real-time updates
-        publishCaptureProgress(websiteId, progress);
-        // Also store for polling fallback
-        captureProgressStore.set(websiteId, progress);
+        // Save to all stores (memory + database)
+        saveProgress(websiteId, progress.phase, progress.percent, progress.message);
       },
     });
 
     if (result.success) {
-      // Publish progress update for design system extraction
-      publishCaptureProgress(websiteId, {
-        phase: 'complete',
-        percent: 95,
-        message: 'Synthesizing design system...',
-      });
-      captureProgressStore.set(websiteId, {
-        phase: 'complete',
-        percent: 95,
-        message: 'Synthesizing design system...',
-      });
+      // Update progress for design system extraction
+      saveProgress(websiteId, 'extracting', 95, 'Synthesizing design system...');
 
       // Synthesize design system after successful capture
       // This generates design-system.json, tailwind.config.js, and variables.css
@@ -127,31 +128,26 @@ async function runCaptureProcess(websiteId: string, url: string): Promise<void> 
         await synthesizeAndSaveDesignSystem(websiteId, url, result.rawData);
 
         // Final completion status
-        publishCaptureProgress(websiteId, {
-          phase: 'complete',
-          percent: 100,
-          message: 'Extraction complete',
-        });
-        captureProgressStore.set(websiteId, {
-          phase: 'complete',
-          percent: 100,
-          message: 'Extraction complete',
-        });
-
+        saveProgress(websiteId, 'complete', 100, 'Extraction complete');
         updateWebsiteStatus(websiteId, 'completed');
       } catch {
         // Design system synthesis failed, but capture succeeded
         // Mark as completed since screenshots are available
+        saveProgress(websiteId, 'complete', 100, 'Extraction complete (design system failed)');
         updateWebsiteStatus(websiteId, 'completed');
       }
     } else {
+      saveProgress(websiteId, 'failed', 0, 'Capture failed');
       updateWebsiteStatus(websiteId, 'failed');
     }
-  } catch {
+  } catch (error) {
     // Handle unexpected errors during capture
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    saveProgress(websiteId, 'failed', 0, `Error: ${errorMessage}`);
     updateWebsiteStatus(websiteId, 'failed');
   } finally {
-    // Clean up progress store after a delay to allow final status poll
+    // Clean up in-memory progress store after a delay to allow final status poll
+    // Database progress is kept for refresh recovery
     setTimeout(() => {
       captureProgressStore.delete(websiteId);
     }, 30000);

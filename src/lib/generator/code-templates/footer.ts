@@ -116,7 +116,7 @@ function parseFooterContent(htmlSnapshot: string): FooterContent {
 
   // Extract link groups
   const linkGroups: LinkGroup[] = [];
-  const groupMatches = htmlSnapshot.matchAll(/<(?:div|nav)[^>]*class="[^"]*(?:column|group|links)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|nav)>/gi);
+  const groupMatches = Array.from(htmlSnapshot.matchAll(/<(?:div|nav)[^>]*class="[^"]*(?:column|group|links)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|nav)>/gi));
 
   for (const match of groupMatches) {
     const groupHtml = match[1];
@@ -128,7 +128,7 @@ function parseFooterContent(htmlSnapshot: string): FooterContent {
 
     // Extract links
     const links: { label: string; href: string }[] = [];
-    const linkMatches = groupHtml.matchAll(/<a[^>]*href="([^"]*)"[^>]*>([^<]+)</gi);
+    const linkMatches = Array.from(groupHtml.matchAll(/<a[^>]*href="([^"]*)"[^>]*>([^<]+)</gi));
     for (const linkMatch of linkMatches) {
       links.push({
         href: linkMatch[1] || '#',

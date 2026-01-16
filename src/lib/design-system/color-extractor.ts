@@ -116,7 +116,7 @@ function hueInRange(hue: number, min: number, max: number): boolean {
  */
 export function colorDistance(color1: string, color2: string): number {
   try {
-    return chroma.deltaE(color1, color2, 'lab');
+    return chroma.deltaE(color1, color2);
   } catch {
     return Infinity;
   }
@@ -361,7 +361,7 @@ export function categorizeColors(colors: ColorWithFrequency[]): {
     .map((c) => c.normalized);
 
   // Deduplicate and limit neutrals
-  const uniqueNeutrals = [...new Set(neutralColors)].slice(0, 10);
+  const uniqueNeutrals = Array.from(new Set(neutralColors)).slice(0, 10);
 
   return {
     primary,

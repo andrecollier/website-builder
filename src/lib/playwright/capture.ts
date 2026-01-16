@@ -405,7 +405,7 @@ export async function extractRawPageData(page: Page, url: string): Promise<RawPa
     };
 
     // Query all visible elements
-    const elements = document.querySelectorAll('*');
+    const elements = Array.from(document.querySelectorAll('*'));
 
     for (const element of elements) {
       // Skip script, style, and hidden elements

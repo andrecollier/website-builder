@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ReferenceList } from '@/components/Template/ReferenceList';
@@ -53,14 +53,25 @@ function createReference(url: string = ''): ReferenceUrl {
 }
 
 /**
- * Template Mode Page
+ * Loading fallback for Suspense
+ */
+function TemplatePageLoading() {
+  return (
+    <main className="min-h-screen bg-[rgb(var(--background))] flex items-center justify-center">
+      <div className="animate-pulse text-[rgb(var(--muted-foreground))]">Loading...</div>
+    </main>
+  );
+}
+
+/**
+ * Template Mode Page Content
  * Allows users to:
  * - Add multiple reference URLs
  * - Assign each section to a specific source
  * - Reorder sections via drag-and-drop
  * - Generate a mixed website from multiple sources
  */
-export default function TemplatePage() {
+function TemplatePageContent() {
   const searchParams = useSearchParams();
   const store = useStore();
 
@@ -502,5 +513,16 @@ export default function TemplatePage() {
         </div>
       </footer>
     </main>
+  );
+}
+
+/**
+ * Template Mode Page with Suspense boundary for useSearchParams
+ */
+export default function TemplatePage() {
+  return (
+    <Suspense fallback={<TemplatePageLoading />}>
+      <TemplatePageContent />
+    </Suspense>
   );
 }

@@ -65,6 +65,8 @@ export default function PreviewPage() {
   // Local state
   const [codeViewMode, setCodeViewMode] = useState<CodeViewMode>('viewer');
   const [isEditorDirty, setIsEditorDirty] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   /**
    * Load components on mount
@@ -158,6 +160,38 @@ export default function PreviewPage() {
     reset();
     router.push('/');
   }, [reset, router]);
+
+  /**
+   * Handle generating components
+   */
+  const handleGenerateComponents = useCallback(async () => {
+    if (isGenerating) return;
+
+    setIsGenerating(true);
+    setGenerateError(null);
+
+    try {
+      const response = await fetch(`/api/components/${websiteId}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate components');
+      }
+
+      // Reload components after successful generation
+      await loadComponents(websiteId);
+    } catch (error) {
+      setGenerateError(error instanceof Error ? error.message : 'Failed to generate components');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [isGenerating, websiteId, loadComponents]);
 
   /**
    * Render loading state
@@ -294,17 +328,53 @@ export default function PreviewPage() {
               This website doesn&apos;t have any generated components yet. Run the component
               detection process first.
             </p>
-            <Link
-              href={`/api/components/${websiteId}/generate`}
+            {generateError && (
+              <div className="mt-4 p-3 rounded-lg bg-[rgb(var(--destructive)/0.1)] text-sm text-[rgb(var(--destructive))]">
+                {generateError}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleGenerateComponents}
+              disabled={isGenerating}
               className={cn(
                 'mt-4 px-4 py-2 text-sm font-medium rounded-lg',
                 'bg-[rgb(var(--accent))] text-white',
                 'hover:bg-[rgb(var(--accent)/0.9)]',
-                'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))] focus:ring-offset-2'
+                'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))] focus:ring-offset-2',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+                'flex items-center justify-center gap-2'
               )}
             >
-              Generate Components
-            </Link>
+              {isGenerating ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Generating...
+                </>
+              ) : (
+                'Generate Components'
+              )}
+            </button>
           </div>
         </div>
       </div>

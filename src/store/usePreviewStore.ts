@@ -336,35 +336,49 @@ export const usePreviewError = () => usePreviewStore((state) => state.error);
 /**
  * Get preview status (loading and error state)
  */
-export const usePreviewStatus = () =>
-  usePreviewStore((state) => ({
-    isLoading: state.isLoading,
-    error: state.error,
-  }));
+export function usePreviewStatus() {
+  const isLoading = usePreviewLoading();
+  const error = usePreviewError();
+  return { isLoading, error };
+}
+
+/**
+ * Get approval progress individual values
+ */
+export const useApprovalTotal = () => usePreviewStore((state) => state.components.length);
+export const useApprovalCompleted = () =>
+  usePreviewStore((state) =>
+    state.components.filter(
+      (c) => c.status === 'approved' || c.status === 'rejected' || c.status === 'skipped'
+    ).length
+  );
+export const useApprovalApproved = () =>
+  usePreviewStore((state) => state.components.filter((c) => c.status === 'approved').length);
+export const useApprovalPending = () =>
+  usePreviewStore((state) => state.components.filter((c) => c.status === 'pending').length);
+export const useApprovalFailed = () =>
+  usePreviewStore((state) => state.components.filter((c) => c.status === 'failed').length);
 
 /**
  * Get approval progress (completed/total)
  */
-export const useApprovalProgress = () =>
-  usePreviewStore((state) => {
-    const total = state.components.length;
-    const completed = state.components.filter(
-      (c) => c.status === 'approved' || c.status === 'rejected' || c.status === 'skipped'
-    ).length;
-    const approved = state.components.filter((c) => c.status === 'approved').length;
-    const pending = state.components.filter((c) => c.status === 'pending').length;
-    const failed = state.components.filter((c) => c.status === 'failed').length;
+export function useApprovalProgress() {
+  const total = useApprovalTotal();
+  const completed = useApprovalCompleted();
+  const approved = useApprovalApproved();
+  const pending = useApprovalPending();
+  const failed = useApprovalFailed();
 
-    return {
-      total,
-      completed,
-      approved,
-      pending,
-      failed,
-      isComplete: completed === total && total > 0,
-      progressPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
-    };
-  });
+  return {
+    total,
+    completed,
+    approved,
+    pending,
+    failed,
+    isComplete: completed === total && total > 0,
+    progressPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
+}
 
 /**
  * Get components that need manual review (failed status)

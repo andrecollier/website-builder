@@ -852,12 +852,16 @@ CREATE TABLE error_log (
 - ✅ **Phase 2:** Playwright Integration & Anti-Lazy-Load
 - ✅ **Phase 3:** Design System Extraction & Token Editor
 - ✅ **Phase 4:** Component Generation (6 komponenter generert fra Fluence)
-- ✅ **Phase 4.5:** E2E Testing (Fluence URL - alle bugs fikset)
+- ✅ **Phase 4.5:** E2E Testing & Bug Fixes (2026-01-16)
+  - Fixed progress bar to use correct progress store (`captureProgressStore`)
+  - Fixed project list refresh timing after extraction completes
+  - Added proper phase mapping for capture progress phases
+  - Tested with multiple sites (fluence.framer.website, awwwards.com, vg.no, linear.app)
 
 ### Neste Fase
 **→ Phase 5: Visual Comparison System**
 
-Se TEST_RESULTS.md for detaljerte testresultater fra Phase 4.5.
+Se PROMPTS/phase-5.md for detaljert prompt til auto-claude.
 
 ---
 

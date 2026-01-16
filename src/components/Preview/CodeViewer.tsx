@@ -154,7 +154,7 @@ function CopyButton({
         'hover:bg-[rgb(var(--muted))]',
         'focus:outline-none focus:ring-2 focus:ring-[rgb(var(--accent))] focus:ring-offset-1',
         {
-          'cursor-not-allowed opacity-50': disabled,
+          'cursor-not-allowed opacity-50': !!disabled,
           'text-[rgb(var(--success))]': copied,
           'text-[rgb(var(--muted-foreground))]': !copied,
         }

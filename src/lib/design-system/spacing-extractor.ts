@@ -231,11 +231,11 @@ export function detectBaseUnit(spacingValues: SpacingValue[]): number {
   }
 
   // Extract all unique non-zero pixel values
-  const uniqueValues = [...new Set(
+  const uniqueValues = Array.from(new Set(
     spacingValues
       .map((v) => v.valuePx)
       .filter((v) => v > 0)
-  )];
+  ));
 
   if (uniqueValues.length === 0) {
     return 4;
@@ -380,7 +380,7 @@ export function detectContainerMaxWidth(
   let bestWidth = 1280;
   let bestScore = 0;
 
-  for (const [width, frequency] of widthCandidates.entries()) {
+  for (const [width, frequency] of Array.from(widthCandidates.entries())) {
     // Bonus for common container widths
     const isCommon = SPACING_CONFIG.commonContainerWidths.some(
       (common) => Math.abs(common - width) <= 16

@@ -105,9 +105,9 @@ function parseFeaturesContent(htmlSnapshot: string): FeaturesContent {
   const features: FeatureItem[] = [];
 
   // Try to match feature cards/items
-  const featureCardMatches = htmlSnapshot.matchAll(
+  const featureCardMatches = Array.from(htmlSnapshot.matchAll(
     /<(?:div|article)[^>]*class="[^"]*(?:feature|card)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|article)>/gi
-  );
+  ));
 
   for (const match of featureCardMatches) {
     const cardHtml = match[1];
@@ -133,7 +133,7 @@ function parseFeaturesContent(htmlSnapshot: string): FeaturesContent {
 
   // Fallback: try matching h3/h4 followed by p
   if (features.length === 0) {
-    const headingMatches = htmlSnapshot.matchAll(/<h[3-4][^>]*>([^<]+)<\/h[3-4]>\s*<p[^>]*>([^<]+)</gi);
+    const headingMatches = Array.from(htmlSnapshot.matchAll(/<h[3-4][^>]*>([^<]+)<\/h[3-4]>\s*<p[^>]*>([^<]+)</gi));
     for (const match of headingMatches) {
       features.push({
         title: match[1].trim(),

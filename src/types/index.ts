@@ -40,8 +40,8 @@ export interface Phase {
 }
 
 export const PHASES: Phase[] = [
-  { number: 1, name: 'Capturing Reference', description: 'Scrolling page to load all content' },
-  { number: 2, name: 'Extracting Design', description: 'Analyzing typography and colors' },
+  { number: 1, name: 'Capturing Reference', description: 'Taking screenshots and loading content' },
+  { number: 2, name: 'Extracting Design', description: 'Analyzing design system' },
   { number: 3, name: 'Analyzing Layout', description: 'Detecting sections and components' },
   { number: 4, name: 'Generating Components', description: 'Creating React components' },
   { number: 5, name: 'Building Pages', description: 'Assembling page layouts' },

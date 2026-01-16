@@ -7,26 +7,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getWebsiteById, initializeDatabase } from '@/lib/db/client';
+import { getWebsiteByIdWithProgress, initializeDatabase } from '@/lib/db/client';
 import { PHASES } from '@/types';
-import type { StatusResponse, ExtractionError } from '@/types';
-
-/**
- * In-memory status store for tracking extraction progress.
- * In Phase 1, this serves as a placeholder. In later phases,
- * this would be replaced with persistent storage or event-driven updates.
- */
-interface ExtractionProgress {
-  websiteId: string;
-  phase: number;
-  subStatus: string;
-  progress: number;
-  errors: ExtractionError[];
-  updatedAt: number;
-}
-
-// In-memory store for active extractions (Phase 1 placeholder)
-const activeExtractions = new Map<string, ExtractionProgress>();
+import type { StatusResponse } from '@/types';
+import { captureProgressStore } from '@/lib/capture-progress';
 
 /**
  * Get the phase name for a given phase number
@@ -83,8 +67,8 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
       return NextResponse.json(getMockStatus(), { status: 200 });
     }
 
-    // Check if website exists in database
-    const website = getWebsiteById(websiteId);
+    // Check if website exists in database (with progress info)
+    const website = getWebsiteByIdWithProgress(websiteId);
     if (!website) {
       return NextResponse.json(
         {
@@ -108,25 +92,42 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
       );
     }
 
-    // Check for active extraction progress in memory
-    const activeProgress = activeExtractions.get(websiteId);
+    // Check for active capture progress in memory first (most up-to-date)
+    const activeProgress = captureProgressStore.get(websiteId);
     if (activeProgress) {
+      // Convert CaptureProgress to StatusResponse format
+      const phase = getPhaseFromProgressPhase(activeProgress.phase);
       return NextResponse.json(
         {
-          websiteId: activeProgress.websiteId,
-          phase: activeProgress.phase,
+          websiteId: websiteId,
+          phase: phase,
           totalPhases: 8,
-          phaseName: getPhaseName(activeProgress.phase),
-          subStatus: activeProgress.subStatus,
-          progress: activeProgress.progress,
-          errors: activeProgress.errors,
+          phaseName: getPhaseNameFromProgressPhase(activeProgress.phase),
+          subStatus: activeProgress.message,
+          progress: activeProgress.percent,
+          errors: [],
         },
         { status: 200 }
       );
     }
 
-    // Return status based on website database status
-    // In Phase 1, we return simulated status based on the website's status field
+    // Check for progress stored in database (persisted for refresh recovery)
+    if (website.progress_phase && website.status === 'in_progress') {
+      return NextResponse.json(
+        {
+          websiteId: website.id,
+          phase: getPhaseFromProgressPhase(website.progress_phase),
+          totalPhases: 8,
+          phaseName: getPhaseNameFromProgressPhase(website.progress_phase),
+          subStatus: website.progress_message || 'Processing...',
+          progress: website.progress_percent,
+          errors: [],
+        },
+        { status: 200 }
+      );
+    }
+
+    // Return status based on website database status (fallback)
     const statusResponse: StatusResponse = {
       websiteId: website.id,
       phase: getPhaseFromStatus(website.status),
@@ -231,36 +232,48 @@ function getProgressFromStatus(status: string): number {
 }
 
 /**
- * Exported helper for other modules to update extraction progress
- * This allows the start-extraction route or background jobs to update status
+ * Helper functions for progress_phase from database
  */
-export function updateExtractionProgress(
-  websiteId: string,
-  phase: number,
-  subStatus: string,
-  progress: number,
-  errors: ExtractionError[] = []
-): void {
-  activeExtractions.set(websiteId, {
-    websiteId,
-    phase,
-    subStatus,
-    progress,
-    errors,
-    updatedAt: Date.now(),
-  });
+function getPhaseFromProgressPhase(progressPhase: string): number {
+  switch (progressPhase) {
+    case 'capturing':
+    case 'scrolling':
+    case 'loading':
+    case 'initializing':
+    case 'waiting_images':
+    case 'waiting_fonts':
+    case 'sections':
+      return 1;
+    case 'extracting':
+    case 'analyzing':
+      return 2;
+    case 'complete':
+      return 8;
+    case 'failed':
+      return 0;
+    default:
+      return 1;
+  }
 }
 
-/**
- * Clear extraction progress (call when extraction completes or fails)
- */
-export function clearExtractionProgress(websiteId: string): void {
-  activeExtractions.delete(websiteId);
-}
-
-/**
- * Get all active extractions (useful for debugging/admin)
- */
-export function getActiveExtractions(): Map<string, ExtractionProgress> {
-  return activeExtractions;
+function getPhaseNameFromProgressPhase(progressPhase: string): string {
+  switch (progressPhase) {
+    case 'capturing':
+    case 'scrolling':
+    case 'loading':
+    case 'initializing':
+    case 'waiting_images':
+    case 'waiting_fonts':
+    case 'sections':
+      return 'Capturing Reference';
+    case 'extracting':
+    case 'analyzing':
+      return 'Extracting Design';
+    case 'complete':
+      return 'Finalization';
+    case 'failed':
+      return 'Failed';
+    default:
+      return 'Capturing Reference';
+  }
 }

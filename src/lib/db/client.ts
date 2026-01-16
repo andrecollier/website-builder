@@ -259,6 +259,93 @@ export function updateWebsiteStatus(id: string, status: WebsiteStatus): Website 
 }
 
 /**
+ * Progress data for a website extraction
+ */
+export interface WebsiteProgress {
+  phase: string | null;
+  percent: number;
+  message: string | null;
+}
+
+/**
+ * Update a website's progress
+ */
+export function updateWebsiteProgress(
+  id: string,
+  progress: WebsiteProgress
+): boolean {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE websites
+    SET progress_phase = ?, progress_percent = ?, progress_message = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  const result = stmt.run(progress.phase, progress.percent, progress.message, id);
+  return result.changes > 0;
+}
+
+/**
+ * Get a website's progress
+ */
+export function getWebsiteProgress(id: string): WebsiteProgress | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT progress_phase, progress_percent, progress_message
+    FROM websites
+    WHERE id = ?
+  `);
+  const result = stmt.get(id) as { progress_phase: string | null; progress_percent: number; progress_message: string | null } | undefined;
+
+  if (!result) {
+    return null;
+  }
+
+  return {
+    phase: result.progress_phase,
+    percent: result.progress_percent,
+    message: result.progress_message,
+  };
+}
+
+/**
+ * Get website with progress info
+ */
+export interface WebsiteWithProgress extends Website {
+  progress_phase: string | null;
+  progress_percent: number;
+  progress_message: string | null;
+}
+
+/**
+ * Get a single website by ID with progress
+ */
+export function getWebsiteByIdWithProgress(id: string): WebsiteWithProgress | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT id, name, reference_url, created_at, updated_at, current_version, status,
+           progress_phase, progress_percent, progress_message
+    FROM websites
+    WHERE id = ?
+  `);
+  const result = stmt.get(id);
+  return (result as WebsiteWithProgress) || null;
+}
+
+/**
+ * Clear a website's progress (set to null/0)
+ */
+export function clearWebsiteProgress(id: string): boolean {
+  const database = getDb();
+  const stmt = database.prepare(`
+    UPDATE websites
+    SET progress_phase = NULL, progress_percent = 0, progress_message = NULL, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `);
+  const result = stmt.run(id);
+  return result.changes > 0;
+}
+
+/**
  * Update a website's version
  */
 export function updateWebsiteVersion(id: string, version: number): Website | null {

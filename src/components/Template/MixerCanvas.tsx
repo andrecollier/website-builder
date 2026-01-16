@@ -193,7 +193,7 @@ function SectionItemContent({
         'border transition-all duration-200',
         {
           'border-[rgb(var(--border))]': !isDragging,
-          'border-[rgb(var(--accent))] shadow-lg shadow-[rgb(var(--accent)/0.2)]': isDragging,
+          'border-[rgb(var(--accent))] shadow-lg shadow-[rgb(var(--accent)/0.2)]': !!isDragging,
           'opacity-90': !hasSource,
         }
       )}

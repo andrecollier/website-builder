@@ -102,6 +102,36 @@ export const useStore = create<ExtractionState>((set) => ({
    * @param id - The website ID or null if no website is being processed
    */
   setWebsiteId: (id: string | null) => set({ currentWebsiteId: id }),
+
+  /**
+   * Update the store from an API status response
+   * Used for polling status updates
+   */
+  updateFromStatus: (status: {
+    phase: number;
+    subStatus: string;
+    progress: number;
+    isRunning: boolean;
+    errors?: ExtractionError[];
+  }) =>
+    set({
+      currentPhase: status.phase,
+      subStatus: status.subStatus,
+      progress: status.progress,
+      isRunning: status.isRunning,
+      errors: status.errors || [],
+    }),
+
+  /**
+   * Mark extraction as complete
+   */
+  completeExtraction: () =>
+    set({
+      isRunning: false,
+      currentPhase: 8,
+      progress: 100,
+      subStatus: 'Extraction complete',
+    }),
 }));
 
 /**
@@ -109,16 +139,27 @@ export const useStore = create<ExtractionState>((set) => ({
  */
 
 /**
- * Get the current extraction status
+ * Get individual extraction status values
  */
-export const useExtractionStatus = () =>
-  useStore((state) => ({
-    currentPhase: state.currentPhase,
-    totalPhases: state.totalPhases,
-    subStatus: state.subStatus,
-    progress: state.progress,
-    isRunning: state.isRunning,
-  }));
+export const useCurrentPhase = () => useStore((state) => state.currentPhase);
+export const useTotalPhases = () => useStore((state) => state.totalPhases);
+export const useSubStatus = () => useStore((state) => state.subStatus);
+export const useProgress = () => useStore((state) => state.progress);
+export const useIsRunning = () => useStore((state) => state.isRunning);
+
+/**
+ * Get the current extraction status (combined for convenience)
+ * Note: Uses individual selectors to avoid re-render issues
+ */
+export function useExtractionStatus() {
+  const currentPhase = useCurrentPhase();
+  const totalPhases = useTotalPhases();
+  const subStatus = useSubStatus();
+  const progress = useProgress();
+  const isRunning = useIsRunning();
+
+  return { currentPhase, totalPhases, subStatus, progress, isRunning };
+}
 
 /**
  * Get the current errors

@@ -29,6 +29,7 @@ import {
   type GenerationProgress,
 } from '@/lib/generator';
 import { CAPTURE_CONFIG } from '@/types';
+import { generationProgressStore, activeGenerations } from '@/lib/generation-progress';
 import path from 'path';
 import fs from 'fs';
 
@@ -52,18 +53,6 @@ interface GenerationRequest {
   /** Skip screenshot capture (default: false) */
   skipScreenshots?: boolean;
 }
-
-/**
- * In-memory store for tracking generation progress.
- * This can be accessed by status endpoints for progress polling.
- */
-export const generationProgressStore = new Map<string, GenerationProgress>();
-
-/**
- * In-memory store for tracking active generation processes.
- * Prevents duplicate generation runs for the same website.
- */
-const activeGenerations = new Set<string>();
 
 /**
  * Get the base directory for website output
