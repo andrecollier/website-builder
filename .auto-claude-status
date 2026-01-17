@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "010-website-cooker-phase-8",
+  "spec": "011-website-cooker-phase-9",
   "state": "building",
   "subtasks": {
-    "completed": 19,
-    "total": 20,
+    "completed": 16,
+    "total": 21,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Integration & Testing",
+    "current": "API Integration",
     "id": null,
-    "total": 3
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 20,
-    "started_at": "2026-01-16T22:18:51.501304"
+    "number": 17,
+    "started_at": "2026-01-17T00:22:41.667279"
   },
-  "last_update": "2026-01-16T23:05:17.579059"
+  "last_update": "2026-01-17T00:55:06.721100"
 }

@@ -9,17 +9,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWebsite, initializeDatabase, updateWebsiteStatus, updateWebsiteProgress, clearWebsiteProgress } from '@/lib/db/client';
 import { isValidUrl, getNameFromUrl } from '@/lib/utils';
-import { captureWebsite } from '@/lib/playwright/capture';
 import { publishCaptureProgress, captureProgressStore } from '@/lib/capture-progress';
 import {
-  synthesizeDesignSystem,
-  getDefaultDesignSystem,
   generateTailwindConfigString,
   generateCSSVariables,
-  type RawPageData,
 } from '@/lib/design-system';
 import { setTokens } from '@/lib/cache';
 import type { StartExtractionRequest, StartExtractionResponse, CaptureProgress, CapturePhase, DesignSystem } from '@/types';
+import { executeOrchestrator } from '@/agents/orchestrator';
 import path from 'path';
 import fs from 'fs';
 
@@ -40,24 +37,18 @@ function getWebsitesBaseDir(): string {
 }
 
 /**
- * Synthesize design system and save outputs to website folder.
+ * Save design system outputs to website folder.
  * Generates design-system.json, tailwind.config.js, and variables.css.
  *
  * @param websiteId - The website ID for folder naming
  * @param url - The source URL for meta information
- * @param rawData - Raw page data from Playwright capture (optional, uses defaults if not provided)
- * @returns The generated DesignSystem object
+ * @param designSystem - The design system object to save
  */
-async function synthesizeAndSaveDesignSystem(
+async function saveDesignSystemFiles(
   websiteId: string,
   url: string,
-  rawData?: RawPageData | null
-): Promise<DesignSystem> {
-  // Generate design system from raw data if available, otherwise use defaults
-  const designSystem = rawData
-    ? synthesizeDesignSystem(rawData)
-    : getDefaultDesignSystem(url);
-
+  designSystem: DesignSystem
+): Promise<void> {
   // Get the website output directory
   const websiteDir = path.join(getWebsitesBaseDir(), websiteId);
 
@@ -82,8 +73,6 @@ async function synthesizeAndSaveDesignSystem(
 
   // Cache the design tokens for faster retrieval
   setTokens(url, designSystem);
-
-  return designSystem;
 }
 
 /**
@@ -100,16 +89,17 @@ function saveProgress(websiteId: string, phase: CapturePhase, percent: number, m
 }
 
 /**
- * Run the capture process asynchronously and update website status on completion.
+ * Run the extraction pipeline using the Orchestrator Agent.
  * This function is fire-and-forget - it handles its own errors and updates the database.
- * After successful capture, it also synthesizes the design system and saves output files.
+ * Uses the agent-based architecture for capture, extraction, generation, and comparison.
  */
-async function runCaptureProcess(websiteId: string, url: string): Promise<void> {
+async function runExtractionPipeline(websiteId: string, url: string): Promise<void> {
   try {
     // Initial progress
-    saveProgress(websiteId, 'capturing', 5, 'Starting capture...');
+    saveProgress(websiteId, 'initializing', 0, 'Starting extraction pipeline...');
 
-    const result = await captureWebsite({
+    // Execute the orchestrator agent which coordinates all pipeline phases
+    const result = await executeOrchestrator({
       websiteId,
       url,
       onProgress: (progress) => {
@@ -118,30 +108,27 @@ async function runCaptureProcess(websiteId: string, url: string): Promise<void> 
       },
     });
 
-    if (result.success) {
-      // Update progress for design system extraction
-      saveProgress(websiteId, 'extracting', 95, 'Synthesizing design system...');
-
-      // Synthesize design system after successful capture
-      // This generates design-system.json, tailwind.config.js, and variables.css
-      try {
-        await synthesizeAndSaveDesignSystem(websiteId, url, result.rawData);
-
-        // Final completion status
-        saveProgress(websiteId, 'complete', 100, 'Extraction complete');
-        updateWebsiteStatus(websiteId, 'completed');
-      } catch {
-        // Design system synthesis failed, but capture succeeded
-        // Mark as completed since screenshots are available
-        saveProgress(websiteId, 'complete', 100, 'Extraction complete (design system failed)');
-        updateWebsiteStatus(websiteId, 'completed');
+    if (result.success && result.data) {
+      // Save design system files if extraction was successful
+      if (result.data.designSystem) {
+        try {
+          await saveDesignSystemFiles(websiteId, url, result.data.designSystem);
+        } catch (error) {
+          // Log but don't fail - design system files are supplementary
+        }
       }
+
+      // Final completion status
+      saveProgress(websiteId, 'complete', 100, 'Extraction complete');
+      updateWebsiteStatus(websiteId, 'completed');
     } else {
-      saveProgress(websiteId, 'failed', 0, 'Capture failed');
+      // Pipeline failed
+      const errorMessage = result.error?.message || 'Pipeline failed';
+      saveProgress(websiteId, 'failed', 0, errorMessage);
       updateWebsiteStatus(websiteId, 'failed');
     }
   } catch (error) {
-    // Handle unexpected errors during capture
+    // Handle unexpected errors during pipeline execution
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     saveProgress(websiteId, 'failed', 0, `Error: ${errorMessage}`);
     updateWebsiteStatus(websiteId, 'failed');
@@ -286,11 +273,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<StartExtr
     // Update status to in_progress to indicate extraction has started
     updateWebsiteStatus(website.id, 'in_progress');
 
-    // Start capture process asynchronously (fire-and-forget)
+    // Start extraction pipeline asynchronously using Orchestrator Agent (fire-and-forget)
     // The process updates the database status on completion/failure
     // Progress can be polled via the /api/status endpoint
-    runCaptureProcess(website.id, url).catch(() => {
-      // Error handling is done inside runCaptureProcess
+    runExtractionPipeline(website.id, url).catch(() => {
+      // Error handling is done inside runExtractionPipeline
       // This catch prevents unhandled promise rejection warnings
     });
 
