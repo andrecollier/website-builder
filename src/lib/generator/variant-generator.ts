@@ -20,6 +20,11 @@ import {
   shouldAddGradientOrbs,
 } from '../platform/adapters/framer/context-builder';
 import { generateGradientOrbCSS, FRAMER_COLORS } from '../platform/adapters/framer/context';
+import {
+  getSectionResponsiveClasses,
+  type ResponsiveClasses,
+} from './responsive-styles';
+import type { ViewportStyles } from '../playwright/responsive-capture';
 
 // ====================
 // TYPES
@@ -51,6 +56,10 @@ export interface GenerateVariantsOptions {
   componentName?: string;
   /** Framer-specific context with enhancements */
   framerContext?: BuiltFramerContext;
+  /** Responsive styles from multi-viewport capture */
+  responsiveStyles?: ViewportStyles[];
+  /** Enable responsive Tailwind classes (default: true) */
+  enableResponsive?: boolean;
 }
 
 /**
@@ -406,12 +415,14 @@ function generateGradientOrbsJSX(
  * @param component - Detected component
  * @param componentName - Name for the component
  * @param framerContext - Optional Framer context for enhancements
+ * @param enableResponsive - Whether to add responsive Tailwind classes
  * @returns Generated TypeScript/React code
  */
 function generatePixelPerfectVariant(
   component: DetectedComponent,
   componentName: string,
-  framerContext?: BuiltFramerContext
+  framerContext?: BuiltFramerContext,
+  enableResponsive: boolean = true
 ): string {
   const { styles, boundingBox } = component;
   const content = parseHtmlContent(component.htmlSnapshot);
@@ -516,6 +527,16 @@ function generatePixelPerfectVariant(
       </div>`;
   }
 
+  // Generate responsive Tailwind classes for common patterns
+  const responsiveClasses = enableResponsive
+    ? getSectionResponsiveClasses(component.type)
+    : '';
+
+  // Combine className with responsive classes
+  const classNameExpression = responsiveClasses
+    ? `{\`${responsiveClasses} \${className || ''}\`}`
+    : '{className}';
+
   return `'use client';
 
 import React from 'react';
@@ -530,11 +551,12 @@ export interface ${componentName}Props {
  *
  * Matches original component dimensions and styles exactly.
  * Bounding box: ${boundingBox.width}x${boundingBox.height}px
+ * Responsive: Mobile-first with md: and lg: breakpoints
  */
 export function ${componentName}({ className, children }: ${componentName}Props) {
   return (
     <div
-      className={className}
+      className=${classNameExpression}
       ${inlineStyles}
     >${gradientOrbsJSX}
       ${contentBlock}
@@ -934,17 +956,19 @@ export default ${componentName};
  * @param strategy - Variant strategy to use
  * @param componentName - Name for the component
  * @param framerContext - Optional Framer context for enhancements
+ * @param enableResponsive - Whether to add responsive classes
  * @returns Generated code string
  */
 function generateVariantCode(
   component: DetectedComponent,
   strategy: VariantStrategy,
   componentName: string,
-  framerContext?: BuiltFramerContext
+  framerContext?: BuiltFramerContext,
+  enableResponsive: boolean = true
 ): string {
   switch (strategy) {
     case 'pixel-perfect':
-      return generatePixelPerfectVariant(component, componentName, framerContext);
+      return generatePixelPerfectVariant(component, componentName, framerContext, enableResponsive);
     case 'semantic':
       return generateSemanticVariant(component, componentName);
     case 'modernized':
@@ -983,6 +1007,7 @@ export function generateVariants(
   const componentName = options?.componentName ?? componentTypeToName(component.type);
   const skipStrategies = options?.skipStrategies ?? [];
   const framerContext = options?.framerContext;
+  const enableResponsive = options?.enableResponsive ?? true;
 
   const variants: ComponentVariant[] = [];
 
@@ -993,7 +1018,7 @@ export function generateVariants(
     }
 
     try {
-      const code = generateVariantCode(component, config.strategy, componentName, framerContext);
+      const code = generateVariantCode(component, config.strategy, componentName, framerContext, enableResponsive);
 
       variants.push({
         id: `variant-${randomUUID()}`,
@@ -1039,6 +1064,7 @@ export function generateVariantsWithMetadata(
   const componentName = options?.componentName ?? componentTypeToName(component.type);
   const skipStrategies = options?.skipStrategies ?? [];
   const framerContext = options?.framerContext;
+  const enableResponsive = options?.enableResponsive ?? true;
 
   const variants: ComponentVariant[] = [];
   const strategiesAttempted: VariantStrategy[] = [];
@@ -1054,7 +1080,7 @@ export function generateVariantsWithMetadata(
     strategiesAttempted.push(config.strategy);
 
     try {
-      const code = generateVariantCode(component, config.strategy, componentName, framerContext);
+      const code = generateVariantCode(component, config.strategy, componentName, framerContext, enableResponsive);
 
       variants.push({
         id: `variant-${randomUUID()}`,
