@@ -202,13 +202,50 @@ function copyDirRecursive(src: string, dest: string): void {
 
 /**
  * Get list of component names from current/src/components
+ * Returns components in proper rendering order:
+ * 1. Header (always first)
+ * 2. Hero (second)
+ * 3. Middle sections (Features, Testimonials, Pricing, etc.)
+ * 4. CTA (second to last)
+ * 5. Footer (always last)
  */
 function getComponentNames(componentsDir: string): string[] {
   if (!fs.existsSync(componentsDir)) return [];
 
-  return fs.readdirSync(componentsDir, { withFileTypes: true })
+  const allNames = fs.readdirSync(componentsDir, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
     .map(entry => entry.name);
+
+  // Define section order priorities
+  const sectionPriority: Record<string, number> = {
+    'Header': 0,
+    'Hero': 1,
+    'Features': 10,
+    'Services': 11,
+    'Benefits': 12,
+    'Testimonials': 20,
+    'Reviews': 21,
+    'Pricing': 30,
+    'Plans': 31,
+    'FAQ': 40,
+    'CallToAction': 90,
+    'CTA': 91,
+    'Footer': 100,
+  };
+
+  // Get priority for a component name (handles numbered variants like Features2)
+  function getPriority(name: string): number {
+    // Extract base name (remove trailing numbers)
+    const baseName = name.replace(/\d+$/, '');
+    const numberSuffix = name.match(/(\d+)$/)?.[1];
+    const baseNumber = numberSuffix ? parseInt(numberSuffix, 10) : 0;
+
+    const basePriority = sectionPriority[baseName] ?? 50;
+    // Add small increment for numbered variants to keep them together but in order
+    return basePriority + (baseNumber * 0.01);
+  }
+
+  return allNames.sort((a, b) => getPriority(a) - getPriority(b));
 }
 
 /**

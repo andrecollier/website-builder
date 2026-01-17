@@ -337,23 +337,33 @@ function generateAllVariants(
 
 /**
  * Save component files to the filesystem
+ * @param component - The component to save
+ * @param componentsDir - Base components directory
+ * @param uniqueName - Unique name for this component (e.g., "Features", "Features2")
  */
 function saveComponentFiles(
   component: GeneratedComponent,
-  componentsDir: string
+  componentsDir: string,
+  uniqueName: string
 ): void {
-  const componentName = componentTypeToName(component.type);
-  const componentDir = path.join(componentsDir, componentName);
+  const componentDir = path.join(componentsDir, uniqueName);
   const variantsDir = path.join(componentDir, 'variants');
 
   ensureDirectory(componentDir);
   ensureDirectory(variantsDir);
 
-  // Save each variant
+  // Save each variant, updating the component name in the code
   for (const variant of component.variants) {
     const variantFileName = `${variant.name.toLowerCase().replace(' ', '-')}.tsx`;
     const variantPath = path.join(variantsDir, variantFileName);
-    fs.writeFileSync(variantPath, variant.code, 'utf-8');
+    // Replace the base component name with the unique name in the code
+    const baseName = componentTypeToName(component.type);
+    const updatedCode = variant.code
+      .replace(new RegExp(`export default ${baseName}`, 'g'), `export default ${uniqueName}`)
+      .replace(new RegExp(`function ${baseName}`, 'g'), `function ${uniqueName}`)
+      .replace(new RegExp(`const ${baseName}`, 'g'), `const ${uniqueName}`)
+      .replace(new RegExp(`${baseName}Props`, 'g'), `${uniqueName}Props`);
+    fs.writeFileSync(variantPath, updatedCode, 'utf-8');
   }
 
   // Save main component file (first variant by default, or selected variant)
@@ -362,13 +372,19 @@ function saveComponentFiles(
     : component.variants[0];
 
   if (selectedVariant) {
-    const mainComponentPath = path.join(componentDir, `${componentName}.tsx`);
-    fs.writeFileSync(mainComponentPath, selectedVariant.code, 'utf-8');
+    const mainComponentPath = path.join(componentDir, `${uniqueName}.tsx`);
+    const baseName = componentTypeToName(component.type);
+    const updatedCode = selectedVariant.code
+      .replace(new RegExp(`export default ${baseName}`, 'g'), `export default ${uniqueName}`)
+      .replace(new RegExp(`function ${baseName}`, 'g'), `function ${uniqueName}`)
+      .replace(new RegExp(`const ${baseName}`, 'g'), `const ${uniqueName}`)
+      .replace(new RegExp(`${baseName}Props`, 'g'), `${uniqueName}Props`);
+    fs.writeFileSync(mainComponentPath, updatedCode, 'utf-8');
   }
 
   // Create index.ts export file
-  const indexContent = `export { default as ${componentName} } from './${componentName}';
-export type { ${componentName}Props } from './${componentName}';
+  const indexContent = `export { default as ${uniqueName} } from './${uniqueName}';
+export type { ${uniqueName}Props } from './${uniqueName}';
 `;
   const indexPath = path.join(componentDir, 'index.ts');
   fs.writeFileSync(indexPath, indexContent, 'utf-8');
@@ -376,37 +392,55 @@ export type { ${componentName}Props } from './${componentName}';
 
 /**
  * Save all components to filesystem
+ * Handles multiple sections of the same type by assigning unique names
+ * (e.g., Features, Features2, Features3)
  */
 function saveAllComponents(
   components: GeneratedComponent[],
   componentsDir: string,
   emitProgress: ReturnType<typeof createProgressEmitter>
-): void {
+): Map<string, string> {
   ensureDirectory(componentsDir);
+
+  // Track how many of each type we've seen to assign unique names
+  const typeCount = new Map<ComponentType, number>();
+  // Map component ID to its unique name
+  const componentNames = new Map<string, string>();
 
   for (let i = 0; i < components.length; i++) {
     const component = components[i];
+    const baseName = componentTypeToName(component.type);
+
+    // Get current count for this type and increment
+    const count = (typeCount.get(component.type) || 0) + 1;
+    typeCount.set(component.type, count);
+
+    // Generate unique name: first instance is "Features", second is "Features2", etc.
+    const uniqueName = count === 1 ? baseName : `${baseName}${count}`;
+    componentNames.set(component.id, uniqueName);
 
     emitProgress(
       'saving',
       70 + (i / components.length) * 20,
-      `Saving ${getComponentDisplayName(component.type)}`,
+      `Saving ${uniqueName}`,
       { current: i + 1, total: components.length }
     );
 
-    saveComponentFiles(component, componentsDir);
+    saveComponentFiles(component, componentsDir, uniqueName);
   }
 
-  // Create components/index.ts that exports all components
+  // Create components/index.ts that exports all components with unique names
   const exportStatements = components
     .map((c) => {
-      const name = componentTypeToName(c.type);
-      return `export * from './${name}';`;
+      const uniqueName = componentNames.get(c.id) || componentTypeToName(c.type);
+      return `export * from './${uniqueName}';`;
     })
     .join('\n');
 
   const componentsIndexPath = path.join(componentsDir, 'index.ts');
   fs.writeFileSync(componentsIndexPath, exportStatements + '\n', 'utf-8');
+
+  return componentNames;
 }
 
 // ====================
