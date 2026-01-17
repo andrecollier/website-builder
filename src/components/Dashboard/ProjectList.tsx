@@ -2,8 +2,80 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ProjectListProps, Website, WebsiteStatus } from '@/types';
+import { ProjectListProps, Website, WebsiteStatus, WebsitePlatform } from '@/types';
 import { cn, formatRelativeTime, truncate } from '@/lib/utils';
+
+/**
+ * Detect platform from URL
+ */
+const detectPlatformFromUrl = (url: string): WebsitePlatform => {
+  const lowercaseUrl = url.toLowerCase();
+
+  if (lowercaseUrl.includes('.framer.website') || lowercaseUrl.includes('framer.')) {
+    return 'framer';
+  }
+  if (lowercaseUrl.includes('.webflow.io') || lowercaseUrl.includes('webflow.')) {
+    return 'webflow';
+  }
+  if (lowercaseUrl.includes('.wixsite.com') || lowercaseUrl.includes('wix.')) {
+    return 'wix';
+  }
+  if (lowercaseUrl.includes('.squarespace.com') || lowercaseUrl.includes('sqsp.')) {
+    return 'squarespace';
+  }
+  if (lowercaseUrl.includes('.myshopify.com') || lowercaseUrl.includes('shopify.')) {
+    return 'shopify';
+  }
+  if (lowercaseUrl.includes('wordpress.com') || lowercaseUrl.includes('.wp.')) {
+    return 'wordpress';
+  }
+  if (lowercaseUrl.includes('vercel.app') || lowercaseUrl.includes('netlify.app')) {
+    return 'nextjs';
+  }
+
+  return 'custom';
+};
+
+/**
+ * Get platform badge styling
+ */
+const getPlatformBadgeStyles = (platform: WebsitePlatform) => {
+  switch (platform) {
+    case 'framer':
+      return 'bg-[#0055FF]/20 text-[#0055FF] border border-[#0055FF]/30';
+    case 'webflow':
+      return 'bg-[#4353FF]/20 text-[#4353FF] border border-[#4353FF]/30';
+    case 'wix':
+      return 'bg-[#FAAD00]/20 text-[#FAAD00] border border-[#FAAD00]/30';
+    case 'squarespace':
+      return 'bg-[#000000]/20 text-[#ffffff] border border-[#ffffff]/30';
+    case 'shopify':
+      return 'bg-[#96BF48]/20 text-[#96BF48] border border-[#96BF48]/30';
+    case 'wordpress':
+      return 'bg-[#21759B]/20 text-[#21759B] border border-[#21759B]/30';
+    case 'nextjs':
+      return 'bg-[#000000]/20 text-[#ffffff] border border-[#ffffff]/30';
+    default:
+      return 'bg-[rgb(var(--muted)/0.5)] text-[rgb(var(--muted-foreground))] border border-[rgb(var(--border))]';
+  }
+};
+
+/**
+ * Get platform display name
+ */
+const getPlatformLabel = (platform: WebsitePlatform) => {
+  switch (platform) {
+    case 'framer': return 'Framer';
+    case 'webflow': return 'Webflow';
+    case 'wix': return 'Wix';
+    case 'squarespace': return 'Squarespace';
+    case 'shopify': return 'Shopify';
+    case 'wordpress': return 'WordPress';
+    case 'nextjs': return 'Next.js';
+    case 'custom': return 'Custom';
+    default: return 'Unknown';
+  }
+};
 
 /**
  * ProjectList component for displaying website history
@@ -165,11 +237,20 @@ export function ProjectList({
               <div className="flex items-start justify-between gap-4">
                 {/* Project Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-1">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     {/* Project Name */}
                     <h3 className="font-medium text-[rgb(var(--foreground))] truncate">
                       {project.name}
                     </h3>
+                    {/* Platform Badge */}
+                    <span
+                      className={cn(
+                        'flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide',
+                        getPlatformBadgeStyles(project.platform || detectPlatformFromUrl(project.reference_url))
+                      )}
+                    >
+                      {getPlatformLabel(project.platform || detectPlatformFromUrl(project.reference_url))}
+                    </span>
                     {/* Status Badge */}
                     <span
                       className={cn(
@@ -282,6 +363,43 @@ export function ProjectList({
                         >
                           Compare
                         </Link>
+                      )}
+                      {/* Preview Button - opens generated site in new tab */}
+                      {project.status === 'completed' && (
+                        <a
+                          href="http://localhost:3002"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className={cn(
+                            'px-2 py-1 text-xs font-medium rounded',
+                            'bg-[rgb(var(--success)/0.1)] text-[rgb(var(--success))]',
+                            'hover:bg-[rgb(var(--success)/0.2)]',
+                            'opacity-0 group-hover:opacity-100',
+                            'focus:outline-none focus:opacity-100 focus:ring-2 focus:ring-[rgb(var(--success)/0.3)]',
+                            'transition-all duration-150',
+                            'flex items-center gap-1'
+                          )}
+                          aria-label={`Preview project: ${project.name}`}
+                        >
+                          Preview
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                        </a>
                       )}
                       {/* View Arrow */}
                       <span

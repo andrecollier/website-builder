@@ -4,6 +4,17 @@ import type { RawPageData } from '@/lib/design-system/synthesizer';
 
 export type WebsiteStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
+export type WebsitePlatform =
+  | 'framer'
+  | 'webflow'
+  | 'wordpress'
+  | 'wix'
+  | 'squarespace'
+  | 'shopify'
+  | 'nextjs'
+  | 'custom'
+  | 'unknown';
+
 // Version Types
 
 export interface Version {
@@ -54,6 +65,7 @@ export interface Website {
   updated_at: string;
   current_version: number;
   status: WebsiteStatus;
+  platform?: WebsitePlatform;
 }
 
 export interface WebsiteInsert {
