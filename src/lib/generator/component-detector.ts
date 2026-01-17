@@ -607,11 +607,95 @@ export async function detectGenericComponents(
 }
 
 // ====================
+// VIEWPORT-BASED SPLITTING
+// ====================
+
+/**
+ * Split page into components based on viewport height
+ * Used as a fallback for sites with obfuscated class names (like Framer)
+ * where semantic detection fails to find all sections
+ *
+ * @param page - Playwright Page instance
+ * @param options - Optional configuration
+ * @returns Promise with array of DetectedComponent objects
+ */
+async function viewportBasedSplitting(
+  page: Page,
+  options?: {
+    maxComponents?: number;
+    minHeight?: number;
+  }
+): Promise<DetectedComponent[]> {
+  const maxComponents = options?.maxComponents ?? CAPTURE_CONFIG.maxSections;
+  const minHeight = options?.minHeight ?? 200;
+
+  // Get page dimensions
+  const dimensions = await page.evaluate(() => ({
+    viewportHeight: window.innerHeight,
+    pageHeight: Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight
+    ),
+    pageWidth: document.body.scrollWidth || window.innerWidth,
+  }));
+
+  const { viewportHeight, pageHeight, pageWidth } = dimensions;
+
+  // Calculate number of sections based on page height divided by viewport height
+  const numSections = Math.min(
+    Math.max(1, Math.ceil(pageHeight / viewportHeight)),
+    maxComponents
+  );
+
+  const components: DetectedComponent[] = [];
+  const sectionHeight = Math.ceil(pageHeight / numSections);
+
+  // Section type assignment based on position
+  const getSectionType = (index: number, total: number): ComponentType => {
+    if (index === 0) return 'header';
+    if (index === 1) return 'hero';
+    if (index === total - 1) return 'footer';
+    if (index === total - 2) return 'cta';
+
+    // Middle sections rotate through features, testimonials, pricing
+    const middleTypes: ComponentType[] = ['features', 'testimonials', 'pricing'];
+    return middleTypes[(index - 2) % middleTypes.length];
+  };
+
+  for (let i = 0; i < numSections; i++) {
+    const y = i * sectionHeight;
+    const height = Math.min(sectionHeight, pageHeight - y);
+
+    // Skip sections that are too small
+    if (height < minHeight) continue;
+
+    components.push({
+      id: `component-${randomUUID()}`,
+      type: getSectionType(i, numSections),
+      order: i,
+      boundingBox: {
+        x: 0,
+        y: Math.round(y),
+        width: Math.round(pageWidth),
+        height: Math.round(height),
+      },
+      screenshotPath: '',
+      htmlSnapshot: '',
+      styles: {},
+    });
+  }
+
+  return components;
+}
+
+// ====================
 // COMBINED DETECTION
 // ====================
 
 /**
- * Detect components using specific selectors first, falling back to generic detection
+ * Detect components using specific selectors first, falling back to viewport-based splitting
  * This is the recommended function to use for comprehensive component detection
  *
  * @param page - Playwright Page instance
@@ -635,15 +719,24 @@ export async function detectAllComponents(
   const useGenericFallback = options?.useGenericFallback ?? true;
   const maxComponents = options?.maxComponents ?? CAPTURE_CONFIG.maxSections;
 
+  // Get page height for coverage calculation
+  const pageHeight = await page.evaluate(() =>
+    Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
+  );
+
   // Try specific detection first
   const specificComponents = await detectComponents(page, options);
 
-  // If we found enough components, return them
-  if (specificComponents.length >= 3) {
+  // Calculate how much of the page is covered by detected components
+  const coveredHeight = specificComponents.reduce((sum, c) => sum + c.boundingBox.height, 0);
+  const coverage = coveredHeight / pageHeight;
+
+  // If we have good coverage (>70%) and enough components, use specific detection
+  if (coverage > 0.7 && specificComponents.length >= 5) {
     return specificComponents;
   }
 
-  // Use generic fallback if enabled and specific detection found few components
+  // Try generic fallback first
   if (useGenericFallback) {
     const genericComponents = await detectGenericComponents(page, options);
 
@@ -661,17 +754,56 @@ export async function detectAllComponents(
       }
     }
 
-    // Sort by position and limit
+    // Sort by position
     const sorted = merged.sort((a, b) => a.boundingBox.y - b.boundingBox.y);
 
-    // Update order indices
-    return sorted.slice(0, maxComponents).map((component, index) => ({
-      ...component,
-      order: index,
-    }));
+    // Calculate merged coverage
+    const mergedCoverage = sorted.reduce((sum, c) => sum + c.boundingBox.height, 0) / pageHeight;
+
+    // If merged has good coverage, use it
+    if (mergedCoverage > 0.7 && sorted.length >= 5) {
+      return sorted.slice(0, maxComponents).map((component, index) => ({
+        ...component,
+        order: index,
+      }));
+    }
   }
 
-  return specificComponents;
+  // Final fallback: viewport-based splitting for full page coverage
+  // This ensures we capture all sections even on Framer sites with obfuscated classes
+  console.log('Using viewport-based splitting as fallback for full page coverage');
+  const viewportComponents = await viewportBasedSplitting(page, options);
+
+  // Merge with any detected components to preserve type information
+  const finalComponents: DetectedComponent[] = [];
+
+  for (const vpComponent of viewportComponents) {
+    // Check if we have a detected component at this position
+    const matchingDetected = specificComponents.find((specific) => {
+      const overlap = Math.min(
+        specific.boundingBox.y + specific.boundingBox.height,
+        vpComponent.boundingBox.y + vpComponent.boundingBox.height
+      ) - Math.max(specific.boundingBox.y, vpComponent.boundingBox.y);
+      return overlap > vpComponent.boundingBox.height * 0.5;
+    });
+
+    if (matchingDetected) {
+      // Use detected component's type and HTML snapshot
+      finalComponents.push({
+        ...vpComponent,
+        type: matchingDetected.type,
+        htmlSnapshot: matchingDetected.htmlSnapshot,
+        styles: matchingDetected.styles,
+      });
+    } else {
+      finalComponents.push(vpComponent);
+    }
+  }
+
+  return finalComponents.slice(0, maxComponents).map((component, index) => ({
+    ...component,
+    order: index,
+  }));
 }
 
 // ====================
