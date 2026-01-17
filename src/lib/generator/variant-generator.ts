@@ -13,6 +13,13 @@
 import type { DetectedComponent, ComponentVariant, ComponentType, DesignSystem } from '@/types';
 import { randomUUID } from 'crypto';
 import { isCarouselComponent, fixCarouselComponent } from '../platform/adapters/framer';
+import {
+  type BuiltFramerContext,
+  getComponentEnhancement,
+  getGradientOrbs,
+  shouldAddGradientOrbs,
+} from '../platform/adapters/framer/context-builder';
+import { generateGradientOrbCSS, FRAMER_COLORS } from '../platform/adapters/framer/context';
 
 // ====================
 // TYPES
@@ -42,6 +49,8 @@ export interface GenerateVariantsOptions {
   skipStrategies?: VariantStrategy[];
   /** Component name override */
   componentName?: string;
+  /** Framer-specific context with enhancements */
+  framerContext?: BuiltFramerContext;
 }
 
 /**
@@ -350,16 +359,59 @@ function parseHtmlContent(htmlSnapshot: string): {
 // ====================
 
 /**
+ * Generate gradient orbs JSX for dark sections
+ */
+function generateGradientOrbsJSX(
+  framerContext: BuiltFramerContext | undefined,
+  componentType: ComponentType
+): string {
+  if (!framerContext || !shouldAddGradientOrbs(framerContext, componentType)) {
+    return '';
+  }
+
+  const orbs = getGradientOrbs(framerContext, componentType);
+  if (!orbs || orbs.length === 0) {
+    return '';
+  }
+
+  const orbsJSX = orbs.map((orb, index) => {
+    const positionStyles: string[] = [];
+    if (orb.position.top) positionStyles.push(`top: '${orb.position.top}'`);
+    if (orb.position.bottom) positionStyles.push(`bottom: '${orb.position.bottom}'`);
+    if (orb.position.left) positionStyles.push(`left: '${orb.position.left}'`);
+    if (orb.position.right) positionStyles.push(`right: '${orb.position.right}'`);
+
+    return `
+      {/* Gradient Orb ${index + 1} */}
+      <div style={{
+        position: 'absolute',
+        ${positionStyles.join(',\n        ')},
+        width: '${orb.size.width}',
+        height: '${orb.size.height}',
+        backgroundImage: '${orb.gradient}',
+        borderRadius: '50%',
+        filter: 'blur(${orb.blur})',
+        opacity: ${orb.opacity},
+        pointerEvents: 'none'
+      }}></div>`;
+  }).join('\n');
+
+  return orbsJSX;
+}
+
+/**
  * Generate pixel-perfect variant code
  * Focuses on exact visual reproduction using inline styles
  *
  * @param component - Detected component
  * @param componentName - Name for the component
+ * @param framerContext - Optional Framer context for enhancements
  * @returns Generated TypeScript/React code
  */
 function generatePixelPerfectVariant(
   component: DetectedComponent,
-  componentName: string
+  componentName: string,
+  framerContext?: BuiltFramerContext
 ): string {
   const { styles, boundingBox } = component;
   const content = parseHtmlContent(component.htmlSnapshot);
@@ -415,6 +467,20 @@ function generatePixelPerfectVariant(
     styleEntries.push(`position: 'relative'`);
   }
 
+  // Check for Framer enhancements (gradient orbs for dark sections)
+  const enhancement = framerContext ? getComponentEnhancement(framerContext, component.type) : undefined;
+  const hasGradientOrbs = framerContext && shouldAddGradientOrbs(framerContext, component.type);
+
+  // Add position:relative and overflow:hidden for sections with gradient orbs
+  if (hasGradientOrbs && !hasCarousel) {
+    if (!styleEntries.some(s => s.includes('position'))) {
+      styleEntries.push(`position: 'relative'`);
+    }
+    if (!styleEntries.some(s => s.includes('overflow'))) {
+      styleEntries.push(`overflow: 'hidden'`);
+    }
+  }
+
   const inlineStyles = styleEntries.length > 0
     ? `style={{
         ${styleEntries.join(',\n        ')}
@@ -438,11 +504,23 @@ function generatePixelPerfectVariant(
     );
   }
 
+  // Generate gradient orbs if applicable
+  const gradientOrbsJSX = generateGradientOrbsJSX(framerContext, component.type);
+
+  // Wrap content with z-index if we have gradient orbs
+  if (gradientOrbsJSX) {
+    contentBlock = `
+      {/* Content wrapper with z-index above gradient orbs */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        ${contentBlock}
+      </div>`;
+  }
+
   return `'use client';
 
 import React from 'react';
 
-interface ${componentName}Props {
+export interface ${componentName}Props {
   className?: string;
   children?: React.ReactNode;
 }
@@ -458,7 +536,7 @@ export function ${componentName}({ className, children }: ${componentName}Props)
     <div
       className={className}
       ${inlineStyles}
-    >
+    >${gradientOrbsJSX}
       ${contentBlock}
     </div>
   );
@@ -855,16 +933,18 @@ export default ${componentName};
  * @param component - Detected component
  * @param strategy - Variant strategy to use
  * @param componentName - Name for the component
+ * @param framerContext - Optional Framer context for enhancements
  * @returns Generated code string
  */
 function generateVariantCode(
   component: DetectedComponent,
   strategy: VariantStrategy,
-  componentName: string
+  componentName: string,
+  framerContext?: BuiltFramerContext
 ): string {
   switch (strategy) {
     case 'pixel-perfect':
-      return generatePixelPerfectVariant(component, componentName);
+      return generatePixelPerfectVariant(component, componentName, framerContext);
     case 'semantic':
       return generateSemanticVariant(component, componentName);
     case 'modernized':
@@ -902,6 +982,7 @@ export function generateVariants(
 ): ComponentVariant[] {
   const componentName = options?.componentName ?? componentTypeToName(component.type);
   const skipStrategies = options?.skipStrategies ?? [];
+  const framerContext = options?.framerContext;
 
   const variants: ComponentVariant[] = [];
 
@@ -912,7 +993,7 @@ export function generateVariants(
     }
 
     try {
-      const code = generateVariantCode(component, config.strategy, componentName);
+      const code = generateVariantCode(component, config.strategy, componentName, framerContext);
 
       variants.push({
         id: `variant-${randomUUID()}`,
@@ -957,6 +1038,7 @@ export function generateVariantsWithMetadata(
 ): VariantGenerationResult {
   const componentName = options?.componentName ?? componentTypeToName(component.type);
   const skipStrategies = options?.skipStrategies ?? [];
+  const framerContext = options?.framerContext;
 
   const variants: ComponentVariant[] = [];
   const strategiesAttempted: VariantStrategy[] = [];
@@ -972,7 +1054,7 @@ export function generateVariantsWithMetadata(
     strategiesAttempted.push(config.strategy);
 
     try {
-      const code = generateVariantCode(component, config.strategy, componentName);
+      const code = generateVariantCode(component, config.strategy, componentName, framerContext);
 
       variants.push({
         id: `variant-${randomUUID()}`,

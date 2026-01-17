@@ -21,14 +21,16 @@ import type {
   ComponentVariant,
   ComponentType,
   DesignSystem,
+  WebsitePlatform,
 } from '@/types';
 import { CAPTURE_CONFIG } from '@/types';
-import { detectAllComponents, getComponentDisplayName } from './component-detector';
+import { detectAllComponents, getComponentDisplayName, normalizeFramerStyles } from './component-detector';
 import {
   generateVariantsWithMetadata,
   componentTypeToName,
   type VariantGenerationResult,
 } from './variant-generator';
+import { extractSectionWithStyles } from './style-extractor';
 import {
   getDb,
   createComponent,
@@ -36,6 +38,8 @@ import {
   type ComponentInsert,
   type VariantInsert,
 } from '@/lib/db/client';
+import { FRAMER_DESIGN_CONTEXT, type FramerDesignContext } from '@/lib/platform/adapters/framer/context';
+import { buildFramerContext, type BuiltFramerContext, type ExtractedSiteData } from '@/lib/platform/adapters/framer/context-builder';
 
 // ====================
 // TYPE DEFINITIONS
@@ -64,6 +68,28 @@ export interface GenerationProgress {
 }
 
 /**
+ * Pre-detected section from reference metadata
+ */
+export interface ReferenceSection {
+  id: string;
+  type: ComponentType;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+/**
+ * Platform-specific design context
+ */
+export interface PlatformContext {
+  platform: WebsitePlatform;
+  designContext?: FramerDesignContext;
+}
+
+/**
  * Options for the component generation process
  */
 export interface GeneratorOptions {
@@ -73,6 +99,8 @@ export interface GeneratorOptions {
   versionId: string;
   /** Design system tokens to apply to generated code */
   designSystem?: DesignSystem;
+  /** Pre-detected sections from reference metadata (use these instead of re-detecting) */
+  referenceSections?: ReferenceSection[];
   /** Maximum components to process (default: from CAPTURE_CONFIG) */
   maxComponents?: number;
   /** Maximum retry attempts (default: 3) */
@@ -85,6 +113,10 @@ export interface GeneratorOptions {
   skipDatabase?: boolean;
   /** Skip screenshot capture (default: false) */
   skipScreenshots?: boolean;
+  /** Reference URL for platform detection */
+  referenceUrl?: string;
+  /** Override detected platform */
+  platform?: WebsitePlatform;
 }
 
 /**
@@ -287,6 +319,75 @@ async function captureAllScreenshots(
 }
 
 // ====================
+// PLATFORM DETECTION
+// ====================
+
+/**
+ * Detect platform from URL
+ */
+function detectPlatformFromUrl(url: string): WebsitePlatform {
+  const lowercaseUrl = url.toLowerCase();
+
+  if (lowercaseUrl.includes('.framer.website') || lowercaseUrl.includes('framer.')) {
+    return 'framer';
+  }
+  if (lowercaseUrl.includes('.webflow.io') || lowercaseUrl.includes('webflow.')) {
+    return 'webflow';
+  }
+  if (lowercaseUrl.includes('.wixsite.com') || lowercaseUrl.includes('wix.')) {
+    return 'wix';
+  }
+  if (lowercaseUrl.includes('.squarespace.com') || lowercaseUrl.includes('sqsp.')) {
+    return 'squarespace';
+  }
+  if (lowercaseUrl.includes('.myshopify.com') || lowercaseUrl.includes('shopify.')) {
+    return 'shopify';
+  }
+  if (lowercaseUrl.includes('wordpress.com') || lowercaseUrl.includes('.wp.')) {
+    return 'wordpress';
+  }
+  if (lowercaseUrl.includes('vercel.app') || lowercaseUrl.includes('netlify.app')) {
+    return 'nextjs';
+  }
+
+  return 'custom';
+}
+
+/**
+ * Build platform-specific context from detected components
+ */
+function buildPlatformContext(
+  platform: WebsitePlatform,
+  referenceUrl: string,
+  components: DetectedComponent[],
+  designSystem?: DesignSystem
+): BuiltFramerContext | undefined {
+  // Only build Framer context for Framer sites (for now)
+  if (platform !== 'framer') {
+    return undefined;
+  }
+
+  const extractedData: ExtractedSiteData = {
+    url: referenceUrl,
+    designSystem,
+    components,
+    // Extract colors from design system if available
+    colors: designSystem?.colors ? {
+      primary: designSystem.colors.primary,
+      secondary: designSystem.colors.secondary,
+      accent: designSystem.colors.accent,
+      background: designSystem.colors.background,
+      text: designSystem.colors.text,
+    } : undefined,
+    fonts: designSystem?.typography ? {
+      primary: designSystem.typography.fontFamily,
+    } : undefined,
+  };
+
+  return buildFramerContext(extractedData);
+}
+
+// ====================
 // VARIANT GENERATION
 // ====================
 
@@ -295,12 +396,14 @@ async function captureAllScreenshots(
  */
 function generateComponentVariants(
   component: DetectedComponent,
-  designSystem?: DesignSystem
+  designSystem?: DesignSystem,
+  framerContext?: BuiltFramerContext
 ): VariantGenerationResult {
   const componentName = componentTypeToName(component.type);
   return generateVariantsWithMetadata(component, {
     componentName,
     designSystem,
+    framerContext,
   });
 }
 
@@ -310,7 +413,8 @@ function generateComponentVariants(
 function generateAllVariants(
   components: DetectedComponent[],
   designSystem: DesignSystem | undefined,
-  emitProgress: ReturnType<typeof createProgressEmitter>
+  emitProgress: ReturnType<typeof createProgressEmitter>,
+  framerContext?: BuiltFramerContext
 ): Map<string, VariantGenerationResult> {
   const results = new Map<string, VariantGenerationResult>();
 
@@ -324,7 +428,7 @@ function generateAllVariants(
       { current: i + 1, total: components.length }
     );
 
-    const result = generateComponentVariants(component, designSystem);
+    const result = generateComponentVariants(component, designSystem, framerContext);
     results.set(component.id, result);
   }
 
@@ -547,12 +651,15 @@ export async function generateComponents(
     websiteId,
     versionId,
     designSystem,
+    referenceSections,
     maxComponents = CAPTURE_CONFIG.maxSections,
     maxRetries = CAPTURE_CONFIG.maxRetries,
     onProgress,
     outputDir,
     skipDatabase = false,
     skipScreenshots = false,
+    referenceUrl = '',
+    platform: overridePlatform,
   } = options;
 
   const emitProgress = createProgressEmitter(onProgress);
@@ -564,37 +671,169 @@ export async function generateComponents(
   const generatedComponents: GeneratedComponent[] = [];
 
   try {
-    // Phase 1: Detect components
+    // Phase 1: Detect components OR use pre-detected sections from reference
     emitProgress('detecting', 5, 'Detecting page components...');
 
-    const detectionResult = await withRetry(
-      () => detectAllComponents(page, { maxComponents }),
-      maxRetries,
-      'Component detection'
-    );
+    let detectedComponents: DetectedComponent[];
 
-    if (!detectionResult.success || !detectionResult.result) {
-      return {
-        success: false,
-        websiteId,
-        components: [],
-        metadata: {
-          detectedCount: 0,
-          generatedCount: 0,
-          failedCount: 0,
-          generatedAt: new Date().toISOString(),
-        },
-        errors: [
-          {
-            phase: 'detecting',
-            message: detectionResult.error || 'Component detection failed',
-            recoverable: true,
+    if (referenceSections && referenceSections.length > 0) {
+      // Use pre-detected sections from reference metadata
+      // This ensures section types match between reference and generated
+      emitProgress('detecting', 10, `Using ${referenceSections.length} sections from reference metadata...`);
+
+      // Extract HTML and styles for each reference section from the page
+      const sectionsWithHtml: DetectedComponent[] = [];
+
+      // First, extract fixed navigation if present (for header) with computed styles
+      const fixedNavHtml = await page.evaluate(() => {
+        const STYLE_PROPS = [
+          'display', 'position', 'zIndex', 'top', 'right', 'bottom', 'left', 'transform',
+          'flexDirection', 'justifyContent', 'alignItems', 'gap',
+          'width', 'height', 'maxWidth', 'padding', 'margin',
+          'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'textAlign', 'color',
+          'backgroundColor', 'backgroundImage', 'borderRadius', 'border', 'boxShadow',
+          'opacity', 'overflow', 'objectFit',
+        ];
+
+        function processElement(el: Element): string {
+          const computed = window.getComputedStyle(el);
+          const styleObj: string[] = [];
+
+          for (const prop of STYLE_PROPS) {
+            const cssProp = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+            let value = computed.getPropertyValue(cssProp);
+            if (!value || value === 'none' || value === 'normal' || value === 'auto' ||
+                value === '0px' || value === 'rgba(0, 0, 0, 0)' || value === 'transparent') {
+              continue;
+            }
+            value = value.replace(/"/g, "'");
+            if (prop === 'fontFamily') {
+              const firstFont = value.split(',')[0].trim().replace(/'/g, '');
+              value = `'${firstFont}', sans-serif`;
+            }
+            styleObj.push(`${cssProp}: ${value}`);
+          }
+
+          const tagName = el.tagName.toLowerCase();
+          const styleAttr = styleObj.length > 0 ? ` style="${styleObj.join('; ')}"` : '';
+
+          let attrs = '';
+          if (tagName === 'img') {
+            const img = el as HTMLImageElement;
+            attrs += ` src="${img.src}"`;
+            if (img.alt) attrs += ` alt="${img.alt}"`;
+          } else if (tagName === 'a') {
+            const a = el as HTMLAnchorElement;
+            attrs += ` href="${a.href}"`;
+          }
+
+          let innerHTML = '';
+          if (el.children.length > 0) {
+            for (let i = 0; i < el.children.length; i++) {
+              innerHTML += processElement(el.children[i]);
+            }
+          } else {
+            innerHTML = el.textContent?.trim() || '';
+          }
+
+          if (['img', 'br', 'hr', 'input'].includes(tagName)) {
+            return `<${tagName}${attrs}${styleAttr} />`;
+          }
+          return `<${tagName}${attrs}${styleAttr}>${innerHTML}</${tagName}>`;
+        }
+
+        const navSelectors = [
+          'nav[data-framer-name*="Navigation"]',
+          'nav[data-framer-name*="Nav"]',
+          'nav',
+        ];
+        for (const sel of navSelectors) {
+          const elements = document.querySelectorAll(sel);
+          for (const el of elements) {
+            const computed = window.getComputedStyle(el);
+            if (computed.position === 'fixed' || computed.position === 'sticky') {
+              const rect = el.getBoundingClientRect();
+              if (rect.top <= 50 && rect.height > 40 && rect.height < 200) {
+                const links = el.querySelectorAll('a');
+                if (links.length >= 3) {
+                  return processElement(el);
+                }
+              }
+            }
+          }
+        }
+        return null;
+      });
+
+      for (let i = 0; i < referenceSections.length; i++) {
+        const section = referenceSections[i];
+        try {
+          // Extract element with full computed styles
+          const elementData = await extractSectionWithStyles(page, section.boundingBox);
+
+          let html = normalizeFramerStyles(elementData?.html ?? '');
+
+          // For header sections, prepend the fixed navigation if found
+          if (section.type === 'header' && fixedNavHtml && i === 0) {
+            html = normalizeFramerStyles(fixedNavHtml) + html;
+          }
+
+          sectionsWithHtml.push({
+            id: section.id,
+            type: section.type,
+            order: i,
+            boundingBox: section.boundingBox,
+            screenshotPath: '',
+            htmlSnapshot: html,
+            styles: elementData?.styles ?? {},
+          });
+        } catch (error) {
+          console.error(`Error extracting section ${i}:`, error);
+          // If we can't extract HTML for this section, use empty HTML
+          sectionsWithHtml.push({
+            id: section.id,
+            type: section.type,
+            order: i,
+            boundingBox: section.boundingBox,
+            screenshotPath: '',
+            htmlSnapshot: '',
+            styles: {},
+          });
+        }
+      }
+
+      detectedComponents = sectionsWithHtml.slice(0, maxComponents);
+    } else {
+      // Fallback: Detect components from page (original behavior)
+      const detectionResult = await withRetry(
+        () => detectAllComponents(page, { maxComponents }),
+        maxRetries,
+        'Component detection'
+      );
+
+      if (!detectionResult.success || !detectionResult.result) {
+        return {
+          success: false,
+          websiteId,
+          components: [],
+          metadata: {
+            detectedCount: 0,
+            generatedCount: 0,
+            failedCount: 0,
+            generatedAt: new Date().toISOString(),
           },
-        ],
-      };
-    }
+          errors: [
+            {
+              phase: 'detecting',
+              message: detectionResult.error || 'Component detection failed',
+              recoverable: true,
+            },
+          ],
+        };
+      }
 
-    const detectedComponents = detectionResult.result;
+      detectedComponents = detectionResult.result;
+    }
     emitProgress(
       'detecting',
       15,
@@ -613,13 +852,27 @@ export async function generateComponents(
       );
     }
 
-    // Phase 3: Generate variants for each component
+    // Phase 3: Build platform context and generate variants
     emitProgress('generating_variants', 40, 'Generating component variants...');
+
+    // Detect platform and build platform-specific context
+    const detectedPlatform = overridePlatform || detectPlatformFromUrl(referenceUrl);
+    const framerContext = buildPlatformContext(
+      detectedPlatform,
+      referenceUrl,
+      detectedComponents,
+      designSystem
+    );
+
+    if (framerContext) {
+      emitProgress('generating_variants', 42, `Applying ${detectedPlatform} design enhancements...`);
+    }
 
     const variantResults = generateAllVariants(
       detectedComponents,
       designSystem,
-      emitProgress
+      emitProgress,
+      framerContext
     );
 
     // Phase 4: Build GeneratedComponent objects
