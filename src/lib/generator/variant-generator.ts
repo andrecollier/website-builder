@@ -12,6 +12,7 @@
 
 import type { DetectedComponent, ComponentVariant, ComponentType, DesignSystem } from '@/types';
 import { randomUUID } from 'crypto';
+import { isCarouselComponent, fixCarouselComponent } from '../platform/adapters/framer';
 
 // ====================
 // TYPES
@@ -151,6 +152,161 @@ function toCamelCase(cssProperty: string): string {
 }
 
 /**
+ * Convert HTML to JSX-compatible string
+ * Handles attribute conversions and self-closing tags
+ *
+ * @param html - Raw HTML string
+ * @returns JSX-compatible string
+ */
+function htmlToJsx(html: string): string {
+  if (!html || html.trim().length === 0) {
+    return '';
+  }
+
+  let jsx = html
+    // Convert class to className (keep all classes including Framer)
+    .replace(/\sclass=/g, ' className=')
+    // Convert for to htmlFor
+    .replace(/\sfor=/g, ' htmlFor=')
+    // Convert style strings to objects (simplified)
+    .replace(/style="([^"]*)"/g, (_, styleStr) => {
+      const styles = styleStr.split(';')
+        .filter((s: string) => s.trim())
+        .map((s: string) => {
+          const colonIndex = s.indexOf(':');
+          if (colonIndex === -1) return '';
+          const prop = s.slice(0, colonIndex).trim();
+          const val = s.slice(colonIndex + 1).trim();
+          if (!prop || !val) return '';
+          // Skip Framer-specific custom properties (start with -)
+          if (prop.startsWith('-')) return '';
+          // Skip corner-shape (not valid CSS)
+          if (prop === 'corner-shape') return '';
+          // Skip corrupted properties (contain spaces or invalid chars)
+          if (prop.includes(' ') || !/^[a-zA-Z-]+$/.test(prop)) return '';
+          // Skip backdrop-filter (not well supported in JSX inline styles)
+          if (prop === 'backdrop-filter') return '';
+          const camelProp = prop.replace(/-([a-z])/g, (_: string, l: string) => l.toUpperCase());
+          // Escape single quotes in values and remove var() tokens
+          let escapedVal = val.replace(/'/g, "\\'");
+          // Replace CSS variables with their fallback values
+          escapedVal = escapedVal.replace(/var\([^,]+,\s*([^)]+)\)/g, '$1');
+          return `${camelProp}: '${escapedVal}'`;
+        })
+        .filter((s: string) => s)
+        .join(', ');
+      if (!styles) return '';
+      return `style={{${styles}}}`;
+    })
+    // Remove empty style attributes
+    .replace(/\sstyle=\{\{\}\}/g, '')
+    // Self-close void elements
+    .replace(/<(img|br|hr|input|meta|link)([^>]*?)(?<!\/)>/gi, '<$1$2 />')
+    // Remove event handlers (onclick, onmouseover, etc.)
+    .replace(/\son\w+="[^"]*"/gi, '')
+    // Remove srcset (causes issues)
+    .replace(/\ssrcset="[^"]*"/gi, '')
+    // Convert tabindex to tabIndex
+    .replace(/\stabindex=/gi, ' tabIndex=')
+    // Convert colspan to colSpan
+    .replace(/\scolspan=/gi, ' colSpan=')
+    // Convert rowspan to rowSpan
+    .replace(/\srowspan=/gi, ' rowSpan=')
+    // Remove xmlns attributes
+    .replace(/\sxmlns[^=]*="[^"]*"/gi, '')
+    // Remove Framer-specific attributes with invalid chars
+    .replace(/\s_[a-zA-Z]+="[^"]*"/gi, '')
+    // Remove parentsize attribute
+    .replace(/\sparentsize="[^"]*"/gi, '')
+    // Remove rotation attribute
+    .replace(/\srotation="[^"]*"/gi, '')
+    // Remove shadows attribute
+    .replace(/\sshadows="[^"]*"/gi, '')
+    // Clean up data attributes with special chars
+    .replace(/data-[a-z-]+="[^"]*"/gi, (match) => {
+      // Keep simple data attributes, remove complex ones
+      if (match.includes('{') || match.includes('[')) return '';
+      return match;
+    });
+
+  return jsx;
+}
+
+/**
+ * Extract and clean content from HTML snapshot
+ * Returns actual JSX content instead of placeholders
+ *
+ * @param htmlSnapshot - Raw HTML string
+ * @returns Cleaned JSX content
+ */
+function extractContent(htmlSnapshot: string): string {
+  if (!htmlSnapshot || htmlSnapshot.trim().length === 0) {
+    return '{children}';
+  }
+
+  // Clean the HTML
+  let content = htmlSnapshot
+    // Remove script tags
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    // Remove style tags
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Remove comments
+    .replace(/<!--[\s\S]*?-->/g, '')
+    // Remove SVG content (too complex, replace with placeholder)
+    .replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '<div className="svg-placeholder" />');
+
+  // Limit size but don't cut mid-tag
+  const maxSize = 15000;
+  if (content.length > maxSize) {
+    // Find a safe cut point (end of a tag)
+    let cutPoint = maxSize;
+    const lastCloseTag = content.lastIndexOf('>', cutPoint);
+    if (lastCloseTag > maxSize * 0.7) {
+      cutPoint = lastCloseTag + 1;
+    }
+    content = content.slice(0, cutPoint);
+
+    // Try to close any unclosed tags
+    const openTags: string[] = [];
+    const tagRegex = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+    let match;
+    while ((match = tagRegex.exec(content)) !== null) {
+      const fullTag = match[0];
+      const tagName = match[1].toLowerCase();
+      const isSelfClosing = fullTag.endsWith('/>') || ['br', 'hr', 'img', 'input', 'meta', 'link'].includes(tagName);
+      const isClosing = fullTag.startsWith('</');
+
+      if (!isSelfClosing) {
+        if (isClosing) {
+          // Remove from stack if matches
+          const lastIndex = openTags.lastIndexOf(tagName);
+          if (lastIndex !== -1) {
+            openTags.splice(lastIndex, 1);
+          }
+        } else {
+          openTags.push(tagName);
+        }
+      }
+    }
+
+    // Close unclosed tags in reverse order
+    for (let i = openTags.length - 1; i >= 0; i--) {
+      content += `</${openTags[i]}>`;
+    }
+  }
+
+  // Convert to JSX
+  const jsx = htmlToJsx(content);
+
+  // If empty after cleaning, return children placeholder
+  if (!jsx.trim()) {
+    return '{children}';
+  }
+
+  return jsx;
+}
+
+/**
  * Parse and clean HTML snapshot to extract meaningful content
  *
  * @param htmlSnapshot - Raw HTML string
@@ -162,6 +318,7 @@ function parseHtmlContent(htmlSnapshot: string): {
   hasForms: boolean;
   hasLists: boolean;
   textContent: string;
+  jsxContent: string;
 } {
   const hasImages = /<img\s/i.test(htmlSnapshot);
   const hasLinks = /<a\s/i.test(htmlSnapshot);
@@ -173,7 +330,10 @@ function parseHtmlContent(htmlSnapshot: string): {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 500); // Limit to first 500 chars
+    .slice(0, 500);
+
+  // Extract actual JSX content
+  const jsxContent = extractContent(htmlSnapshot);
 
   return {
     hasImages,
@@ -181,6 +341,7 @@ function parseHtmlContent(htmlSnapshot: string): {
     hasForms,
     hasLists,
     textContent,
+    jsxContent,
   };
 }
 
@@ -247,33 +408,35 @@ function generatePixelPerfectVariant(
   styleEntries.push(`minHeight: '${boundingBox.height}px'`);
   styleEntries.push(`width: '100%'`);
 
+  // Detect carousel/slider components and add overflow:hidden to prevent visual bleed
+  const hasCarousel = isCarouselComponent(component.htmlSnapshot);
+  if (hasCarousel) {
+    styleEntries.push(`overflow: 'hidden'`);
+    styleEntries.push(`position: 'relative'`);
+  }
+
   const inlineStyles = styleEntries.length > 0
     ? `style={{
         ${styleEntries.join(',\n        ')}
       }}`
     : '';
 
-  // Generate content elements based on HTML analysis
-  const contentElements: string[] = [];
-  if (content.hasImages) {
-    contentElements.push(`<div className="images">
-          {/* Images extracted from original */}
-        </div>`);
-  }
-  if (content.hasLinks) {
-    contentElements.push(`<nav>
-          {/* Navigation links */}
-        </nav>`);
-  }
-  if (content.textContent) {
-    contentElements.push(`<div className="content">
-          {/* Text content placeholder */}
-        </div>`);
-  }
+  // Use actual JSX content extracted from HTML
+  let contentBlock = content.jsxContent || '{children}';
 
-  const contentBlock = contentElements.length > 0
-    ? contentElements.join('\n        ')
-    : '{children}';
+  // If carousel detected, fix section elements that contain absolute positioned children
+  if (hasCarousel) {
+    // Add position:relative to section elements that have absolute children
+    contentBlock = contentBlock.replace(
+      /(<section\s+style=\{\{)([^}]*)(}})/g,
+      (match: string, start: string, styles: string, end: string) => {
+        if (styles.includes('position')) {
+          return match;
+        }
+        return `${start}${styles}, position: 'relative'${end}`;
+      }
+    );
+  }
 
   return `'use client';
 
@@ -296,9 +459,7 @@ export function ${componentName}({ className, children }: ${componentName}Props)
       className={className}
       ${inlineStyles}
     >
-      <div className="container mx-auto">
-        ${contentBlock}
-      </div>
+      ${contentBlock}
     </div>
   );
 }
