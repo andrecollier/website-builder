@@ -148,6 +148,11 @@ export const COMPONENT_SELECTORS: Record<ComponentType, string[]> = {
     '[class*="action"]',
     '[class*="subscribe"]',
     '[class*="newsletter"]',
+    // Framer-specific: CTA sections with "request", "demo", "contact", or FAQ
+    '[data-framer-name*="CTA"]',
+    '[data-framer-name*="Contact"]',
+    '[data-framer-name*="Request"]',
+    '[data-framer-name*="FAQ"]',
   ],
   footer: [
     'footer',
@@ -157,6 +162,9 @@ export const COMPONENT_SELECTORS: Record<ComponentType, string[]> = {
     '[class*="footer"]',
     '[class*="site-footer"]',
     '[class*="bottom-bar"]',
+    // Framer-specific: Footer sections
+    '[data-framer-name*="Footer"]',
+    '[data-framer-name*="CTA Footer"]',
   ],
   cards: [
     '[class*="card-grid"]',
