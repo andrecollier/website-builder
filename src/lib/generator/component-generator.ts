@@ -695,7 +695,8 @@ export async function generateComponents(
           'opacity', 'overflow', 'objectFit',
         ];
 
-        function processElement(el: Element): string {
+        // Use arrow function to avoid __name helper injection from esbuild/tsx
+        const processElement = (el: Element): string => {
           const computed = window.getComputedStyle(el);
           const styleObj: string[] = [];
 
@@ -740,7 +741,7 @@ export async function generateComponents(
             return `<${tagName}${attrs}${styleAttr} />`;
           }
           return `<${tagName}${attrs}${styleAttr}>${innerHTML}</${tagName}>`;
-        }
+        };
 
         const navSelectors = [
           'nav[data-framer-name*="Navigation"]',
