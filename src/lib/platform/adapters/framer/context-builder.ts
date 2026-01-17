@@ -40,11 +40,47 @@ export interface ExtractedSiteData {
     accent?: string;
     background?: string;
     text?: string;
+    /** All unique colors found on the page */
+    allColors?: string[];
   };
   /** Extracted fonts */
   fonts?: {
     primary?: string;
     secondary?: string;
+  };
+  /** Extracted spacing values */
+  spacing?: {
+    /** Common padding values */
+    paddings?: string[];
+    /** Common margin values */
+    margins?: string[];
+    /** Common gap values */
+    gaps?: string[];
+    /** Container max-widths */
+    maxWidths?: string[];
+  };
+  /** Extracted effects */
+  effects?: {
+    /** Box shadows found */
+    shadows?: string[];
+    /** Border radii found */
+    borderRadii?: string[];
+    /** Transitions/animations */
+    transitions?: string[];
+  };
+  /** Typography scale */
+  typography?: {
+    /** Font sizes used (h1 to body) */
+    fontSizes?: string[];
+    /** Line heights */
+    lineHeights?: string[];
+    /** Font weights */
+    fontWeights?: string[];
+  };
+  /** Responsive breakpoints detected */
+  breakpoints?: {
+    /** Mobile styles changed at these widths */
+    detected?: number[];
   };
 }
 
@@ -63,6 +99,30 @@ export interface BuiltFramerContext extends FramerDesignContext {
   isDarkTheme: boolean;
   /** Detected primary color (for accents) */
   detectedPrimaryColor?: string;
+  /** Extracted spacing tokens */
+  extractedSpacing?: {
+    containerMaxWidth?: string;
+    sectionPadding?: string;
+    cardPadding?: string;
+    gap?: string;
+  };
+  /** Extracted typography tokens */
+  extractedTypography?: {
+    h1Size?: string;
+    h2Size?: string;
+    h3Size?: string;
+    bodySize?: string;
+    smallSize?: string;
+  };
+  /** Extracted effects */
+  extractedEffects?: {
+    cardShadow?: string;
+    buttonShadow?: string;
+    primaryRadius?: string;
+    cardRadius?: string;
+  };
+  /** Responsive breakpoints (widths in px) */
+  breakpoints?: number[];
 }
 
 /**
@@ -259,6 +319,77 @@ function extractFontFamily(data: ExtractedSiteData): string {
 }
 
 /**
+ * Extract most common value from array
+ */
+function getMostCommon(values: string[] | undefined): string | undefined {
+  if (!values || values.length === 0) return undefined;
+  const counts = new Map<string, number>();
+  for (const v of values) {
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  let maxCount = 0;
+  let mostCommon: string | undefined;
+  for (const [value, count] of counts) {
+    if (count > maxCount) {
+      maxCount = count;
+      mostCommon = value;
+    }
+  }
+  return mostCommon;
+}
+
+/**
+ * Extract spacing tokens from extracted data
+ */
+function extractSpacingTokens(data: ExtractedSiteData) {
+  if (!data.spacing) return undefined;
+
+  return {
+    containerMaxWidth: getMostCommon(data.spacing.maxWidths) || '1200px',
+    sectionPadding: getMostCommon(data.spacing.paddings) || '80px',
+    cardPadding: '24px', // Default card padding
+    gap: getMostCommon(data.spacing.gaps) || '24px',
+  };
+}
+
+/**
+ * Extract typography tokens from extracted data
+ */
+function extractTypographyTokens(data: ExtractedSiteData) {
+  if (!data.typography?.fontSizes) return undefined;
+
+  // Sort font sizes to determine scale
+  const sizes = data.typography.fontSizes
+    .map((s) => parseFloat(s))
+    .filter((s) => !isNaN(s))
+    .sort((a, b) => b - a);
+
+  if (sizes.length < 3) return undefined;
+
+  return {
+    h1Size: `${sizes[0]}px`,
+    h2Size: sizes.length > 1 ? `${sizes[1]}px` : undefined,
+    h3Size: sizes.length > 2 ? `${sizes[2]}px` : undefined,
+    bodySize: sizes.length > 3 ? `${sizes[Math.floor(sizes.length / 2)]}px` : '16px',
+    smallSize: sizes.length > 4 ? `${sizes[sizes.length - 1]}px` : '14px',
+  };
+}
+
+/**
+ * Extract effect tokens from extracted data
+ */
+function extractEffectTokens(data: ExtractedSiteData) {
+  if (!data.effects) return undefined;
+
+  return {
+    cardShadow: getMostCommon(data.effects.shadows),
+    buttonShadow: undefined, // Would need more specific extraction
+    primaryRadius: getMostCommon(data.effects.borderRadii) || '8px',
+    cardRadius: getMostCommon(data.effects.borderRadii) || '12px',
+  };
+}
+
+/**
  * Build complete Framer context from extracted data
  *
  * @param data - Extracted site data from reference URL
@@ -284,6 +415,11 @@ export function buildFramerContext(data: ExtractedSiteData): BuiltFramerContext 
   // Build component-specific enhancements
   const componentOverrides = buildComponentEnhancements(data, darkSections);
 
+  // Extract additional design tokens
+  const extractedSpacing = extractSpacingTokens(data);
+  const extractedTypography = extractTypographyTokens(data);
+  const extractedEffects = extractEffectTokens(data);
+
   return {
     ...baseContext,
     source: {
@@ -293,6 +429,10 @@ export function buildFramerContext(data: ExtractedSiteData): BuiltFramerContext 
     componentOverrides,
     isDarkTheme,
     detectedPrimaryColor: primaryColor,
+    extractedSpacing,
+    extractedTypography,
+    extractedEffects,
+    breakpoints: data.breakpoints?.detected || [768, 1024, 1280],
   };
 }
 
