@@ -64,6 +64,10 @@ export interface OrchestratorOptions {
   skipCache?: boolean;
   /** Callback for progress updates */
   onProgress?: (progress: CaptureProgress) => void;
+  /** Auto-improve if accuracy below target (default: false) */
+  autoImprove?: boolean;
+  /** Target accuracy for auto-improve (default: 80) */
+  targetAccuracy?: number;
 }
 
 /**
@@ -741,16 +745,56 @@ export async function executeOrchestrator(
     pipelineResult.overallAccuracy = comparatorRetry.result.data.overallAccuracy;
 
     // ========================================
+    // PHASE 5: IMPROVE (Optional)
+    // ========================================
+    const { autoImprove = false, targetAccuracy = 80 } = options;
+
+    if (autoImprove && pipelineResult.overallAccuracy < targetAccuracy) {
+      emitProgress('capturing', 90, 'Phase 5/5: Running improvement agents...');
+
+      // Check if API key is available
+      if (process.env.ANTHROPIC_API_KEY) {
+        try {
+          const { improveWebsite } = await import('../improvement-orchestrator');
+          const improvementResult = await improveWebsite(websiteId);
+
+          if (improvementResult.success) {
+            emitProgress('capturing', 95, 'Improvements applied, re-comparing...');
+
+            // Re-run comparison to get updated accuracy
+            const recompareResult = await delegateToComparatorAgent(
+              agentContext,
+              generatorRetry.result!.data!
+            );
+
+            if (recompareResult.success && recompareResult.data) {
+              pipelineResult.overallAccuracy = recompareResult.data.overallAccuracy;
+            }
+          }
+        } catch (improvementError) {
+          // Log but don't fail - improvement is optional
+          console.warn('[Orchestrator] Improvement phase failed:', improvementError);
+        }
+      } else {
+        console.warn('[Orchestrator] Skipping improvement: ANTHROPIC_API_KEY not set');
+      }
+    }
+
+    // ========================================
     // PIPELINE COMPLETE
     // ========================================
-    emitProgress('complete', 100, 'Extraction pipeline completed successfully');
+    const finalMessage = autoImprove
+      ? `Extraction pipeline completed with ${pipelineResult.overallAccuracy?.toFixed(1)}% accuracy`
+      : 'Extraction pipeline completed successfully';
+
+    emitProgress('complete', 100, finalMessage);
     agentContext.complete();
-    publishPipelineCompleted(websiteId, 'Pipeline completed successfully');
+    publishPipelineCompleted(websiteId, finalMessage);
 
     return {
       success: true,
       agentType: 'orchestrator',
-      message: 'Extraction pipeline completed successfully',
+      message: finalMessage,
       data: pipelineResult,
     };
   } catch (error) {

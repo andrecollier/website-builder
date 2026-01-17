@@ -10,7 +10,12 @@
     "test": "npx playwright test",
     "test:phase5": "npx playwright test tests/phase5/",
     "test:report": "npx playwright show-report",
-    "diagnose:phase5": "npx tsx tests/phase5/diagnose-capture.ts"
+    "diagnose:phase5": "npx tsx tests/phase5/diagnose-capture.ts",
+    "agents": "npx tsx src/agents/cli.ts",
+    "agents:improve": "npx tsx src/agents/cli.ts improve",
+    "agents:fix": "npx tsx src/agents/cli.ts fix-component",
+    "agents:css": "npx tsx src/agents/cli.ts optimize-css",
+    "agents:check": "npx tsx src/agents/cli.ts check-quality"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.11",
