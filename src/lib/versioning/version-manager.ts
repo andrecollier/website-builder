@@ -252,6 +252,7 @@ function copyVersionFiles(sourceDir: string, destDir: string): string[] {
 
 /**
  * Update the current/ symlink to point to a version
+ * On Windows, uses junctions instead of symlinks (no admin rights required)
  *
  * @param websiteId - Website ID
  * @param versionNumber - Version number to point to
@@ -262,13 +263,23 @@ export function updateCurrentSymlink(
 ): void {
   const currentPath = getCurrentPath(websiteId);
   const versionPath = getVersionPath(websiteId, versionNumber);
+  const isWindows = process.platform === 'win32';
 
-  // Remove existing symlink if it exists
+  // Remove existing symlink/junction if it exists
   if (fs.existsSync(currentPath)) {
-    // Check if it's a symlink before removing
+    // Check if it's a symlink/junction before removing
     const stats = fs.lstatSync(currentPath);
     if (stats.isSymbolicLink()) {
       fs.unlinkSync(currentPath);
+    } else if (isWindows) {
+      // On Windows, junctions appear as directories, check for reparse point
+      try {
+        fs.rmSync(currentPath, { recursive: false });
+      } catch {
+        throw new Error(
+          `current/ path exists but could not be removed: ${currentPath}`
+        );
+      }
     } else {
       // If it's a real directory, throw an error - we don't want to delete it
       throw new Error(
@@ -277,12 +288,18 @@ export function updateCurrentSymlink(
     }
   }
 
-  // Create new symlink (relative path for portability)
-  const relativeVersionPath = path.relative(
-    path.dirname(currentPath),
-    versionPath
-  );
-  fs.symlinkSync(relativeVersionPath, currentPath, 'dir');
+  if (isWindows) {
+    // On Windows, use junction type which doesn't require admin privileges
+    // Junctions require absolute paths
+    fs.symlinkSync(versionPath, currentPath, 'junction');
+  } else {
+    // On Unix/macOS, use relative path for portability
+    const relativeVersionPath = path.relative(
+      path.dirname(currentPath),
+      versionPath
+    );
+    fs.symlinkSync(relativeVersionPath, currentPath, 'dir');
+  }
 }
 
 // ====================

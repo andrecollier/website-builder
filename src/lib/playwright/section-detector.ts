@@ -163,6 +163,68 @@ async function detectSectionType(
 }
 
 /**
+ * Detect ALL instances of a specific section type on the page
+ *
+ * @param page - Playwright Page instance
+ * @param sectionType - Type of section to detect
+ * @param minHeight - Minimum height for a valid section
+ * @returns Promise with array of DetectedElements
+ */
+async function detectAllOfType(
+  page: Page,
+  sectionType: SectionType,
+  minHeight: number = 50
+): Promise<DetectedElement[]> {
+  const selectors = SECTION_SELECTORS[sectionType];
+  const allDetected: DetectedElement[] = [];
+  const seenPositions = new Set<string>();
+
+  for (const selector of selectors) {
+    try {
+      const locator = page.locator(selector);
+      const count = await locator.count();
+
+      for (let i = 0; i < count; i++) {
+        try {
+          const element = locator.nth(i);
+          const isVisible = await element.isVisible({ timeout: 300 });
+
+          if (isVisible) {
+            const boundingBox = await element.boundingBox();
+
+            if (boundingBox && boundingBox.height >= minHeight) {
+              // Create a key based on position to avoid duplicates
+              const posKey = `${Math.round(boundingBox.y)}-${Math.round(boundingBox.height)}`;
+              if (!seenPositions.has(posKey)) {
+                seenPositions.add(posKey);
+                allDetected.push({
+                  type: sectionType,
+                  selector,
+                  boundingBox: {
+                    x: Math.round(boundingBox.x),
+                    y: Math.round(boundingBox.y),
+                    width: Math.round(boundingBox.width),
+                    height: Math.round(boundingBox.height),
+                  },
+                });
+              }
+            }
+          }
+        } catch {
+          // Individual element failed, continue
+          continue;
+        }
+      }
+    } catch {
+      // Selector not found, continue to next
+      continue;
+    }
+  }
+
+  return allDetected;
+}
+
+/**
  * Filter out overlapping sections, keeping the more specific ones
  *
  * @param sections - Array of detected elements
@@ -241,13 +303,25 @@ export async function detectSections(
 
   const detectedElements: DetectedElement[] = [];
 
-  // Detect each section type
-  for (const sectionType of SECTION_ORDER) {
+  // Section types that typically only appear once
+  const singletonTypes: SectionType[] = ['header', 'hero', 'cta', 'footer'];
+
+  // Section types that can repeat multiple times
+  const repeatableTypes: SectionType[] = ['features', 'testimonials', 'pricing'];
+
+  // Detect singleton section types (only first instance)
+  for (const sectionType of singletonTypes) {
     const detected = await detectSectionType(page, sectionType);
 
     if (detected && detected.boundingBox.height >= minHeight) {
       detectedElements.push(detected);
     }
+  }
+
+  // Detect ALL instances of repeatable section types
+  for (const sectionType of repeatableTypes) {
+    const allOfType = await detectAllOfType(page, sectionType, minHeight);
+    detectedElements.push(...allOfType);
   }
 
   // Filter overlapping sections and sort by position

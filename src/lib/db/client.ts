@@ -972,6 +972,68 @@ export function createVariantsBatch(variants: VariantInsert[]): VariantRecord[] 
   return createdVariants;
 }
 
+/**
+ * Create multiple components in a transaction
+ */
+export function createComponentsBatch(components: ComponentInsert[]): ComponentRecord[] {
+  const database = getDb();
+  const createdComponents: ComponentRecord[] = [];
+
+  const insertStmt = database.prepare(`
+    INSERT INTO components (id, website_id, version_id, name, type, order_index,
+                            selected_variant, custom_code, approved, accuracy_score, error_message, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  database.transaction(() => {
+    for (const data of components) {
+      const id = data.id || `component-${randomUUID()}`;
+      const status = data.status || 'pending';
+      const approved = data.approved ? 1 : 0;
+
+      insertStmt.run(
+        id,
+        data.website_id,
+        data.version_id,
+        data.name,
+        data.type,
+        data.order_index,
+        data.selected_variant ?? null,
+        data.custom_code ?? null,
+        approved,
+        data.accuracy_score ?? null,
+        data.error_message ?? null,
+        status
+      );
+      const component = getComponentById(id);
+      if (component) {
+        createdComponents.push(component);
+      }
+    }
+  })();
+
+  return createdComponents;
+}
+
+/**
+ * Execute multiple operations in a single transaction
+ * Useful for ensuring atomicity when multiple related writes need to happen together
+ */
+export function withTransaction<T>(fn: () => T): T {
+  const database = getDb();
+  return database.transaction(fn)();
+}
+
+/**
+ * Execute an async operation with database transaction semantics
+ * Note: better-sqlite3 is synchronous, so this wraps sync transaction around
+ * the synchronous parts of an otherwise async operation
+ */
+export function withTransactionSync<T>(fn: () => T): T {
+  const database = getDb();
+  return database.transaction(fn)();
+}
+
 // ====================
 // TEMPLATE PROJECT OPERATIONS
 // ====================
