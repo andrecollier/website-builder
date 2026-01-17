@@ -8,10 +8,7 @@ export interface FooterProps {
 }
 
 /**
- * Footer - Pixel-perfect variant
- *
- * Matches original component dimensions and styles exactly.
- * Bounding box: 1440x1434px
+ * Footer - Complete footer with CTA and navigation
  */
 export function Footer({ className, children }: FooterProps) {
   return (
@@ -19,21 +16,207 @@ export function Footer({ className, children }: FooterProps) {
       className={className}
       style={{
         backgroundColor: 'rgb(27, 12, 37)',
-        color: 'rgb(0, 0, 0)',
-        fontSize: '12px',
-        fontFamily: 'sans-serif',
-        padding: '100px 40px 24px',
+        padding: '100px 40px 40px',
         display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'flex-start',
-        gap: '0px',
-        borderRadius: '0px',
-        minHeight: '1434px',
-        width: '100%'
+        flexDirection: 'column',
+        alignItems: 'center',
+        width: '100%',
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
-      <header style={{display: 'flex', position: 'relative', flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', width: '1408px', height: '1016px', maxWidth: '100%', padding: '100px 40px 24px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundColor: 'rgb(27, 12, 37)', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', zIndex: '2', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', gap: '100px', width: '1240px', height: '892px', maxWidth: '1240px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', zIndex: '1', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '32px', width: '800px', height: '274px', maxWidth: '800px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '24px', width: '800px', height: '192px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px', width: '800px', height: '192px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'block', position: 'relative', flexDirection: 'row', width: '200.125px', height: '28px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', transform: 'matrix(1, 0, 0, 1, 0, 24)', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '200.125px', height: '28px', padding: '6px 14px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundColor: 'rgb(255, 255, 255)', borderRadius: '999px', border: '0px none rgb(0, 0, 0)', boxShadow: 'rgba(0, 0, 0, 0.07) 0px 2px 5px 0px, rgba(0, 0, 0, 0.06) 0px 8px 8px 0px, rgba(0, 0, 0, 0.04) 0px 19px 11px 0px, rgba(0, 0, 0, 0.01) 0px 33px 13px 0px, rgba(0, 0, 0, 0) 0px 52px 15px 0px', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', width: '172.125px', height: '16px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><p style={{display: 'block', position: 'static', flexDirection: 'row', width: '172.125px', height: '16px', fontFamily: '\'General Sans\', sans-serif', fontSize: '14px', fontWeight: '500', lineHeight: '16px', color: 'rgb(27, 12, 37)', border: '0px none rgb(27, 12, 37)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Join the AI Revolution</p></div></div></div><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', width: '800px', height: '152px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><h1 style={{display: 'block', position: 'static', flexDirection: 'row', width: '800px', height: '152px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '217.438px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Ready</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '73.7344px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>to</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '172.75px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>start</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '154.281px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>your</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '74.1875px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>AI</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '259.547px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>journey</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '151.547px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>with</span><span style={{display: 'inline-block', position: 'static', transform: 'matrix(1, 0, 0, 1, 0, 10)', flexDirection: 'row', width: '119.938px', height: '76px', fontFamily: '\'General Sans\', sans-serif', fontSize: '76px', fontWeight: '500', lineHeight: '76px', textAlign: 'left', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>us?</span></h1></div></div></div><div style={{display: 'flex', position: 'relative', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '16px', width: '800px', height: '50px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'block', position: 'relative', transform: 'matrix(1, 0, 0, 1, 0, 20)', flexDirection: 'row', width: '200px', height: '50px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><a href="https://fluence.framer.website/contact" style={{display: 'flex', position: 'relative', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '200px', height: '50px', padding: '12px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', backgroundColor: 'rgb(27, 12, 37)', borderRadius: '8px', border: '0px none rgb(0, 0, 238)', boxShadow: 'rgba(255, 255, 255, 0.4) 0px 1px 2px 0px inset, rgba(0, 0, 0, 0.1) 0px 1px 2px 0px', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '176px', height: '24px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', border: '0px none rgb(0, 0, 238)', opacity: '1', overflow: 'hidden', objectFit: 'fill'}}><div style={{display: 'flex', position: 'absolute', zIndex: '1', top: '12.9531px', right: '-0.40625px', bottom: '-14.9531px', left: '88px', transform: 'matrix(1, 0, 0, 1, -44.2031, -13)', flexDirection: 'column', justifyContent: 'flex-start', width: '88.4062px', height: '26px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', border: '0px none rgb(0, 0, 238)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><p style={{display: 'block', position: 'static', flexDirection: 'row', width: '88.4062px', height: '26px', fontFamily: '\'General Sans\', sans-serif', fontSize: '16px', fontWeight: '500', lineHeight: '26px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Get Started</p></div><div style={{display: 'flex', position: 'absolute', zIndex: '1', top: '41.0312px', right: '-0.40625px', bottom: '-43.0312px', left: '88px', transform: 'matrix(1, 0, 0, 1, -44.2031, -13)', flexDirection: 'column', justifyContent: 'flex-start', width: '88.4062px', height: '26px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', border: '0px none rgb(0, 0, 238)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><p style={{display: 'block', position: 'static', flexDirection: 'row', width: '88.4062px', height: '26px', fontFamily: '\'General Sans\', sans-serif', fontSize: '16px', fontWeight: '500', lineHeight: '26px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Get Started</p></div></div></a></div><div style={{display: 'block', position: 'relative', transform: 'matrix(1, 0, 0, 1, 0, 20)', flexDirection: 'row', width: '200px', height: '50px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><a href="mailto:someone@yoursite.com" style={{display: 'flex', position: 'relative', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '200px', height: '50px', padding: '12px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', backgroundColor: 'rgb(255, 255, 255)', borderRadius: '8px', border: '0px none rgb(0, 0, 238)', boxShadow: 'rgba(0, 0, 0, 0.06) 0px 1px 2px 0px', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '176px', height: '24px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', border: '0px none rgb(0, 0, 238)', opacity: '1', overflow: 'hidden', objectFit: 'fill'}}><div style={{display: 'flex', position: 'absolute', zIndex: '1', top: '12.9531px', right: '-9.17188px', bottom: '-14.9531px', left: '88px', transform: 'matrix(1, 0, 0, 1, -48.5859, -13)', flexDirection: 'column', justifyContent: 'flex-start', width: '97.1719px', height: '26px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', border: '0px none rgb(0, 0, 238)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><p style={{display: 'block', position: 'static', flexDirection: 'row', width: '97.1719px', height: '26px', fontFamily: '\'General Sans\', sans-serif', fontSize: '16px', fontWeight: '500', lineHeight: '26px', color: 'rgb(27, 12, 37)', border: '0px none rgb(27, 12, 37)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Book a Demo</p></div><div style={{display: 'flex', position: 'absolute', zIndex: '1', top: '41.0312px', right: '-9.17188px', bottom: '-43.0312px', left: '88px', transform: 'matrix(1, 0, 0, 1, -48.5859, -13)', flexDirection: 'column', justifyContent: 'flex-start', width: '97.1719px', height: '26px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', color: 'rgb(0, 0, 238)', border: '0px none rgb(0, 0, 238)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><p style={{display: 'block', position: 'static', flexDirection: 'row', width: '97.1719px', height: '26px', fontFamily: '\'General Sans\', sans-serif', fontSize: '16px', fontWeight: '500', lineHeight: '26px', color: 'rgb(27, 12, 37)', border: '0px none rgb(27, 12, 37)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Book a Demo</p></div></div></a></div></div></div><div style={{display: 'block', position: 'relative', zIndex: '1', flexDirection: 'row', width: '1240px', height: '1px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundColor: 'rgb(255, 255, 255)', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'hidden', objectFit: 'fill'}}></div><div style={{display: 'flex', position: 'relative', zIndex: '3', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', width: '1240px', height: '266px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'hidden', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '32px', width: '220px', height: '144px', maxWidth: '220px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'hidden', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '40px', width: '205px', height: '82px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '16px', width: '205px', height: '82px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px', width: '205px', height: '40px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'block', position: 'relative', flexDirection: 'row', width: '40px', height: '40px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}></div></div></div></div></div></div></div></header>
+      {/* Background Gradient Orbs */}
+      <div style={{
+        position: 'absolute',
+        top: '-100px',
+        right: '-150px',
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(60px)',
+        pointerEvents: 'none'
+      }}></div>
+      <div style={{
+        position: 'absolute',
+        bottom: '100px',
+        left: '-100px',
+        width: '300px',
+        height: '300px',
+        background: 'radial-gradient(circle, rgba(236, 72, 153, 0.2) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(50px)',
+        pointerEvents: 'none'
+      }}></div>
+
+      {/* Large Watermark Text */}
+      <div style={{
+        position: 'absolute',
+        bottom: '80px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        fontFamily: "'General Sans', sans-serif",
+        fontSize: '180px',
+        fontWeight: '600',
+        color: 'rgba(255, 255, 255, 0.03)',
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+        userSelect: 'none'
+      }}>
+        Fluence AI
+      </div>
+
+      {/* CTA Section */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '32px',
+        maxWidth: '800px',
+        marginBottom: '100px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <div style={{
+          display: 'inline-flex',
+          padding: '6px 14px',
+          backgroundColor: 'rgb(255, 255, 255)',
+          borderRadius: '999px',
+          boxShadow: 'rgba(0, 0, 0, 0.07) 0px 2px 5px 0px, rgba(0, 0, 0, 0.06) 0px 8px 8px 0px',
+          width: 'fit-content'
+        }}>
+          <p style={{fontFamily: "'General Sans', sans-serif", fontSize: '14px', fontWeight: '500', color: 'rgb(27, 12, 37)'}}>
+            JOIN THE AI REVOLUTION
+          </p>
+        </div>
+        <h2 style={{
+          fontFamily: "'General Sans', sans-serif",
+          fontSize: '76px',
+          fontWeight: '500',
+          lineHeight: '80px',
+          color: 'rgb(255, 255, 255)'
+        }}>
+          Ready to start your AI journey with us?
+        </h2>
+        <div style={{display: 'flex', gap: '16px'}}>
+          <a href="#" style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '14px 28px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            color: 'rgb(255, 255, 255)',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            fontFamily: "'General Sans', sans-serif",
+            fontSize: '16px',
+            fontWeight: '500',
+            textDecoration: 'none',
+            backdropFilter: 'blur(10px)',
+            boxShadow: 'rgba(255, 255, 255, 0.1) 0px 1px 2px 0px inset'
+          }}>Get Started</a>
+          <a href="#" style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '14px 28px',
+            backgroundColor: 'rgb(255, 255, 255)',
+            color: 'rgb(27, 12, 37)',
+            borderRadius: '8px',
+            fontFamily: "'General Sans', sans-serif",
+            fontSize: '16px',
+            fontWeight: '500',
+            textDecoration: 'none'
+          }}>Book a Demo</a>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{width: '100%', maxWidth: '1240px', height: '1px', backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: '60px', position: 'relative', zIndex: 1}}></div>
+
+      {/* Footer Content */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: '100%',
+        maxWidth: '1240px',
+        gap: '60px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {/* Logo & Social */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: '24px'}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M6 18L18 6M18 6H10M18 6V14" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span style={{fontFamily: "'General Sans', sans-serif", fontSize: '24px', fontWeight: '500', color: 'rgb(255, 255, 255)'}}>Fluence Ai</span>
+          </div>
+          <p style={{fontFamily: "'General Sans', sans-serif", fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)'}}>
+            Manage Ai effortlessly
+          </p>
+          <div style={{display: 'flex', gap: '16px'}}>
+            <a href="#" style={{width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', transition: 'color 0.2s'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96C18.34 21.21 22 17.06 22 12.06C22 6.53 17.5 2.04 12 2.04Z"/></svg>
+            </a>
+            <a href="#" style={{width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', transition: 'color 0.2s'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="#" style={{width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', transition: 'color 0.2s'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2m-.2 2A3.6 3.6 0 0 0 4 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6m9.65 1.5a1.25 1.25 0 0 1 1.25 1.25A1.25 1.25 0 0 1 17.25 8 1.25 1.25 0 0 1 16 6.75a1.25 1.25 0 0 1 1.25-1.25M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
+            </a>
+            <a href="#" style={{width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', transition: 'color 0.2s'}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        {/* Use Links */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+          <h4 style={{fontFamily: "'General Sans', sans-serif", fontSize: '16px', fontWeight: '500', color: 'rgba(255, 255, 255, 0.4)'}}>Use Link</h4>
+          {['Feature', 'About', 'Testimonial', 'Pricing', 'Contact', 'Blog', '404'].map((link) => (
+            <a key={link} href="#" style={{fontFamily: "'General Sans', sans-serif", fontSize: '14px', color: 'rgba(255, 255, 255, 0.8)', textDecoration: 'none', transition: 'color 0.2s'}}>{link}</a>
+          ))}
+        </div>
+
+        {/* Company */}
+        <div style={{display: 'flex', flexDirection: 'column', gap: '16px'}}>
+          <h4 style={{fontFamily: "'General Sans', sans-serif", fontSize: '16px', fontWeight: '500', color: 'rgba(255, 255, 255, 0.4)'}}>Company</h4>
+          <p style={{fontFamily: "'General Sans', sans-serif", fontSize: '14px', color: 'rgba(255, 255, 255, 0.8)', lineHeight: '22px'}}>
+            105 North 1st Street, #28,<br />
+            San Jose, CA 94748
+          </p>
+        </div>
+      </div>
+
+      {/* Copyright */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: '100%',
+        maxWidth: '1240px',
+        marginTop: '80px',
+        paddingTop: '24px',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        <p style={{fontFamily: "'General Sans', sans-serif", fontSize: '14px', color: 'rgba(255, 255, 255, 0.4)'}}>
+          © 2025 Design & Developed by Amani
+        </p>
+        <a href="#" style={{fontFamily: "'General Sans', sans-serif", fontSize: '14px', color: 'rgba(255, 255, 255, 0.4)', textDecoration: 'none'}}>
+          Privacy Policy
+        </a>
+      </div>
     </div>
   );
 }

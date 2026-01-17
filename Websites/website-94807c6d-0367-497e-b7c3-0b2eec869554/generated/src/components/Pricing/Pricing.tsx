@@ -8,10 +8,7 @@ export interface PricingProps {
 }
 
 /**
- * Pricing - Pixel-perfect variant
- *
- * Matches original component dimensions and styles exactly.
- * Bounding box: 1440x1440px
+ * About Section - Dark purple with gradient orbs
  */
 export function Pricing({ className, children }: PricingProps) {
   return (
@@ -19,21 +16,82 @@ export function Pricing({ className, children }: PricingProps) {
       className={className}
       style={{
         backgroundColor: 'rgb(27, 12, 37)',
-        color: 'rgb(0, 0, 0)',
-        fontSize: '12px',
-        fontFamily: 'sans-serif',
-        padding: '0px',
+        padding: '100px 40px',
         display: 'flex',
-        flexDirection: 'row',
         justifyContent: 'center',
-        alignItems: 'flex-start',
-        gap: '0px',
-        borderRadius: '0px',
-        minHeight: 'auto',
-        width: '100%'
+        alignItems: 'center',
+        width: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: '500px'
       }}
     >
-      <section style={{display: 'flex', position: 'relative', flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', width: '1408px', height: 'auto', minHeight: '600px', maxWidth: '1920px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundColor: 'rgb(27, 12, 37)', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', gap: '60px', width: '1408px', height: 'auto', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', zIndex: '1', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', gap: '16px', width: '800px', height: 'auto', padding: '100px 0', maxWidth: '800px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'block', position: 'relative', flexDirection: 'row', width: '76.4844px', height: '28px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', transform: 'matrix(1, 0, 0, 1, 0, 24)', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: '8px', width: '76.4844px', height: '28px', padding: '6px 14px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundColor: 'rgb(255, 255, 255)', borderRadius: '999px', border: '0px none rgb(0, 0, 0)', boxShadow: 'rgba(0, 0, 0, 0.07) 0px 2px 5px 0px, rgba(0, 0, 0, 0.06) 0px 8px 8px 0px, rgba(0, 0, 0, 0.04) 0px 19px 11px 0px, rgba(0, 0, 0, 0.01) 0px 33px 13px 0px, rgba(0, 0, 0, 0) 0px 52px 15px 0px', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'flex', position: 'relative', flexDirection: 'column', justifyContent: 'flex-start', width: '48.4844px', height: '16px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><p style={{display: 'block', position: 'static', flexDirection: 'row', width: '48.4844px', height: '16px', fontFamily: '\'General Sans\', sans-serif', fontSize: '14px', fontWeight: '500', lineHeight: '16px', color: 'rgb(27, 12, 37)', border: '0px none rgb(27, 12, 37)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>about</p></div></div></div><div style={{display: 'block', position: 'relative', zIndex: '2', transform: 'matrix(1, 0, 0, 1, 0, 40)', flexDirection: 'row', width: '800px', height: '396px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'contents', position: 'static', flexDirection: 'row', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><div style={{display: 'block', position: 'sticky', flexDirection: 'row', width: '800px', height: '396px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '217.266px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>Fluence </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '58.5625px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>AI </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '46.2656px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>is </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '205.625px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>crafted </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '58.2031px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>to </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '200.766px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>elevate </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '115.562px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>how </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '315.188px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>businesses </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '278.234px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>showcase </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '129.844px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>their </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '58.5625px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>AI </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '271.391px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>solutions. </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '129.906px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>With </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '32.4062px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>a </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '156.125px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>focus </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '69.7812px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>on </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '148.984px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>clean </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '202.5px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>design, </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '38.4688px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>it </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '151.5px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>helps </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '194.531px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>brands </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '206.047px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>engage </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '103.562px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>and </span><span style={{display: 'inline-block', position: 'static', flexDirection: 'row', width: '230.172px', height: '66px', margin: '0px 15px 0px 0px', fontFamily: '\'General Sans\', sans-serif', fontSize: '60px', fontWeight: '500', lineHeight: '66px', color: 'rgb(255, 255, 255)', border: '0px none rgb(255, 255, 255)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}>convert.</span></div></div></div></div></div><div style={{display: 'flex', position: 'absolute', zIndex: '0', top: '0', bottom: '0', left: '0', right: '0', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundColor: 'rgb(27, 12, 37)', borderRadius: '16px', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'hidden', objectFit: 'fill'}}><div style={{display: 'block', position: 'absolute', zIndex: '1', top: '-186px', right: '996px', bottom: '1538px', left: '-246px', flexDirection: 'row', width: '658px', height: '548px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundImage: 'linear-gradient(143.241deg, rgb(128, 169, 252) 0%, rgb(211, 123, 255) 31.087%, rgb(252, 171, 131) 70.4599%, rgb(255, 73, 212) 100%)', borderRadius: '100%', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}></div><div style={{display: 'block', position: 'absolute', zIndex: '1', top: '520px', right: '-96px', bottom: '832px', left: '846px', flexDirection: 'row', width: '658px', height: '548px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundImage: 'linear-gradient(140.017deg, rgb(239, 232, 246) 0%, rgb(213, 136, 251) 60.8266%, rgb(255, 73, 212) 100%)', borderRadius: '100%', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}></div><div style={{display: 'block', position: 'absolute', zIndex: '1', top: '1394px', right: '667px', bottom: '-42px', left: '83px', flexDirection: 'row', width: '658px', height: '548px', fontFamily: '\'sans-serif\', sans-serif', fontSize: '12px', fontWeight: '400', backgroundImage: 'linear-gradient(143.241deg, rgb(128, 169, 252) 0%, rgb(211, 123, 255) 31.087%, rgb(252, 171, 131) 70.4599%, rgb(255, 73, 212) 100%)', borderRadius: '100%', border: '0px none rgb(0, 0, 0)', opacity: '1', overflow: 'visible', objectFit: 'fill'}}></div></div></section>
+      {/* Top-left gradient orb - orange/pink/purple */}
+      <div style={{
+        position: 'absolute',
+        top: '-150px',
+        left: '-150px',
+        width: '500px',
+        height: '450px',
+        backgroundImage: 'linear-gradient(143deg, rgb(128, 169, 252) 0%, rgb(211, 123, 255) 31%, rgb(252, 171, 131) 70%, rgb(255, 73, 212) 100%)',
+        borderRadius: '50%',
+        filter: 'blur(40px)',
+        opacity: 0.9,
+        pointerEvents: 'none'
+      }}></div>
+
+      {/* Bottom-right gradient orb - purple/pink */}
+      <div style={{
+        position: 'absolute',
+        bottom: '-180px',
+        right: '-100px',
+        width: '450px',
+        height: '400px',
+        backgroundImage: 'linear-gradient(140deg, rgb(239, 232, 246) 0%, rgb(213, 136, 251) 60%, rgb(255, 73, 212) 100%)',
+        borderRadius: '50%',
+        filter: 'blur(40px)',
+        opacity: 0.8,
+        pointerEvents: 'none'
+      }}></div>
+
+      {/* Content */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '24px',
+        maxWidth: '900px',
+        position: 'relative',
+        zIndex: 1
+      }}>
+        {/* About tag */}
+        <div style={{
+          display: 'inline-flex',
+          padding: '6px 14px',
+          backgroundColor: 'rgb(255, 255, 255)',
+          borderRadius: '999px',
+          boxShadow: 'rgba(0, 0, 0, 0.07) 0px 2px 5px 0px, rgba(0, 0, 0, 0.06) 0px 8px 8px 0px'
+        }}>
+          <p style={{
+            fontFamily: "'General Sans', sans-serif",
+            fontSize: '14px',
+            fontWeight: '500',
+            color: 'rgb(27, 12, 37)'
+          }}>about</p>
+        </div>
+
+        {/* Main text */}
+        <h2 style={{
+          fontFamily: "'General Sans', sans-serif",
+          fontSize: '60px',
+          fontWeight: '500',
+          lineHeight: '66px',
+          color: 'rgb(255, 255, 255)',
+          margin: 0
+        }}>
+          Fluence AI is crafted to elevate how businesses showcase their AI solutions. With a focus on clean design, it helps brands engage and convert.
+        </h2>
+      </div>
     </div>
   );
 }
