@@ -479,8 +479,48 @@ async function delegateToGeneratorAgent(
 }
 
 /**
- * Delegate to Comparator Agent (with parallel component processing)
- * TODO: Replace with actual Claude SDK agent invocation when Comparator agent is implemented
+ * Delegate to Scaffold Agent
+ * Creates a runnable Next.js project from generated components
+ */
+async function delegateToScaffoldAgent(
+  context: AgentContext
+): Promise<{ success: boolean; error?: string }> {
+  publishAgentStarted(context.websiteId, 'scaffold', 'Scaffolding generated site...');
+
+  try {
+    const { scaffoldGeneratedSite } = await import('@/lib/scaffold');
+    const path = await import('path');
+
+    const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
+
+    const result = await scaffoldGeneratedSite({
+      websiteId: context.websiteId,
+      websitesDir,
+      siteName: 'Generated Site',
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Scaffold failed');
+    }
+
+    publishAgentCompleted(
+      context.websiteId,
+      'scaffold',
+      'Scaffold completed successfully',
+      { generatedPath: result.generatedPath }
+    );
+
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    publishAgentFailed(context.websiteId, 'scaffold', createError(5, error instanceof Error ? error : String(error), true));
+    return { success: false, error: errorMsg };
+  }
+}
+
+/**
+ * Delegate to Comparator Agent
+ * Starts the generated site, captures screenshots, and runs visual comparison
  */
 async function delegateToComparatorAgent(
   context: AgentContext,
@@ -489,14 +529,19 @@ async function delegateToComparatorAgent(
   publishAgentStarted(context.websiteId, 'comparator', 'Starting comparator agent...');
 
   try {
-    // Import and call the existing visual comparison
-    const { compareAllSections } = await import('@/lib/comparison/visual-diff');
+    // Import comparison module that handles full workflow
+    const { runComparison } = await import('@/lib/comparison/compare-section');
     const path = await import('path');
 
     // Get websites base directory
     const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
 
-    const comparisonResult = await compareAllSections(context.websiteId, websitesDir);
+    // Run full comparison: start server → capture screenshots → compare
+    const comparisonResult = await runComparison({
+      websiteId: context.websiteId,
+      websitesDir,
+      autoStartServer: true,
+    });
 
     // Update context with comparison results
     context.updateState({
@@ -654,7 +699,20 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.components = generatorRetry.result.data;
-    emitProgress('capturing', 80, 'Components generated successfully');
+    emitProgress('capturing', 75, 'Components generated successfully');
+
+    // ========================================
+    // PHASE 3.5: SCAFFOLD
+    // ========================================
+    emitProgress('capturing', 78, 'Phase 3.5/4: Scaffolding generated site...');
+
+    const scaffoldResult = await delegateToScaffoldAgent(agentContext);
+    if (!scaffoldResult.success) {
+      // Scaffold failure is non-fatal - continue with comparison (will have 0% accuracy)
+      console.warn('Scaffold failed, comparison will have limited accuracy:', scaffoldResult.error);
+    } else {
+      emitProgress('capturing', 82, 'Scaffold completed successfully');
+    }
 
     // ========================================
     // PHASE 4: COMPARE

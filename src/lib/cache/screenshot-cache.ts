@@ -358,6 +358,24 @@ export function copyCacheToWebsite(
     };
   });
 
+  // Create metadata.json for the copied cache
+  const metadata = {
+    url,
+    capturedAt: new Date().toISOString(),
+    viewportWidth: 1440,
+    viewportHeight: 900,
+    fullPageHeight: 0,
+    sectionCount: targetSections.length,
+    sections: targetSections.map((s) => ({
+      id: s.id,
+      type: s.type,
+      boundingBox: s.boundingBox,
+    })),
+  };
+
+  const metadataPath = path.join(referenceDir, 'metadata.json');
+  fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
+
   return {
     fullPagePath: targetFullPagePath,
     sections: targetSections,

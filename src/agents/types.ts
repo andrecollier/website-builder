@@ -23,6 +23,7 @@ export type AgentType =
   | 'capture' // Handles Playwright operations
   | 'extractor' // Extracts design tokens
   | 'generator' // Generates React components
+  | 'scaffold' // Creates runnable Next.js project
   | 'comparator'; // Compares visual outputs
 
 /**

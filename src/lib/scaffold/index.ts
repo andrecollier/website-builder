@@ -286,6 +286,19 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
       fs.appendFileSync(globalsPath, '\n\n/* Design System Variables */\n' + variablesCss);
     }
 
+    // Run npm install
+    const { execSync } = await import('child_process');
+    try {
+      execSync('npm install', {
+        cwd: generatedDir,
+        stdio: 'pipe',
+        timeout: 120000, // 2 minute timeout
+      });
+    } catch (npmError) {
+      console.warn('npm install warning:', npmError instanceof Error ? npmError.message : 'Unknown npm error');
+      // Continue even if npm install has warnings
+    }
+
     return {
       success: true,
       generatedPath: generatedDir,
