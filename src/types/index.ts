@@ -4,6 +4,48 @@ import type { RawPageData } from '@/lib/design-system/synthesizer';
 
 export type WebsiteStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
 
+// Version Types
+
+export interface Version {
+  id: string;
+  website_id: string;
+  version_number: string;
+  created_at: string;
+  tokens_json: string | null;
+  accuracy_score: number | null;
+  changelog: string | null;
+  is_active: boolean;
+  parent_version_id: string | null;
+}
+
+export interface VersionInsert {
+  id?: string;
+  website_id: string;
+  version_number: string;
+  tokens_json?: string | null;
+  accuracy_score?: number | null;
+  changelog?: string | null;
+  is_active?: boolean;
+  parent_version_id?: string | null;
+}
+
+export interface VersionFile {
+  id: string;
+  version_id: string;
+  file_path: string;
+  file_hash: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface VersionFileInsert {
+  id?: string;
+  version_id: string;
+  file_path: string;
+  file_hash: string;
+  file_size: number;
+}
+
 export interface Website {
   id: string;
   name: string;
@@ -40,14 +82,11 @@ export interface Phase {
 }
 
 export const PHASES: Phase[] = [
-  { number: 1, name: 'Capturing Reference', description: 'Taking screenshots and loading content' },
-  { number: 2, name: 'Extracting Design', description: 'Analyzing design system' },
-  { number: 3, name: 'Analyzing Layout', description: 'Detecting sections and components' },
-  { number: 4, name: 'Generating Components', description: 'Creating React components' },
-  { number: 5, name: 'Building Pages', description: 'Assembling page layouts' },
-  { number: 6, name: 'Visual Comparison', description: 'Comparing with reference' },
-  { number: 7, name: 'Refinement', description: 'Fixing visual differences' },
-  { number: 8, name: 'Finalization', description: 'Final checks and export prep' },
+  { number: 1, name: 'Capturing Reference', description: 'Taking screenshots and detecting sections' },
+  { number: 2, name: 'Extracting Design', description: 'Analyzing colors, typography, and spacing' },
+  { number: 3, name: 'Generating Components', description: 'Creating React components from HTML' },
+  { number: 4, name: 'Building Project', description: 'Scaffolding Next.js application' },
+  { number: 5, name: 'Visual Comparison', description: 'Comparing screenshots with reference' },
 ];
 
 // Error Types
@@ -281,6 +320,10 @@ export type CapturePhase =
   | 'capturing'
   | 'sections'
   | 'extracting'
+  | 'generating'
+  | 'scaffolding'
+  | 'comparing'
+  | 'improving'
   | 'complete'
   | 'failed';
 

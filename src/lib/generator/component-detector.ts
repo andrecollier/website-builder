@@ -15,6 +15,66 @@ import type { ComponentType, DetectedComponent } from '@/types';
 import { randomUUID } from 'crypto';
 
 // ====================
+// FRAMER STYLE NORMALIZATION
+// ====================
+
+/**
+ * Normalize Framer animation styles in extracted HTML
+ * Framer sites use animation states with opacity:0, transform, and filter
+ * that make components invisible when captured. This function normalizes
+ * these styles to ensure components are visible.
+ *
+ * @param html - Raw HTML string from element.outerHTML
+ * @returns Normalized HTML with visible styles
+ */
+export function normalizeFramerStyles(html: string): string {
+  if (!html) return html;
+
+  // Pattern to match inline style attributes
+  // Handles both style="..." and style='...'
+  return html.replace(/style=(["'])(.*?)\1/gi, (match, quote, styleContent) => {
+    let normalized = styleContent;
+
+    // Remove opacity: 0 (with various formats)
+    // opacity: 0, opacity:0, opacity: '0', opacity:"0"
+    normalized = normalized.replace(
+      /opacity\s*:\s*['"]?0['"]?\s*;?/gi,
+      'opacity: 1;'
+    );
+
+    // Remove transform animations (translateY, translateX, scale, rotate)
+    // Keep transform: none or simple transforms
+    normalized = normalized.replace(
+      /transform\s*:\s*['"]?(?:translateY|translateX|translate3d|scale|rotate)\([^)]+\)['"]?\s*;?/gi,
+      ''
+    );
+
+    // Remove filter: blur(...) that hides content
+    normalized = normalized.replace(
+      /filter\s*:\s*['"]?blur\([^)]+\)['"]?\s*;?/gi,
+      ''
+    );
+
+    // Remove visibility: hidden
+    normalized = normalized.replace(
+      /visibility\s*:\s*['"]?hidden['"]?\s*;?/gi,
+      'visibility: visible;'
+    );
+
+    // Remove will-change properties (animation optimization hints)
+    normalized = normalized.replace(
+      /will-change\s*:\s*[^;]+;?/gi,
+      ''
+    );
+
+    // Clean up multiple semicolons and trailing semicolons
+    normalized = normalized.replace(/;+/g, ';').replace(/;\s*$/, '');
+
+    return `style=${quote}${normalized}${quote}`;
+  });
+}
+
+// ====================
 // COMPONENT SELECTORS
 // ====================
 
@@ -488,13 +548,14 @@ export async function detectComponents(
   const limitedComponents = sortedComponents.slice(0, maxComponents);
 
   // Convert to DetectedComponent format with order index
+  // Apply Framer style normalization to ensure components are visible
   return limitedComponents.map((element, index): DetectedComponent => ({
     id: `component-${randomUUID()}`,
     type: element.type,
     order: index,
     boundingBox: element.boundingBox,
     screenshotPath: '', // Will be populated during capture
-    htmlSnapshot: element.element?.html ?? '',
+    htmlSnapshot: normalizeFramerStyles(element.element?.html ?? ''),
     styles: element.element?.styles ?? {},
   }));
 }
@@ -598,7 +659,7 @@ export async function detectGenericComponents(
         height: data.height,
       },
       screenshotPath: '',
-      htmlSnapshot: data.html,
+      htmlSnapshot: normalizeFramerStyles(data.html),
       styles: data.styles,
     });
   }

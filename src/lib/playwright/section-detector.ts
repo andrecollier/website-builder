@@ -73,6 +73,13 @@ const SECTION_SELECTORS: Record<SectionType, string[]> = {
     '[class*="signup"]',
     '[class*="get-started"]',
     '[class*="action"]',
+    // Framer-specific: CTA often has "request", "demo", "contact" or dark background
+    '[data-framer-name*="CTA"]',
+    '[data-framer-name*="Contact"]',
+    '[data-framer-name*="Request"]',
+    'section:has(h2:has-text("Request"))',
+    'section:has(h2:has-text("Contact"))',
+    'section:has(h2:has-text("FAQ"))',
   ],
   footer: [
     'footer',
@@ -81,6 +88,11 @@ const SECTION_SELECTORS: Record<SectionType, string[]> = {
     '#footer',
     '[class*="footer"]',
     '[class*="site-footer"]',
+    // Framer-specific: footer often has "join", "revolution", or is last dark section
+    '[data-framer-name*="Footer"]',
+    '[data-framer-name*="CTA Footer"]',
+    'section:has(h2:has-text("Ready to"))',
+    'section:has(h2:has-text("Join"))',
   ],
 };
 

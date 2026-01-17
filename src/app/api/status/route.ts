@@ -28,7 +28,7 @@ function getMockStatus(): StatusResponse {
   return {
     websiteId: null,
     phase: 0,
-    totalPhases: 8,
+    totalPhases: 5,
     phaseName: 'Idle',
     subStatus: 'No extraction in progress',
     progress: 0,
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
         {
           websiteId: websiteId,
           phase: 0,
-          totalPhases: 8,
+          totalPhases: 5,
           phaseName: 'Error',
           subStatus: 'Website not found',
           progress: 0,
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
         {
           websiteId: websiteId,
           phase: phase,
-          totalPhases: 8,
+          totalPhases: 5,
           phaseName: getPhaseNameFromProgressPhase(activeProgress.phase),
           subStatus: activeProgress.message,
           progress: activeProgress.percent,
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
         {
           websiteId: website.id,
           phase: getPhaseFromProgressPhase(website.progress_phase),
-          totalPhases: 8,
+          totalPhases: 5,
           phaseName: getPhaseNameFromProgressPhase(website.progress_phase),
           subStatus: website.progress_message || 'Processing...',
           progress: website.progress_percent ?? 0,
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
     const statusResponse: StatusResponse = {
       websiteId: website.id,
       phase: getPhaseFromStatus(website.status),
-      totalPhases: 8,
+      totalPhases: 5,
       phaseName: getPhaseNameFromStatus(website.status),
       subStatus: getSubStatusFromStatus(website.status),
       progress: getProgressFromStatus(website.status),
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
       {
         websiteId: null,
         phase: 0,
-        totalPhases: 8,
+        totalPhases: 5,
         phaseName: 'Error',
         subStatus: errorMessage,
         progress: 0,
@@ -178,7 +178,7 @@ function getPhaseFromStatus(status: string): number {
     case 'in_progress':
       return 1;
     case 'completed':
-      return 8;
+      return 5;
     case 'failed':
       return 0;
     default:
@@ -193,7 +193,7 @@ function getPhaseNameFromStatus(status: string): string {
     case 'in_progress':
       return 'Capturing Reference';
     case 'completed':
-      return 'Finalization';
+      return 'Visual Comparison';
     case 'failed':
       return 'Failed';
     default:
@@ -233,6 +233,7 @@ function getProgressFromStatus(status: string): number {
 
 /**
  * Helper functions for progress_phase from database
+ * Maps CapturePhase values to phase numbers (1-5)
  */
 function getPhaseFromProgressPhase(progressPhase: string | null): number {
   if (!progressPhase) return 1;
@@ -245,12 +246,19 @@ function getPhaseFromProgressPhase(progressPhase: string | null): number {
     case 'waiting_images':
     case 'waiting_fonts':
     case 'sections':
-      return 1;
+      return 1; // Capturing Reference
     case 'extracting':
     case 'analyzing':
-      return 2;
+      return 2; // Extracting Design
+    case 'generating':
+      return 3; // Generating Components
+    case 'scaffolding':
+      return 4; // Building Project
+    case 'comparing':
+    case 'improving':
+      return 5; // Visual Comparison
     case 'complete':
-      return 8;
+      return 5; // Complete (shown as last phase)
     case 'failed':
       return 0;
     default:
@@ -273,8 +281,15 @@ function getPhaseNameFromProgressPhase(progressPhase: string | null): string {
     case 'extracting':
     case 'analyzing':
       return 'Extracting Design';
+    case 'generating':
+      return 'Generating Components';
+    case 'scaffolding':
+      return 'Building Project';
+    case 'comparing':
+    case 'improving':
+      return 'Visual Comparison';
     case 'complete':
-      return 'Finalization';
+      return 'Visual Comparison';
     case 'failed':
       return 'Failed';
     default:

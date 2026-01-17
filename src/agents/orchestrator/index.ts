@@ -267,12 +267,17 @@ async function delegateToCaptureAgent(
       url: options.url,
       skipCache: options.skipCache,
       onProgress: (progress) => {
-        // Forward progress to orchestrator callback
+        // Map capture progress (0-100%) to orchestrator range (5-25%)
+        const mappedProgress = {
+          ...progress,
+          percent: 5 + (progress.percent * 0.2), // 0% -> 5%, 100% -> 25%
+        };
+        // Forward mapped progress to orchestrator callback
         if (options.onProgress) {
-          options.onProgress(progress);
+          options.onProgress(mappedProgress);
         }
-        // Update context
-        context.updateProgress(progress);
+        // Update context with mapped progress
+        context.updateProgress(mappedProgress);
       },
     });
 
@@ -426,8 +431,8 @@ async function delegateToGeneratorAgent(
       designSystem,
       onProgress: (progress) => {
         context.updateProgress({
-          phase: 'capturing',
-          percent: 60 + (progress.percent * 0.2), // Map to 60-80% range
+          phase: 'generating',
+          percent: 38 + (progress.percent * 0.27), // Map to 38-65% range
           message: progress.message,
         });
       },
@@ -627,9 +632,9 @@ export async function executeOrchestrator(
 
   try {
     // ========================================
-    // PHASE 1: CAPTURE
+    // PHASE 1: CAPTURE (5-25%)
     // ========================================
-    emitProgress('capturing', 10, 'Phase 1/4: Capturing website...');
+    emitProgress('capturing', 5, 'Phase 1/5: Capturing website sections...');
 
     const captureRetry = await withRetry(
       async () => {
@@ -648,12 +653,12 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.captureResult = captureRetry.result.data;
-    emitProgress('capturing', 30, 'Capture completed successfully');
+    emitProgress('capturing', 25, 'Capture completed successfully');
 
     // ========================================
-    // PHASE 2: EXTRACT
+    // PHASE 2: EXTRACT (25-35%)
     // ========================================
-    emitProgress('extracting', 40, 'Phase 2/4: Extracting design system...');
+    emitProgress('extracting', 28, 'Phase 2/5: Analyzing design system...');
 
     const extractorRetry = await withRetry(
       async () => {
@@ -675,12 +680,12 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.designSystem = extractorRetry.result.data;
-    emitProgress('extracting', 55, 'Design system extracted successfully');
+    emitProgress('extracting', 35, 'Design tokens extracted successfully');
 
     // ========================================
-    // PHASE 3: GENERATE
+    // PHASE 3: GENERATE (35-65%)
     // ========================================
-    emitProgress('capturing', 60, 'Phase 3/4: Generating components...');
+    emitProgress('generating', 38, 'Phase 3/5: Generating React components...');
 
     const generatorRetry = await withRetry(
       async () => {
@@ -703,25 +708,25 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.components = generatorRetry.result.data;
-    emitProgress('capturing', 75, 'Components generated successfully');
+    emitProgress('generating', 65, 'Components generated successfully');
 
     // ========================================
-    // PHASE 3.5: SCAFFOLD
+    // PHASE 4: SCAFFOLD (65-75%)
     // ========================================
-    emitProgress('capturing', 78, 'Phase 3.5/4: Scaffolding generated site...');
+    emitProgress('scaffolding', 68, 'Phase 4/5: Building Next.js project...');
 
     const scaffoldResult = await delegateToScaffoldAgent(agentContext);
     if (!scaffoldResult.success) {
       // Scaffold failure is non-fatal - continue with comparison (will have 0% accuracy)
       console.warn('Scaffold failed, comparison will have limited accuracy:', scaffoldResult.error);
     } else {
-      emitProgress('capturing', 82, 'Scaffold completed successfully');
+      emitProgress('scaffolding', 75, 'Project scaffolded successfully');
     }
 
     // ========================================
-    // PHASE 4: COMPARE
+    // PHASE 5: COMPARE (75-95%)
     // ========================================
-    emitProgress('capturing', 85, 'Phase 4/4: Comparing components...');
+    emitProgress('comparing', 78, 'Phase 5/5: Comparing to reference...');
 
     const comparatorRetry = await withRetry(
       async () => {
@@ -743,14 +748,15 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.overallAccuracy = comparatorRetry.result.data.overallAccuracy;
+    emitProgress('comparing', 95, `Comparison complete: ${pipelineResult.overallAccuracy?.toFixed(1)}% accuracy`);
 
     // ========================================
-    // PHASE 5: IMPROVE (Optional)
+    // OPTIONAL: IMPROVE (95-100%)
     // ========================================
     const { autoImprove = false, targetAccuracy = 80 } = options;
 
     if (autoImprove && pipelineResult.overallAccuracy < targetAccuracy) {
-      emitProgress('capturing', 90, 'Phase 5/5: Running improvement agents...');
+      emitProgress('improving', 96, 'Running improvement agents...');
 
       // Check if API key is available
       if (process.env.ANTHROPIC_API_KEY) {
@@ -759,7 +765,7 @@ export async function executeOrchestrator(
           const improvementResult = await improveWebsite(websiteId);
 
           if (improvementResult.success) {
-            emitProgress('capturing', 95, 'Improvements applied, re-comparing...');
+            emitProgress('improving', 98, 'Improvements applied, re-comparing...');
 
             // Re-run comparison to get updated accuracy
             const recompareResult = await delegateToComparatorAgent(

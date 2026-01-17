@@ -6,7 +6,7 @@ import type { ExtractionState, ExtractionError } from '@/types';
  */
 const initialState = {
   currentPhase: 0,
-  totalPhases: 8,
+  totalPhases: 5,
   subStatus: '',
   progress: 0,
   isRunning: false,

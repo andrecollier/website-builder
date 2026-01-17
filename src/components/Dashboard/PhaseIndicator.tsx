@@ -87,7 +87,7 @@ export function PhaseIndicator({ phase, currentPhase, progress }: PhaseIndicator
                 'bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]': isPending,
               })}
             >
-              [{phase.number}/8]
+              [{phase.number}/5]
             </span>
             {/* Phase Name */}
             <h4
