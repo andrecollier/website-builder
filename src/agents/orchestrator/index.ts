@@ -273,10 +273,10 @@ async function delegateToCaptureAgent(
     });
 
     // Update context with capture result
-    if (result.success && result.captureResult) {
+    if (result.success) {
       context.updateState({
         status: 'capturing',
-        captureResult: result.captureResult,
+        captureResult: result,
       });
     }
 
@@ -286,7 +286,7 @@ async function delegateToCaptureAgent(
       success: result.success,
       agentType: 'capture',
       message: result.success ? 'Capture completed successfully' : 'Capture failed',
-      data: result.captureResult,
+      data: result,
       error: result.error
         ? {
             message: result.error,
@@ -369,13 +369,9 @@ async function delegateToExtractorAgent(
 }
 
 /**
- * Delegate to Generator Agent (with parallel section processing)
- * TODO: Replace with actual Claude SDK agent invocation when Generator agent is implemented
- *
- * NOTE: This is a stub implementation. The actual Generator agent will:
- * - Spawn parallel instances for each section
- * - Use the Claude SDK for component generation
- * - Integrate with variant-generator module
+ * Delegate to Generator Agent
+ * Launches a browser, navigates to the URL, and generates real components
+ * using the component-generator module.
  */
 async function delegateToGeneratorAgent(
   context: AgentContext,
@@ -384,43 +380,88 @@ async function delegateToGeneratorAgent(
 ): Promise<GeneratorAgentResult> {
   publishAgentStarted(context.websiteId, 'generator', 'Starting generator agent...');
 
+  // Import necessary modules
+  const { chromium } = await import('playwright');
+  const { generateComponents } = await import('@/lib/generator/component-generator');
+  const { CAPTURE_CONFIG } = await import('@/types');
+
+  let browser = null;
+
   try {
-    // Stub: In the actual implementation, this will call the Generator Agent
-    // which will use the Claude SDK to generate components from sections
-    //
-    // For now, create placeholder components from the captured sections
-    const components: GeneratedComponent[] = captureResult.sections.map((section, index) => ({
-      id: `component-${section.id}`,
+    // Launch browser for component generation
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--disable-gpu',
+      ],
+    });
+
+    const page = await browser.newPage();
+    await page.setViewportSize({
+      width: CAPTURE_CONFIG.viewport.width,
+      height: CAPTURE_CONFIG.viewport.height,
+    });
+
+    // Navigate to the URL
+    await page.goto(context.url, {
+      waitUntil: 'domcontentloaded',
+      timeout: CAPTURE_CONFIG.pageTimeout,
+    });
+
+    // Wait for initial render
+    await page.waitForTimeout(1000);
+
+    // Generate components using the real generator
+    const result = await generateComponents(page, {
       websiteId: context.websiteId,
-      name: `${section.type.charAt(0).toUpperCase() + section.type.slice(1)} Component`,
-      type: section.type as any,
-      order: index,
-      variants: [],
-      selectedVariant: null,
-      status: 'pending' as const,
-      createdAt: new Date().toISOString(),
-    }));
+      versionId: 'v1',
+      designSystem,
+      onProgress: (progress) => {
+        context.updateProgress({
+          phase: 'capturing',
+          percent: 60 + (progress.percent * 0.2), // Map to 60-80% range
+          message: progress.message,
+        });
+      },
+    });
+
+    // Close browser
+    await browser.close();
+    browser = null;
+
+    if (!result.success) {
+      throw new Error(result.errors[0]?.message || 'Component generation failed');
+    }
 
     // Update context with generated components
     context.updateState({
       status: 'generating',
-      components,
+      components: result.components,
     });
 
     publishAgentCompleted(
       context.websiteId,
       'generator',
-      'Generation completed successfully',
-      components
+      `Generated ${result.components.length} components successfully`,
+      result.components
     );
 
     return {
       success: true,
       agentType: 'generator',
-      message: `Generated ${components.length} components successfully`,
-      data: components,
+      message: `Generated ${result.metadata.generatedCount} components (${result.metadata.failedCount} failed)`,
+      data: result.components,
     };
   } catch (error) {
+    // Ensure browser is closed on error
+    if (browser) {
+      await browser.close();
+    }
+
     const extractionError = createError(4, error instanceof Error ? error : String(error), true);
     publishAgentFailed(context.websiteId, 'generator', extractionError);
 
