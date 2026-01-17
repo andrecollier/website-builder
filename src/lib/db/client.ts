@@ -1403,10 +1403,216 @@ export function resetDatabase(): void {
     database.exec('DROP TABLE IF EXISTS design_tokens');
     database.exec('DROP TABLE IF EXISTS component_variants');
     database.exec('DROP TABLE IF EXISTS components');
+    database.exec('DROP TABLE IF EXISTS version_files');
     database.exec('DROP TABLE IF EXISTS versions');
     database.exec('DROP TABLE IF EXISTS websites');
   })();
 
   // Reinitialize
   initializeDatabase();
+}
+
+// ====================
+// VERSION OPERATIONS
+// ====================
+
+export interface VersionRecord {
+  id: string;
+  website_id: string;
+  version_number: string;
+  created_at: string;
+  tokens_json: string | null;
+  accuracy_score: number | null;
+  changelog: string | null;
+  is_active: number;
+  parent_version_id: string | null;
+}
+
+export interface VersionInsertData {
+  id?: string;
+  website_id: string;
+  version_number: string;
+  tokens_json?: string | null;
+  accuracy_score?: number | null;
+  changelog?: string | null;
+  is_active?: boolean;
+  parent_version_id?: string | null;
+}
+
+export interface VersionFileRecord {
+  id: string;
+  version_id: string;
+  file_path: string;
+  file_hash: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface VersionFileInsertData {
+  id?: string;
+  version_id: string;
+  file_path: string;
+  file_hash: string;
+  file_size: number;
+}
+
+/**
+ * Get all versions for a website
+ */
+export function getVersions(websiteId: string): VersionRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT * FROM versions
+    WHERE website_id = ?
+    ORDER BY created_at DESC
+  `);
+  return stmt.all(websiteId) as VersionRecord[];
+}
+
+/**
+ * Get a version by ID
+ */
+export function getVersionById(id: string): VersionRecord | null {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM versions WHERE id = ?');
+  return (stmt.get(id) as VersionRecord) || null;
+}
+
+/**
+ * Create a new version
+ */
+export function createVersion(data: VersionInsertData): VersionRecord {
+  const database = getDb();
+  const id = data.id || `version-${randomUUID()}`;
+  const now = new Date().toISOString();
+
+  const stmt = database.prepare(`
+    INSERT INTO versions (id, website_id, version_number, created_at, tokens_json, accuracy_score, changelog, is_active, parent_version_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    data.website_id,
+    data.version_number,
+    now,
+    data.tokens_json || null,
+    data.accuracy_score || null,
+    data.changelog || null,
+    data.is_active ? 1 : 0,
+    data.parent_version_id || null
+  );
+
+  return getVersionById(id)!;
+}
+
+/**
+ * Set a version as active (deactivates all other versions for the website)
+ */
+export function setActiveVersion(versionId: string): VersionRecord | null {
+  const database = getDb();
+  const version = getVersionById(versionId);
+  if (!version) return null;
+
+  database.transaction(() => {
+    // Deactivate all versions for this website
+    const deactivateStmt = database.prepare(`
+      UPDATE versions SET is_active = 0 WHERE website_id = ?
+    `);
+    deactivateStmt.run(version.website_id);
+
+    // Activate the specified version
+    const activateStmt = database.prepare(`
+      UPDATE versions SET is_active = 1 WHERE id = ?
+    `);
+    activateStmt.run(versionId);
+  })();
+
+  return getVersionById(versionId);
+}
+
+/**
+ * Get the active version for a website
+ */
+export function getActiveVersion(websiteId: string): VersionRecord | null {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT * FROM versions
+    WHERE website_id = ? AND is_active = 1
+    LIMIT 1
+  `);
+  return (stmt.get(websiteId) as VersionRecord) || null;
+}
+
+/**
+ * Get all files for a version
+ */
+export function getVersionFiles(versionId: string): VersionFileRecord[] {
+  const database = getDb();
+  const stmt = database.prepare(`
+    SELECT * FROM version_files
+    WHERE version_id = ?
+    ORDER BY file_path
+  `);
+  return stmt.all(versionId) as VersionFileRecord[];
+}
+
+/**
+ * Create a version file record
+ */
+export function createVersionFile(data: VersionFileInsertData): VersionFileRecord {
+  const database = getDb();
+  const id = data.id || `vf-${randomUUID()}`;
+  const now = new Date().toISOString();
+
+  const stmt = database.prepare(`
+    INSERT INTO version_files (id, version_id, file_path, file_hash, file_size, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(id, data.version_id, data.file_path, data.file_hash, data.file_size, now);
+
+  const getStmt = database.prepare('SELECT * FROM version_files WHERE id = ?');
+  return getStmt.get(id) as VersionFileRecord;
+}
+
+/**
+ * Batch create version files
+ */
+export function createVersionFilesBatch(files: VersionFileInsertData[]): VersionFileRecord[] {
+  const database = getDb();
+  const createdFiles: VersionFileRecord[] = [];
+  const now = new Date().toISOString();
+
+  const insertStmt = database.prepare(`
+    INSERT INTO version_files (id, version_id, file_path, file_hash, file_size, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  database.transaction(() => {
+    for (const data of files) {
+      const id = data.id || `vf-${randomUUID()}`;
+      insertStmt.run(id, data.version_id, data.file_path, data.file_hash, data.file_size, now);
+      createdFiles.push({
+        id,
+        version_id: data.version_id,
+        file_path: data.file_path,
+        file_hash: data.file_hash,
+        file_size: data.file_size,
+        created_at: now,
+      });
+    }
+  })();
+
+  return createdFiles;
+}
+
+/**
+ * Delete all files for a version
+ */
+export function deleteVersionFiles(versionId: string): number {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM version_files WHERE version_id = ?');
+  const result = stmt.run(versionId);
+  return result.changes;
 }

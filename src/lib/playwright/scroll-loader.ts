@@ -33,13 +33,16 @@ export async function autoScroll(
     scrollDistance?: number;
     scrollDelay?: number;
     maxIterations?: number;
+    maxScrollTime?: number; // Maximum time for scrolling in milliseconds
   }
 ): Promise<void> {
   const scrollDistance = options?.scrollDistance ?? CAPTURE_CONFIG.scrollDistance;
   const scrollDelay = options?.scrollDelay ?? CAPTURE_CONFIG.scrollDelay;
   const maxIterations = options?.maxIterations ?? 1000; // Prevent infinite scroll pages from hanging
+  const maxScrollTime = options?.maxScrollTime ?? 30000; // Default 30 second timeout
 
-  await page.evaluate(
+  // Wrap in timeout to prevent hanging on infinite scroll pages
+  const scrollPromise = page.evaluate(
     async ({ distance, delay, maxIter }) => {
       await new Promise<void>((resolve) => {
         let totalHeight = 0;
@@ -76,6 +79,19 @@ export async function autoScroll(
     },
     { distance: scrollDistance, delay: scrollDelay, maxIter: maxIterations }
   );
+
+  // Race against timeout to prevent hanging
+  const timeoutPromise = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.log(`[scroll-loader] Scroll timeout reached (${maxScrollTime}ms), continuing...`);
+      resolve();
+    }, maxScrollTime);
+  });
+
+  await Promise.race([scrollPromise, timeoutPromise]);
+
+  // Ensure we're at top of page even if timeout was reached
+  await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 // ====================

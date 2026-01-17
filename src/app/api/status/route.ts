@@ -120,7 +120,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<StatusResp
           totalPhases: 8,
           phaseName: getPhaseNameFromProgressPhase(website.progress_phase),
           subStatus: website.progress_message || 'Processing...',
-          progress: website.progress_percent,
+          progress: website.progress_percent ?? 0,
           errors: [],
         },
         { status: 200 }
@@ -234,7 +234,9 @@ function getProgressFromStatus(status: string): number {
 /**
  * Helper functions for progress_phase from database
  */
-function getPhaseFromProgressPhase(progressPhase: string): number {
+function getPhaseFromProgressPhase(progressPhase: string | null): number {
+  if (!progressPhase) return 1;
+
   switch (progressPhase) {
     case 'capturing':
     case 'scrolling':
@@ -256,7 +258,9 @@ function getPhaseFromProgressPhase(progressPhase: string): number {
   }
 }
 
-function getPhaseNameFromProgressPhase(progressPhase: string): string {
+function getPhaseNameFromProgressPhase(progressPhase: string | null): string {
+  if (!progressPhase) return 'Capturing Reference';
+
   switch (progressPhase) {
     case 'capturing':
     case 'scrolling':

@@ -20,7 +20,10 @@ CREATE TABLE websites (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   current_version INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'in_progress'
+  status TEXT DEFAULT 'in_progress',
+  progress_phase TEXT DEFAULT NULL,
+  progress_percent INTEGER DEFAULT 0,
+  progress_message TEXT DEFAULT NULL
 )`;
 
 /**
@@ -30,13 +33,29 @@ export const CREATE_TABLE_VERSIONS = `
 CREATE TABLE versions (
   id TEXT PRIMARY KEY,
   website_id TEXT NOT NULL,
-  version_number INTEGER NOT NULL,
+  version_number TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   tokens_json TEXT,
   accuracy_score REAL,
   changelog TEXT,
   is_active BOOLEAN DEFAULT FALSE,
-  FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
+  parent_version_id TEXT,
+  FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_version_id) REFERENCES versions(id) ON DELETE SET NULL
+)`;
+
+/**
+ * Version files table - Track files included in each version
+ */
+export const CREATE_TABLE_VERSION_FILES = `
+CREATE TABLE version_files (
+  id TEXT PRIMARY KEY,
+  version_id TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_hash TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (version_id) REFERENCES versions(id) ON DELETE CASCADE
 )`;
 
 /**
@@ -164,6 +183,12 @@ export const CREATE_INDEX_VERSIONS_WEBSITE = `
 CREATE INDEX idx_versions_website ON versions(website_id)`;
 
 /**
+ * Index for version files lookups by version
+ */
+export const CREATE_INDEX_VERSION_FILES_VERSION = `
+CREATE INDEX idx_version_files_version ON version_files(version_id)`;
+
+/**
  * Index for faster component lookups by website and version
  */
 export const CREATE_INDEX_COMPONENTS_WEBSITE = `
@@ -215,6 +240,7 @@ CREATE INDEX idx_template_references_project ON template_references(project_id)`
 export const ALL_TABLE_STATEMENTS = [
   CREATE_TABLE_WEBSITES,
   CREATE_TABLE_VERSIONS,
+  CREATE_TABLE_VERSION_FILES,
   CREATE_TABLE_COMPONENTS,
   CREATE_TABLE_COMPONENT_VARIANTS,
   CREATE_TABLE_CACHE,
@@ -230,6 +256,7 @@ export const ALL_TABLE_STATEMENTS = [
 export const ALL_INDEX_STATEMENTS = [
   CREATE_INDEX_WEBSITES_STATUS,
   CREATE_INDEX_VERSIONS_WEBSITE,
+  CREATE_INDEX_VERSION_FILES_VERSION,
   CREATE_INDEX_COMPONENTS_WEBSITE,
   CREATE_INDEX_COMPONENTS_VERSION,
   CREATE_INDEX_VARIANTS_COMPONENT,
@@ -262,6 +289,6 @@ export const SCHEMA_VERSION = 1;
  */
 export const SCHEMA_INFO = {
   version: SCHEMA_VERSION,
-  tables: ['websites', 'versions', 'components', 'component_variants', 'cache', 'error_log', 'design_tokens', 'template_projects', 'template_references'],
+  tables: ['websites', 'versions', 'version_files', 'components', 'component_variants', 'cache', 'error_log', 'design_tokens', 'template_projects', 'template_references'],
   description: 'Website Cooker database schema for tracking generated websites, versions, and extraction state',
 } as const;

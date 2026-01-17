@@ -151,10 +151,12 @@ async function withRetry<T>(
 // ====================
 
 /**
- * Launch a new browser instance
+ * Launch a new browser instance with timeout
  */
 async function launchBrowser(headless: boolean = true): Promise<Browser> {
-  return await chromium.launch({
+  const BROWSER_LAUNCH_TIMEOUT = 30000; // 30 seconds
+
+  const launchPromise = chromium.launch({
     headless,
     args: [
       '--no-sandbox',
@@ -164,6 +166,25 @@ async function launchBrowser(headless: boolean = true): Promise<Browser> {
       '--disable-gpu',
     ],
   });
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(
+        `Browser launch timed out after ${BROWSER_LAUNCH_TIMEOUT / 1000} seconds. ` +
+        'This may indicate a system resource issue or Playwright installation problem.'
+      ));
+    }, BROWSER_LAUNCH_TIMEOUT);
+  });
+
+  try {
+    return await Promise.race([launchPromise, timeoutPromise]);
+  } catch (error) {
+    // Ensure clear error message
+    if (error instanceof Error) {
+      throw new Error(`Failed to launch browser: ${error.message}`);
+    }
+    throw new Error('Failed to launch browser: Unknown error');
+  }
 }
 
 /**

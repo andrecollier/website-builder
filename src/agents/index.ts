@@ -1,85 +1,31 @@
 /**
- * Agent Registry
+ * Website Cooker Agents
  *
- * Central registry for all agents in the system.
- * Provides the getAgent() function to retrieve agent definitions by name.
+ * Specialized AI agents for improving generated websites.
+ * Uses Claude Agent SDK for autonomous task execution.
  *
  * Agents:
- * - Orchestrator: Coordinates the entire pipeline (Model: Sonnet)
- * - Capture: Handles Playwright operations (Model: Haiku)
- * - Extractor: Extracts design tokens (Model: Sonnet)
- * - Generator: Generates React components with parallelization (Model: Sonnet)
- * - Comparator: Visual comparison with parallelization (Model: Haiku)
+ * - ComponentFixer: Fixes low-accuracy components
+ * - CSSOptimizer: Fixes CSS and styling issues
+ * - QualityChecker: Validates builds and types
+ * - Orchestrator: Coordinates all agents
+ *
+ * Usage:
+ *   import { improveWebsite, runOrchestrator } from '@/agents';
+ *   await improveWebsite('website-abc123');
  */
 
-import type { AgentType, AgentConfig } from './types';
+// Agent exports
+export { componentFixerAgent, runComponentFixer } from './component-fixer';
+export { cssOptimizerAgent, runCSSOptimizer } from './css-optimizer';
+export { qualityCheckerAgent, runQualityChecker } from './quality-checker';
+export { orchestratorAgent, runOrchestrator, improveWebsite } from './improvement-orchestrator';
 
-// ====================
-// AGENT IMPORTS
-// ====================
-
-import { getOrchestratorConfig } from './orchestrator';
-import { getCaptureConfig } from './capture';
-import { getExtractorConfig } from './extractor';
-import { getGeneratorConfig } from './generator';
-import { getComparatorConfig } from './comparator';
-
-// ====================
-// AGENT REGISTRY
-// ====================
-
-/**
- * Agent configuration registry
- * Maps agent type to its configuration
- */
-const agentRegistry: Record<AgentType, () => AgentConfig> = {
-  orchestrator: getOrchestratorConfig,
-  capture: getCaptureConfig,
-  extractor: getExtractorConfig,
-  generator: getGeneratorConfig,
-  comparator: getComparatorConfig,
-};
-
-/**
- * Get an agent definition by name
- * @param agentName The name of the agent to retrieve
- * @returns The agent configuration
- * @throws Error if agent not found
- */
-export function getAgent(agentName: AgentType): AgentConfig {
-  const configFn = agentRegistry[agentName];
-
-  if (!configFn) {
-    throw new Error(`Agent ${agentName} not found in registry`);
-  }
-
-  return configFn();
-}
-
-// ====================
-// RE-EXPORTS
-// ====================
-
-// Re-export types for convenience
-export type { AgentType, AgentContext, AgentResult, AgentMessage } from './types';
-
-// Re-export agent execution functions
+// Pipeline orchestrator
 export { executeOrchestrator } from './orchestrator';
-export { executeCapture } from './capture';
-export { executeExtractor } from './extractor';
-export { executeGenerator } from './generator';
-export { executeComparator } from './comparator';
 
-// Re-export agent configuration functions
-export { getOrchestratorConfig } from './orchestrator';
-export { getCaptureConfig } from './capture';
-export { getExtractorConfig } from './extractor';
-export { getGeneratorConfig } from './generator';
-export { getComparatorConfig } from './comparator';
+// Tools export
+export { createWebsiteCookerMcpServer } from './tools';
 
-// Re-export agent options types for convenience
-export type { OrchestratorOptions } from './orchestrator';
-export type { CaptureOptions } from './capture';
-export type { ExtractorOptions } from './extractor';
-export type { GeneratorAgentOptions } from './generator';
-export type { ComparatorAgentOptions } from './comparator';
+// Types
+export type { AgentDefinition } from '@anthropic-ai/claude-agent-sdk';
