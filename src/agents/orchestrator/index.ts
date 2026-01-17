@@ -68,6 +68,8 @@ export interface OrchestratorOptions {
   autoImprove?: boolean;
   /** Target accuracy for auto-improve (default: 80) */
   targetAccuracy?: number;
+  /** Enable responsive capture at multiple viewports (default: true) */
+  enableResponsive?: boolean;
 }
 
 /**
@@ -267,10 +269,10 @@ async function delegateToCaptureAgent(
       url: options.url,
       skipCache: options.skipCache,
       onProgress: (progress) => {
-        // Map capture progress (0-100%) to orchestrator range (5-25%)
+        // Map capture progress (0-100%) to orchestrator range (5-20%)
         const mappedProgress = {
           ...progress,
-          percent: 5 + (progress.percent * 0.2), // 0% -> 5%, 100% -> 25%
+          percent: 5 + (progress.percent * 0.15), // 0% -> 5%, 100% -> 20%
         };
         // Forward mapped progress to orchestrator callback
         if (options.onProgress) {
@@ -317,6 +319,61 @@ async function delegateToCaptureAgent(
         recoverable: true,
       },
     };
+  }
+}
+
+/**
+ * Delegate to Responsive Capture
+ * Captures at multiple viewports (mobile, tablet, desktop) for responsive generation
+ */
+async function delegateToResponsiveCapture(
+  context: AgentContext,
+  options: OrchestratorOptions
+): Promise<{ success: boolean; responsiveData?: any; error?: string }> {
+  publishAgentStarted(options.websiteId, 'responsive-capture', 'Starting responsive capture...');
+
+  try {
+    const { captureResponsive } = await import('@/lib/playwright/responsive-capture');
+
+    const result = await captureResponsive({
+      websiteId: options.websiteId,
+      url: options.url,
+      onProgress: (progress) => {
+        // Map responsive capture progress to orchestrator range (20-28%)
+        const mappedProgress = {
+          ...progress,
+          percent: 20 + (progress.percent * 0.08), // 0% -> 20%, 100% -> 28%
+        };
+        if (options.onProgress) {
+          options.onProgress(mappedProgress);
+        }
+        context.updateProgress(mappedProgress);
+      },
+    });
+
+    if (result.success) {
+      publishAgentCompleted(
+        options.websiteId,
+        'responsive-capture',
+        `Responsive capture complete: ${result.sections.length} sections at 3 viewports`,
+        { sectionCount: result.sections.length }
+      );
+
+      return {
+        success: true,
+        responsiveData: {
+          fullPagePaths: result.fullPagePaths,
+          sections: result.sections,
+          viewports: result.metadata.viewports,
+        },
+      };
+    }
+
+    return { success: false, error: result.error };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn('[Orchestrator] Responsive capture failed (non-fatal):', errorMsg);
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -424,11 +481,19 @@ async function delegateToGeneratorAgent(
     // Wait for initial render
     await page.waitForTimeout(1000);
 
-    // Generate components using the real generator
+    // Get reference sections from capture result to ensure section types match
+    const referenceSections = captureResult.sections?.map((s) => ({
+      id: s.id,
+      type: s.type,
+      boundingBox: s.boundingBox,
+    }));
+
+    // Generate components using the real generator with reference sections
     const result = await generateComponents(page, {
       websiteId: context.websiteId,
       versionId: 'v1',
       designSystem,
+      referenceSections, // Pass reference sections to use correct types
       onProgress: (progress) => {
         context.updateProgress({
           phase: 'generating',
@@ -625,6 +690,11 @@ export async function executeOrchestrator(
   // Pipeline result accumulator
   const pipelineResult: {
     captureResult?: CaptureResult;
+    responsiveData?: {
+      fullPagePaths: Record<string, string>;
+      sections: any[];
+      viewports: any[];
+    };
     designSystem?: DesignSystem;
     components?: GeneratedComponent[];
     overallAccuracy?: number;
@@ -632,9 +702,9 @@ export async function executeOrchestrator(
 
   try {
     // ========================================
-    // PHASE 1: CAPTURE (5-25%)
+    // PHASE 1: CAPTURE (5-20%)
     // ========================================
-    emitProgress('capturing', 5, 'Phase 1/5: Capturing website sections...');
+    emitProgress('capturing', 5, 'Phase 1/6: Capturing website sections...');
 
     const captureRetry = await withRetry(
       async () => {
@@ -653,12 +723,36 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.captureResult = captureRetry.result.data;
-    emitProgress('capturing', 25, 'Capture completed successfully');
+    emitProgress('capturing', 20, 'Desktop capture completed');
 
     // ========================================
-    // PHASE 2: EXTRACT (25-35%)
+    // PHASE 1.5: RESPONSIVE CAPTURE (20-28%)
     // ========================================
-    emitProgress('extracting', 28, 'Phase 2/5: Analyzing design system...');
+    const { enableResponsive = true } = options;
+    let responsiveData: any = null;
+
+    if (enableResponsive) {
+      emitProgress('capturing', 20, 'Phase 1.5/6: Capturing responsive viewports (mobile, tablet)...');
+
+      const responsiveResult = await delegateToResponsiveCapture(agentContext, options);
+
+      if (responsiveResult.success) {
+        responsiveData = responsiveResult.responsiveData;
+        pipelineResult.responsiveData = responsiveData;
+        emitProgress('capturing', 28, 'Responsive capture completed (3 viewports)');
+      } else {
+        // Responsive capture failure is non-fatal - continue with desktop-only
+        console.warn('[Orchestrator] Responsive capture failed, continuing with desktop-only:', responsiveResult.error);
+        emitProgress('capturing', 28, 'Responsive capture skipped (using desktop-only)');
+      }
+    } else {
+      emitProgress('capturing', 28, 'Responsive capture disabled');
+    }
+
+    // ========================================
+    // PHASE 2: EXTRACT (28-38%)
+    // ========================================
+    emitProgress('extracting', 30, 'Phase 2/6: Analyzing design system...');
 
     const extractorRetry = await withRetry(
       async () => {
@@ -680,12 +774,12 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.designSystem = extractorRetry.result.data;
-    emitProgress('extracting', 35, 'Design tokens extracted successfully');
+    emitProgress('extracting', 38, 'Design tokens extracted successfully');
 
     // ========================================
-    // PHASE 3: GENERATE (35-65%)
+    // PHASE 3: GENERATE (38-60%)
     // ========================================
-    emitProgress('generating', 38, 'Phase 3/5: Generating React components...');
+    emitProgress('generating', 40, 'Phase 3/6: Generating React components (with responsive classes)...');
 
     const generatorRetry = await withRetry(
       async () => {
@@ -708,12 +802,12 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.components = generatorRetry.result.data;
-    emitProgress('generating', 65, 'Components generated successfully');
+    emitProgress('generating', 60, 'Components generated successfully (with responsive Tailwind classes)');
 
     // ========================================
-    // PHASE 4: SCAFFOLD (65-75%)
+    // PHASE 4: SCAFFOLD (60-75%)
     // ========================================
-    emitProgress('scaffolding', 68, 'Phase 4/5: Building Next.js project...');
+    emitProgress('scaffolding', 62, 'Phase 4/6: Building Next.js project...');
 
     const scaffoldResult = await delegateToScaffoldAgent(agentContext);
     if (!scaffoldResult.success) {
@@ -726,7 +820,7 @@ export async function executeOrchestrator(
     // ========================================
     // PHASE 5: COMPARE (75-95%)
     // ========================================
-    emitProgress('comparing', 78, 'Phase 5/5: Comparing to reference...');
+    emitProgress('comparing', 78, 'Phase 5/6: Comparing to reference...');
 
     const comparatorRetry = await withRetry(
       async () => {
