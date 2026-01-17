@@ -215,7 +215,7 @@ interface DetectedElement {
 // ====================
 
 /**
- * Detect a specific component type on the page
+ * Detect a specific component type on the page (first instance only)
  *
  * @param page - Playwright Page instance
  * @param componentType - Type of component to detect
@@ -293,6 +293,85 @@ async function detectComponentType(
   }
 
   return null;
+}
+
+/**
+ * Detect ALL instances of a specific component type on the page
+ *
+ * @param page - Playwright Page instance
+ * @param componentType - Type of component to detect
+ * @param minHeight - Minimum height for a valid component
+ * @returns Promise with array of DetectedElements
+ */
+async function detectAllOfComponentType(
+  page: Page,
+  componentType: ComponentType,
+  minHeight: number = 50
+): Promise<DetectedElement[]> {
+  const selectors = COMPONENT_SELECTORS[componentType];
+  const allDetected: DetectedElement[] = [];
+  const seenPositions = new Set<string>();
+
+  for (const selector of selectors) {
+    try {
+      const locator = page.locator(selector);
+      const count = await locator.count();
+
+      for (let i = 0; i < count; i++) {
+        try {
+          const element = locator.nth(i);
+          const isVisible = await element.isVisible({ timeout: 300 });
+
+          if (isVisible) {
+            const boundingBox = await element.boundingBox();
+
+            if (boundingBox && boundingBox.height >= minHeight) {
+              // Create a key based on position to avoid duplicates
+              const posKey = `${Math.round(boundingBox.y)}-${Math.round(boundingBox.height)}`;
+              if (!seenPositions.has(posKey)) {
+                seenPositions.add(posKey);
+
+                // Extract HTML and styles
+                const elementData = await element.evaluate((el) => {
+                  const computedStyles = window.getComputedStyle(el);
+                  const styles: Record<string, string> = {};
+                  const styleProps = [
+                    'backgroundColor', 'color', 'fontSize', 'fontFamily',
+                    'fontWeight', 'padding', 'margin', 'display',
+                    'flexDirection', 'justifyContent', 'alignItems', 'gap',
+                  ];
+                  for (const prop of styleProps) {
+                    styles[prop] = computedStyles.getPropertyValue(
+                      prop.replace(/([A-Z])/g, '-$1').toLowerCase()
+                    );
+                  }
+                  return { html: el.outerHTML, styles };
+                });
+
+                allDetected.push({
+                  type: componentType,
+                  selector,
+                  boundingBox: {
+                    x: Math.round(boundingBox.x),
+                    y: Math.round(boundingBox.y),
+                    width: Math.round(boundingBox.width),
+                    height: Math.round(boundingBox.height),
+                  },
+                  element: elementData,
+                });
+              }
+            }
+          }
+        } catch {
+          continue;
+        }
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return allDetected;
 }
 
 /**
@@ -379,13 +458,26 @@ export async function detectComponents(
 
   const detectedElements: DetectedElement[] = [];
 
-  // Detect each component type
-  for (const componentType of COMPONENT_ORDER) {
-    const detected = await detectComponentType(page, componentType);
+  // Component types that typically only appear once
+  const singletonTypes: ComponentType[] = ['header', 'hero', 'cta', 'footer', 'contact'];
 
+  // Component types that can repeat multiple times on a page
+  const repeatableTypes: ComponentType[] = [
+    'features', 'testimonials', 'pricing', 'cards', 'gallery', 'faq', 'stats', 'team', 'logos'
+  ];
+
+  // Detect singleton component types (only first instance)
+  for (const componentType of singletonTypes) {
+    const detected = await detectComponentType(page, componentType);
     if (detected && detected.boundingBox.height >= minHeight) {
       detectedElements.push(detected);
     }
+  }
+
+  // Detect ALL instances of repeatable component types
+  for (const componentType of repeatableTypes) {
+    const allOfType = await detectAllOfComponentType(page, componentType, minHeight);
+    detectedElements.push(...allOfType);
   }
 
   // Filter overlapping components and sort by position
