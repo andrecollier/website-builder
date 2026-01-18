@@ -17,154 +17,205 @@ The generated components are **unusable**. Example Hero component issues:
 - Not responsive
 - Inline styles chaos
 
-## Root Cause Analysis
+---
 
-The current extraction pipeline (`component-detector.ts`) only extracts:
-- Raw DOM structure
-- Computed CSS styles
+## Complete Phase Roadmap
 
-It does NOT extract:
-- **Text content** (headings, paragraphs, buttons)
-- **Semantic meaning** (what is a heading vs body text)
-- **Layout intent** (flexbox purpose, grid structure)
-- **Interactive elements** (links, buttons with actions)
+Based on documentation in `/PROMPTS/`, here are ALL phases that affect quality:
 
-## Proposed Solution: 3-Phase Improvement
+### CRITICAL FOR QUALITY
 
-### Phase 1: Smart Content Extraction
-**File to modify:** `src/lib/playwright/section-detector.ts`
+#### Phase 0: Smart Content Extraction (NEW - MUST DO FIRST)
+**Problem:** Current extraction copies DOM structure but loses text content.
 
-Add new function `extractSectionContent()` that returns:
+**Solution:** Add `extractSectionContent()` to section-detector.ts:
 ```typescript
 interface SectionContent {
-  // Text content
-  headings: { level: 1-6, text: string, styles: object }[];
+  headings: { level: 1-6, text: string }[];
   paragraphs: string[];
-  buttons: { text: string, href?: string, isPrimary: boolean }[];
+  buttons: { text: string, href?: string }[];
   links: { text: string, href: string }[];
-
-  // Media
-  images: { src: string, alt: string, role: 'hero' | 'icon' | 'avatar' | 'decorative' }[];
-
-  // Layout hints
+  images: { src: string, alt: string, role: 'hero'|'icon'|'decorative' }[];
   layout: 'centered' | 'split' | 'grid' | 'cards';
-  columns?: number;
-
-  // Raw styles for design system
-  dominantColors: string[];
-  fontFamilies: string[];
 }
 ```
 
-### Phase 2: AI-Powered Component Generation
-**File to modify:** `src/lib/generator/variant-generator.ts`
+**Files to modify:**
+- `src/lib/playwright/section-detector.ts` - Add content extraction
+- `src/lib/generator/variant-generator.ts` - Use extracted content
 
-Instead of copying DOM structure, use Claude to generate components:
+---
 
-**Input to AI:**
-1. Screenshot of section (base64)
-2. Extracted `SectionContent`
-3. Design system tokens
-4. Component type (hero, features, etc.)
+#### Phase 3.5: Responsive Design (CRITICAL)
+**From:** `docs/Roadmap.md`
 
-**Prompt structure:**
-```
-You are generating a React component for a {type} section.
+**Problem:** Components are fixed-width (1440px), not responsive.
 
-Screenshot: [attached]
+**Solution:**
+1. Capture at multiple viewports (mobile, tablet, desktop)
+2. Extract responsive styles at each breakpoint
+3. Generate Tailwind responsive classes (sm:, md:, lg:)
 
-Content to include:
-- Heading: "{heading}"
-- Subheading: "{subheading}"
-- CTA Button: "{buttonText}" -> {buttonHref}
-- Background image: {imageSrc}
+**Breakpoints:**
+| Breakpoint | Width | Device |
+|------------|-------|--------|
+| xs | < 480px | Mobile small |
+| sm | 480-640px | Mobile large |
+| md | 640-768px | Tablet |
+| lg | 768-1024px | Tablet landscape |
+| xl | 1024-1280px | Desktop |
+| 2xl | > 1280px | Large desktop |
 
-Design tokens:
-- Primary color: {primary}
-- Font: {fontFamily}
-- Spacing: {baseSpacing}
+**Files to create/modify:**
+- `src/lib/playwright/responsive-capture.ts` - Multi-viewport capture
+- `src/lib/generator/responsive-styles.ts` - Map styles to breakpoints
 
-Generate a responsive React component using Tailwind CSS that:
-1. Matches the visual layout in the screenshot
-2. Uses semantic HTML (h1, p, button, etc.)
-3. Is fully responsive (mobile-first)
-4. Uses the provided design tokens
-```
+---
 
-### Phase 3: Visual Validation Loop
-**New file:** `src/lib/comparison/component-validator.ts`
+#### Phase 5: Visual Comparison System (EXISTS - NEEDS IMPROVEMENT)
+**From:** `PROMPTS/phase-5.md`
 
-After generating component:
-1. Render component in headless browser
-2. Take screenshot
-3. Compare with original using pixelmatch
-4. If accuracy < 80%, regenerate with feedback
+**Status:** Partially implemented
 
-## Implementation Priority
+**What's needed:**
+1. Take screenshots of generated components
+2. Compare with reference using Pixelmatch
+3. Calculate accuracy score per section
+4. Generate diff images showing mismatches
 
-1. **Phase 1: Content Extraction** (Critical)
-   - Without text content, components are useless
-   - Estimated changes: ~200 lines in section-detector.ts
+**Files:**
+- `src/lib/comparison/visual-diff.ts` - Exists but needs fixing
+- `src/lib/comparison/compare-section.ts` - Screenshot comparison
 
-2. **Phase 2: AI Generation** (High)
-   - Replace DOM copying with intelligent generation
-   - Requires Claude API integration in variant-generator
-   - Estimated changes: ~300 lines
+---
 
-3. **Phase 3: Validation** (Medium)
-   - Quality assurance loop
-   - Can be added incrementally
-   - Estimated changes: ~150 lines
+### MEDIUM PRIORITY
 
-## Files to Modify
+#### Phase 4: AI Asset Generation (PLANNED)
+**From:** `docs/Roadmap.md`
 
-| File | Change | Priority |
-|------|--------|----------|
-| `src/lib/playwright/section-detector.ts` | Add `extractSectionContent()` | P1 |
-| `src/lib/generator/component-detector.ts` | Use new content extraction | P1 |
-| `src/lib/generator/variant-generator.ts` | AI-based generation | P2 |
-| `src/lib/generator/component-generator.ts` | Pass content to variant generator | P2 |
-| `src/lib/comparison/component-validator.ts` | New validation loop | P3 |
+Use AI (Claude/Gemini) to generate:
+- Custom SVG icons
+- Illustrations
+- Placeholder images
+- Background patterns
+
+**Benefit:** Replace stock images with appropriate alternatives.
+
+---
+
+#### Phase 6: History & Versioning (EXISTS)
+**From:** `PROMPTS/phase-6.md`
+
+**Status:** Partially implemented
+
+Track versions of generated components:
+- Auto-version on changes
+- Changelog generation
+- Rollback capability
+- Compare versions
+
+---
+
+#### Phase 7: Template Mode (FUTURE)
+**From:** `PROMPTS/phase-7.md`
+
+Mix sections from multiple reference sites:
+- Use header from Site A
+- Use hero from Site B
+- Merge design tokens
+
+---
+
+#### Phase 8: Final Assembly & Export (FUTURE)
+**From:** `PROMPTS/phase-8.md`
+
+- Asset optimization (WebP, lazy loading)
+- Interactivity (dropdowns, modals, mobile menu)
+- Export options (Next.js, Static HTML, Components only)
+- Quality report generation
+
+---
+
+#### Phase 9: Agent SDK Refactor (FUTURE)
+**From:** `PROMPTS/phase-9.md`
+
+Refactor to multi-agent architecture:
+- Orchestrator Agent - Coordinates pipeline
+- Capture Agent - Screenshots
+- Extractor Agent - Design tokens
+- Generator Agent - Components (parallel)
+- Comparator Agent - Visual comparison (parallel)
+
+---
+
+## Implementation Priority Order
+
+### Sprint 1: Fix Core Quality Issues
+1. **Phase 0: Content Extraction** - Extract actual text, not just DOM
+2. **Variant Generator Fix** - Use AI to generate from screenshot + text
+
+### Sprint 2: Responsive & Validation
+3. **Phase 3.5: Responsive** - Multi-viewport capture and responsive classes
+4. **Phase 5: Comparison** - Fix visual comparison to validate accuracy
+
+### Sprint 3: Polish & Iterate
+5. **Iteration Loop** - Re-generate components below 80% accuracy
+6. **Phase 6: Versioning** - Track improvements
+
+### Sprint 4: Advanced Features (Optional)
+7. Phase 4: AI Assets
+8. Phase 7: Template Mode
+9. Phase 8: Export
+10. Phase 9: Agent Architecture
+
+---
 
 ## Quick Wins (Can do immediately)
 
-1. Fix `extractRawPageData` TypeScript compilation error in capture.ts
-2. Add text extraction to existing section detection
-3. Update variant generator prompt to use extracted text
+1. **Fix text extraction** - Add `innerText` capture to section detection
+2. **Use screenshot in generation** - Pass base64 image to Claude for component generation
+3. **Remove pixel-perfect variant** - Variant A (pixel-perfect) produces unusable code
+
+---
 
 ## Test Case
 
 Website: https://clearpath-template.framer.website
 Website ID: website-a08e766a-90a6-4382-a503-750bed981de5
 
-Expected Hero output should include:
+**Expected Hero output should include:**
 - H1: "A Path That Shapes Your Future."
 - Subheading with description text
 - CTA button: "START YOUR JOURNEY"
 - Background image with proper sizing
-- Responsive layout
+- Responsive layout (not fixed 1440px)
 
-## Commands to Resume Work
+---
 
-```bash
-# Start dashboard
-cd /Users/andrecollier/Personal/website-builder
-npm run dev
+## Session Summary (2026-01-18)
 
-# Start preview server for test website
-cd Websites/website-a08e766a-90a6-4382-a503-750bed981de5/generated
-npm run dev -- -p 3001
-
-# Re-run extraction after changes
-# (use dashboard or create test script)
-```
-
-## Session Summary
-
-Changes made in this session:
+Changes made:
 1. Improved capture timing for Framer animations
 2. Added `waitForFramerAnimations()` and `waitForHeroContent()`
 3. Updated GeneratedPanel with Preview/Code toggle
 4. Added "Open Site" button for live preview
 5. Fixed screenshot API caching
 6. Identified root cause of poor component quality
+7. Created comprehensive improvement plan
+
+---
+
+## Next Session Prompt
+
+```
+Les IMPROVEMENT_PLAN.md og start med Phase 0: Smart Content Extraction.
+
+Oppgave:
+1. Legg til extractSectionContent() i section-detector.ts
+2. Ekstraher: headings, paragraphs, buttons, links, images
+3. Oppdater variant-generator.ts til å bruke ekstrahert innhold
+4. Test på https://clearpath-template.framer.website
+
+Mål: Hero-komponenten skal inkludere H1 "A Path That Shapes Your Future."
+```
