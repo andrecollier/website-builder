@@ -28,9 +28,12 @@ import { CAPTURE_CONFIG } from '@/types';
 import { detectAllComponents, getComponentDisplayName, normalizeFramerStyles } from './component-detector';
 import {
   generateVariantsWithMetadata,
+  generateVariantsAsync,
   componentTypeToName,
   type VariantGenerationResult,
+  type GenerateVariantsOptions,
 } from './variant-generator';
+import { isAIGenerationAvailable } from './ai-generator';
 import { extractSectionWithStyles } from './style-extractor';
 import {
   getDb,
@@ -82,6 +85,8 @@ export interface ReferenceSection {
   };
   /** Extracted semantic content (headings, paragraphs, buttons, etc.) */
   content?: SectionContent;
+  /** Path to section screenshot (used for AI generation) */
+  screenshotPath?: string;
 }
 
 /**
@@ -120,6 +125,8 @@ export interface GeneratorOptions {
   referenceUrl?: string;
   /** Override detected platform */
   platform?: WebsitePlatform;
+  /** Enable AI generation for pixel-perfect variant (requires ANTHROPIC_API_KEY) */
+  enableAIGeneration?: boolean;
 }
 
 /**
@@ -411,6 +418,59 @@ function generateComponentVariants(
 }
 
 /**
+ * Generate variants for a single component with async AI support
+ */
+async function generateComponentVariantsAsync(
+  component: DetectedComponent,
+  options: {
+    designSystem?: DesignSystem;
+    framerContext?: BuiltFramerContext;
+    enableAIGeneration?: boolean;
+    screenshotPath?: string;
+  }
+): Promise<VariantGenerationResult> {
+  const componentName = componentTypeToName(component.type);
+
+  // If AI generation is enabled and we have required data, use async generation
+  if (
+    options.enableAIGeneration &&
+    options.screenshotPath &&
+    component.content &&
+    options.designSystem &&
+    isAIGenerationAvailable()
+  ) {
+    const variants = await generateVariantsAsync(component, {
+      componentName,
+      designSystem: options.designSystem,
+      framerContext: options.framerContext,
+      enableAIGeneration: true,
+      screenshotPath: options.screenshotPath,
+    });
+
+    return {
+      variants,
+      metadata: {
+        componentType: component.type,
+        strategiesAttempted: ['pixel-perfect', 'semantic', 'modernized'],
+        strategiesSucceeded: variants.map(v =>
+          v.name === 'Variant A' ? 'pixel-perfect' :
+          v.name === 'Variant B' ? 'semantic' : 'modernized'
+        ) as any[],
+        errors: [],
+        generatedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  // Fall back to synchronous generation
+  return generateVariantsWithMetadata(component, {
+    componentName,
+    designSystem: options.designSystem,
+    framerContext: options.framerContext,
+  });
+}
+
+/**
  * Generate variants for all detected components
  */
 function generateAllVariants(
@@ -432,6 +492,45 @@ function generateAllVariants(
     );
 
     const result = generateComponentVariants(component, designSystem, framerContext);
+    results.set(component.id, result);
+  }
+
+  return results;
+}
+
+/**
+ * Generate variants for all detected components with async AI support
+ */
+async function generateAllVariantsAsync(
+  components: DetectedComponent[],
+  options: {
+    designSystem?: DesignSystem;
+    framerContext?: BuiltFramerContext;
+    enableAIGeneration?: boolean;
+    screenshotPaths?: Map<string, string>;
+  },
+  emitProgress: ReturnType<typeof createProgressEmitter>
+): Promise<Map<string, VariantGenerationResult>> {
+  const results = new Map<string, VariantGenerationResult>();
+
+  for (let i = 0; i < components.length; i++) {
+    const component = components[i];
+    const aiEnabled = options.enableAIGeneration && isAIGenerationAvailable();
+
+    emitProgress(
+      'generating_variants',
+      40 + (i / components.length) * 30,
+      `Generating variants for ${getComponentDisplayName(component.type)}${aiEnabled ? ' (AI-enhanced)' : ''}`,
+      { current: i + 1, total: components.length }
+    );
+
+    const result = await generateComponentVariantsAsync(component, {
+      designSystem: options.designSystem,
+      framerContext: options.framerContext,
+      enableAIGeneration: options.enableAIGeneration,
+      screenshotPath: options.screenshotPaths?.get(component.id),
+    });
+
     results.set(component.id, result);
   }
 
@@ -862,7 +961,14 @@ export async function generateComponents(
     }
 
     // Phase 3: Build platform context and generate variants
-    emitProgress('generating_variants', 40, 'Generating component variants...');
+    const enableAIGeneration = options.enableAIGeneration ?? false;
+    const aiAvailable = isAIGenerationAvailable();
+
+    emitProgress(
+      'generating_variants',
+      40,
+      `Generating component variants${enableAIGeneration && aiAvailable ? ' (AI-enhanced)' : ''}...`
+    );
 
     // Detect platform and build platform-specific context
     const detectedPlatform = overridePlatform || detectPlatformFromUrl(referenceUrl);
@@ -877,12 +983,45 @@ export async function generateComponents(
       emitProgress('generating_variants', 42, `Applying ${detectedPlatform} design enhancements...`);
     }
 
-    const variantResults = generateAllVariants(
-      detectedComponents,
-      designSystem,
-      emitProgress,
-      framerContext
-    );
+    // Build screenshot paths map for AI generation
+    // Use reference screenshot paths if available from referenceSections
+    const componentScreenshotPaths = new Map<string, string>();
+    if (referenceSections) {
+      for (const section of referenceSections) {
+        if (section.screenshotPath) {
+          componentScreenshotPaths.set(section.id, section.screenshotPath);
+        }
+      }
+    }
+    // Also include captured screenshot paths
+    for (const [id, path] of screenshotPaths) {
+      if (!componentScreenshotPaths.has(id)) {
+        componentScreenshotPaths.set(id, path);
+      }
+    }
+
+    // Use async AI-enhanced generation if enabled, otherwise sync generation
+    let variantResults: Map<string, VariantGenerationResult>;
+
+    if (enableAIGeneration && aiAvailable && componentScreenshotPaths.size > 0) {
+      variantResults = await generateAllVariantsAsync(
+        detectedComponents,
+        {
+          designSystem,
+          framerContext,
+          enableAIGeneration: true,
+          screenshotPaths: componentScreenshotPaths,
+        },
+        emitProgress
+      );
+    } else {
+      variantResults = generateAllVariants(
+        detectedComponents,
+        designSystem,
+        emitProgress,
+        framerContext
+      );
+    }
 
     // Phase 4: Build GeneratedComponent objects
     for (let i = 0; i < detectedComponents.length; i++) {

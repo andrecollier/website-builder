@@ -25,6 +25,7 @@ import {
   type ResponsiveClasses,
 } from './responsive-styles';
 import type { ViewportStyles } from '../playwright/responsive-capture';
+import { generateComponentWithAI, isAIGenerationAvailable } from './ai-generator';
 
 // ====================
 // TYPES
@@ -60,6 +61,10 @@ export interface GenerateVariantsOptions {
   responsiveStyles?: ViewportStyles[];
   /** Enable responsive Tailwind classes (default: true) */
   enableResponsive?: boolean;
+  /** Enable AI generation for pixel-perfect variant (requires ANTHROPIC_API_KEY) */
+  enableAIGeneration?: boolean;
+  /** Path to section screenshot (required for AI generation) */
+  screenshotPath?: string;
 }
 
 /**
@@ -1124,7 +1129,7 @@ function generateVariantCode(
  * Generate 3 variant implementations for a detected component
  *
  * Each variant uses a different optimization strategy:
- * - Variant A (pixel-perfect): Exact visual reproduction
+ * - Variant A (pixel-perfect): Exact visual reproduction (uses AI when enabled)
  * - Variant B (semantic): Clean code with proper HTML semantics
  * - Variant C (modernized): Accessibility and performance focused
  *
@@ -1170,6 +1175,93 @@ export function generateVariants(
     } catch {
       // If a strategy fails, continue with others
       // Error handling will be managed by the component-generator orchestrator
+      continue;
+    }
+  }
+
+  return variants;
+}
+
+/**
+ * Generate variants with async AI support for pixel-perfect variant
+ *
+ * When enableAIGeneration is true and a screenshot path is provided,
+ * the pixel-perfect variant (Variant A) will be generated using Claude's
+ * vision capabilities for better visual accuracy.
+ *
+ * @param component - The detected component to generate variants for
+ * @param options - Generation options including AI settings
+ * @returns Promise resolving to array of ComponentVariant objects
+ */
+export async function generateVariantsAsync(
+  component: DetectedComponent,
+  options?: GenerateVariantsOptions
+): Promise<ComponentVariant[]> {
+  const componentName = options?.componentName ?? componentTypeToName(component.type);
+  const skipStrategies = options?.skipStrategies ?? [];
+  const framerContext = options?.framerContext;
+  const enableResponsive = options?.enableResponsive ?? true;
+  const enableAIGeneration = options?.enableAIGeneration ?? false;
+  const screenshotPath = options?.screenshotPath;
+  const designSystem = options?.designSystem;
+
+  const variants: ComponentVariant[] = [];
+
+  for (const config of VARIANT_CONFIGS) {
+    // Skip if strategy is excluded
+    if (skipStrategies.includes(config.strategy)) {
+      continue;
+    }
+
+    try {
+      let code: string;
+
+      // Use AI generation for pixel-perfect variant if enabled
+      if (
+        config.strategy === 'pixel-perfect' &&
+        enableAIGeneration &&
+        screenshotPath &&
+        component.content &&
+        designSystem &&
+        isAIGenerationAvailable()
+      ) {
+        console.log(`[VariantGenerator] Using AI generation for ${componentName} pixel-perfect variant`);
+
+        const aiResult = await generateComponentWithAI({
+          screenshotPath,
+          content: component.content,
+          sectionType: component.type,
+          designSystem,
+          componentName,
+        });
+
+        if (aiResult.success && aiResult.code) {
+          code = aiResult.code;
+          console.log(`[VariantGenerator] AI generation successful (${aiResult.tokensUsed} tokens)`);
+        } else {
+          // Fall back to template-based generation
+          console.warn(`[VariantGenerator] AI generation failed: ${aiResult.error}, falling back to template`);
+          code = generateVariantCode(component, config.strategy, componentName, framerContext, enableResponsive);
+        }
+      } else {
+        // Use template-based generation
+        code = generateVariantCode(component, config.strategy, componentName, framerContext, enableResponsive);
+      }
+
+      variants.push({
+        id: `variant-${randomUUID()}`,
+        name: config.name,
+        description: config.description + (
+          config.strategy === 'pixel-perfect' && enableAIGeneration
+            ? ' (AI-enhanced)'
+            : ''
+        ),
+        code,
+        accuracyScore: undefined,
+        previewImage: undefined,
+      });
+    } catch (err) {
+      console.error(`[VariantGenerator] Error generating ${config.strategy} variant:`, err);
       continue;
     }
   }
