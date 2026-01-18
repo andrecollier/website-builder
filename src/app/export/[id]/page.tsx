@@ -270,15 +270,14 @@ export default function ExportPage() {
             {/* Action Buttons */}
             <section className="flex items-center gap-4 pt-4">
               <DownloadButton
-                onClick={handleDownload}
+                onDownload={handleDownload}
                 loading={isExporting}
                 disabled={!report || isExporting}
               />
               <PreviewButton
-                onClick={handlePreview}
+                onPreview={handlePreview}
                 loading={isExporting}
                 disabled={!report || isExporting}
-                variant="secondary"
               />
             </section>
           </div>

@@ -21,7 +21,7 @@ import type {
 export interface SharedContextState {
   websiteId: string;
   url: string;
-  status: 'initializing' | 'capturing' | 'extracting' | 'generating' | 'comparing' | 'complete' | 'failed';
+  status: 'initializing' | 'capturing' | 'extracting' | 'generating' | 'scaffolding' | 'validating' | 'comparing' | 'complete' | 'failed';
 
   // Capture phase results
   captureResult?: CaptureResult;

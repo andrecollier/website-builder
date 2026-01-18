@@ -10,12 +10,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getVersion, getFilesForVersion } from '@/lib/versioning';
-import type { Version, VersionFile } from '@/types';
+import type { VersionRecord, VersionFileRecord } from '@/lib/db/client';
 
 interface VersionResponse {
   success: boolean;
-  version?: Version;
-  files?: VersionFile[];
+  version?: VersionRecord;
+  files?: VersionFileRecord[];
   error?: string;
 }
 

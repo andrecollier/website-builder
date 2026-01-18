@@ -206,7 +206,7 @@ export function HarmonyIndicator({
                 </p>
                 {harmonyResult && (
                   <p className="text-xs text-[rgb(var(--muted-foreground))] mt-2">
-                    Score is advisory only and won't block generation
+                    Score is advisory only and will not block generation
                   </p>
                 )}
               </div>

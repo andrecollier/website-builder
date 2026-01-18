@@ -58,9 +58,9 @@ Examples:
       enableComponentValidation: true,
       componentValidationThreshold: 80,
       onProgress: (progress) => {
-        const percent = Math.round(progress.progress);
+        const percent = Math.round(progress.percent);
         const bar = '█'.repeat(Math.floor(percent / 5)) + '░'.repeat(20 - Math.floor(percent / 5));
-        console.log(`[${bar}] ${percent}% - ${progress.status}`);
+        console.log(`[${bar}] ${percent}% - ${progress.message}`);
       },
     });
 
@@ -69,20 +69,23 @@ Examples:
     console.log(`   Website ID: ${websiteId}`);
     console.log(`   Success: ${result.success}`);
 
-    if (result.accuracy !== undefined) {
-      console.log(`   Overall Accuracy: ${result.accuracy.toFixed(1)}%`);
+    // Cast to any for CLI convenience - data structure is dynamic
+    const data = result.data as any;
+
+    if (data?.overallAccuracy !== undefined) {
+      console.log(`   Overall Accuracy: ${data.overallAccuracy.toFixed(1)}%`);
     }
 
-    if (result.componentValidation) {
+    if (data?.componentValidation) {
       console.log(`\n📊 Component Validation:`);
-      console.log(`   Total: ${result.componentValidation.totalComponents}`);
-      console.log(`   Passed: ${result.componentValidation.passedComponents}`);
-      console.log(`   Failed: ${result.componentValidation.failedComponents}`);
-      console.log(`   Avg Accuracy: ${result.componentValidation.averageAccuracy.toFixed(1)}%`);
+      console.log(`   Total: ${data.componentValidation.totalComponents}`);
+      console.log(`   Passed: ${data.componentValidation.passedComponents}`);
+      console.log(`   Failed: ${data.componentValidation.failedComponents}`);
+      console.log(`   Avg Accuracy: ${data.componentValidation.averageAccuracy.toFixed(1)}%`);
 
-      if (result.componentValidation.flaggedComponents.length > 0) {
+      if (data.componentValidation.flaggedComponents?.length > 0) {
         console.log(`\n⚠️  Flagged components (< 80%):`);
-        result.componentValidation.flaggedComponents.forEach(c => {
+        data.componentValidation.flaggedComponents.forEach((c: string) => {
           console.log(`   - ${c}`);
         });
       }

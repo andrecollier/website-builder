@@ -16,7 +16,7 @@ export function VersionCard({
   onRollback,
   showActions = true,
 }: VersionCardProps) {
-  const isActive = version.is_active === 1;
+  const isActive = version.is_active;
   const formattedDate = new Date(version.created_at).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',

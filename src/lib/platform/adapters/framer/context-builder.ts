@@ -153,8 +153,8 @@ function detectPrimaryColor(data: ExtractedSiteData): string | undefined {
   }
 
   // Check design system
-  if (data.designSystem?.colors?.primary) {
-    return data.designSystem.colors.primary;
+  if (data.designSystem?.colors?.primary?.[0]) {
+    return data.designSystem.colors.primary[0];
   }
 
   // Try to extract from CSS
@@ -296,8 +296,11 @@ function buildComponentEnhancements(
  */
 function extractFontFamily(data: ExtractedSiteData): string {
   // Check design system first
-  if (data.designSystem?.typography?.fontFamily) {
-    return data.designSystem.typography.fontFamily;
+  if (data.designSystem?.typography?.fonts?.body) {
+    return data.designSystem.typography.fonts.body;
+  }
+  if (data.designSystem?.typography?.fonts?.heading) {
+    return data.designSystem.typography.fonts.heading;
   }
 
   // Check extracted fonts
@@ -329,7 +332,7 @@ function getMostCommon(values: string[] | undefined): string | undefined {
   }
   let maxCount = 0;
   let mostCommon: string | undefined;
-  for (const [value, count] of counts) {
+  for (const [value, count] of Array.from(counts.entries())) {
     if (count > maxCount) {
       maxCount = count;
       mostCommon = value;

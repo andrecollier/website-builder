@@ -570,7 +570,10 @@ export async function getQualitySummary(websiteId: string): Promise<{
   const report = await generateQualityReport(websiteId, {
     includeDetails: false,
   });
-  return report.summary;
+  return {
+    qualityLevel: report.qualityLevel,
+    ...report.summary,
+  };
 }
 
 /**

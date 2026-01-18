@@ -426,13 +426,226 @@ export async function detectGenericSections(
 }
 
 // ====================
+// FRAMER-SPECIFIC DETECTION
+// ====================
+
+/**
+ * Detect sections specifically for Framer sites
+ * Framer uses data-framer-name attributes for sections, not semantic HTML
+ *
+ * @param page - Playwright Page instance
+ * @param options - Optional configuration
+ * @returns Promise with array of SectionInfo objects
+ */
+export async function detectFramerSections(
+  page: Page,
+  options?: {
+    maxSections?: number;
+    minHeight?: number;
+  }
+): Promise<SectionInfo[]> {
+  const maxSections = options?.maxSections ?? CAPTURE_CONFIG.maxSections;
+  const minHeight = options?.minHeight ?? 200; // Framer sections are typically larger
+
+  const sectionData = await page.evaluate(
+    ({ minH }: { minH: number }) => {
+      const pageHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      const viewportHeight = window.innerHeight;
+      const allFramerElements = document.querySelectorAll('[data-framer-name]');
+
+      // Semantic section keywords to look for in data-framer-name
+      const sectionKeywords = [
+        'hero', 'header', 'nav', 'navigation',
+        'feature', 'service', 'benefit', 'about',
+        'testimonial', 'review', 'quote', 'client',
+        'pricing', 'plan', 'package',
+        'cta', 'contact', 'demo', 'request', 'book', 'call',
+        'faq', 'question',
+        'footer', 'bottom',
+        'team', 'partner', 'logo', 'brand',
+        'gallery', 'portfolio', 'work', 'case',
+        'blog', 'journal', 'news', 'article'
+      ];
+
+      // Find large sections with semantic names OR distinct backgrounds
+      const candidates: Array<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        name: string;
+        hasBg: boolean;
+        bgColor: string;
+        isSemanticSection: boolean;
+      }> = [];
+
+      allFramerElements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        const name = (el.getAttribute('data-framer-name') || '').toLowerCase();
+        const computed = getComputedStyle(el);
+
+        // Must be full-width (or close to it)
+        if (rect.width < 1200) return;
+
+        // Must have significant height
+        if (rect.height < minH) return;
+
+        // Skip elements that span most of the page (wrappers)
+        if (rect.height > pageHeight * 0.7) return;
+
+        // Check for distinct background
+        const bgColor = computed.backgroundColor;
+        const bgImage = computed.backgroundImage;
+        const hasBg = (bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') ||
+                      (bgImage !== 'none');
+
+        // Check if name contains semantic section keywords
+        const isSemanticSection = sectionKeywords.some(keyword => name.includes(keyword));
+
+        // Only include if it's a semantic section OR has a distinct background with good height
+        if (!isSemanticSection && !hasBg) return;
+        if (!isSemanticSection && rect.height < viewportHeight * 0.5) return;
+
+        candidates.push({
+          x: Math.round(rect.x + window.scrollX),
+          y: Math.round(rect.y + window.scrollY),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          name,
+          hasBg,
+          bgColor: bgColor.substring(0, 30),
+          isSemanticSection,
+        });
+      });
+
+      // Also check for sticky image sections (Framer's hero pattern)
+      const stickyElements = document.querySelectorAll('[data-framer-name]');
+      stickyElements.forEach(el => {
+        const computed = getComputedStyle(el);
+        if (computed.position === 'sticky') {
+          const rect = el.getBoundingClientRect();
+          const name = (el.getAttribute('data-framer-name') || '').toLowerCase();
+
+          if (rect.width >= 1200 && rect.height >= minH) {
+            // Check if parent is much taller (scroll container)
+            const parent = el.parentElement;
+            if (parent) {
+              const parentRect = parent.getBoundingClientRect();
+              if (parentRect.height > rect.height * 2) {
+                // This is a sticky scroll section
+                candidates.push({
+                  x: Math.round(rect.x + window.scrollX),
+                  y: Math.round(rect.y + window.scrollY),
+                  width: Math.round(rect.width),
+                  height: Math.round(parentRect.height), // Use parent height for full scroll area
+                  name: name || 'sticky-section',
+                  hasBg: true,
+                  bgColor: 'sticky-scroll',
+                  isSemanticSection: true,
+                });
+              }
+            }
+          }
+        }
+      });
+
+      // Sort by y position
+      candidates.sort((a, b) => a.y - b.y);
+
+      // Merge overlapping sections, preferring semantic ones
+      const filtered: typeof candidates = [];
+      for (const section of candidates) {
+        const overlappingIdx = filtered.findIndex((existing) => {
+          const overlapY = Math.max(
+            0,
+            Math.min(existing.y + existing.height, section.y + section.height) -
+              Math.max(existing.y, section.y)
+          );
+          const smallerHeight = Math.min(existing.height, section.height);
+          return overlapY > smallerHeight * 0.3;
+        });
+
+        if (overlappingIdx === -1) {
+          filtered.push(section);
+        } else {
+          // Prefer semantic sections over generic background sections
+          const existing = filtered[overlappingIdx];
+          const preferNew =
+            (section.isSemanticSection && !existing.isSemanticSection) ||
+            (section.isSemanticSection === existing.isSemanticSection &&
+             section.height > existing.height * 1.2); // Prefer larger if both semantic
+
+          if (preferNew) {
+            filtered[overlappingIdx] = section;
+          }
+        }
+      }
+
+      return filtered;
+    },
+    { minH: minHeight }
+  );
+
+  // Convert to SectionInfo with inferred types
+  const sections: SectionInfo[] = [];
+  const totalSections = Math.min(sectionData.length, maxSections);
+
+  for (let i = 0; i < totalSections; i++) {
+    const data = sectionData[i];
+
+    // Infer type from name or position
+    let type: SectionType = 'features';
+    const nameLower = data.name;
+
+    // Check for specific section types in order of specificity
+    if (nameLower.includes('footer') || (nameLower.includes('bottom') && i === totalSections - 1)) {
+      type = 'footer';
+    } else if (nameLower.includes('nav') || nameLower.includes('header') || (i === 0 && data.height < 200)) {
+      type = 'header';
+    } else if (nameLower.includes('hero') || nameLower.includes('landing') || nameLower.includes('banner') ||
+               (i === 0 && data.height >= 200) || (i === 1 && sections[0]?.type === 'header')) {
+      type = 'hero';
+    } else if (nameLower.includes('testimonial') || nameLower.includes('review') || nameLower.includes('quote') ||
+               nameLower.includes('client') || nameLower.includes('customer')) {
+      type = 'testimonials';
+    } else if (nameLower.includes('pricing') || nameLower.includes('plan') || nameLower.includes('package') ||
+               nameLower.includes('tier') || nameLower.includes('subscription')) {
+      type = 'pricing';
+    } else if (nameLower.includes('cta') || nameLower.includes('contact') || nameLower.includes('demo') ||
+               nameLower.includes('request') || nameLower.includes('book') || nameLower.includes('session') ||
+               nameLower.includes('schedule') || nameLower.includes('call') || nameLower.includes('start')) {
+      type = 'cta';
+    } else if (nameLower.includes('faq') || nameLower.includes('question') || nameLower.includes('answer')) {
+      type = 'cta'; // FAQ is often part of CTA section
+    } else if (nameLower.includes('feature') || nameLower.includes('service') || nameLower.includes('benefit') ||
+               nameLower.includes('how') || nameLower.includes('work') || nameLower.includes('about') ||
+               nameLower.includes('journal') || nameLower.includes('blog') || nameLower.includes('news')) {
+      type = 'features';
+    }
+
+    sections.push({
+      id: `section-${randomUUID()}`,
+      type,
+      boundingBox: {
+        x: data.x,
+        y: data.y,
+        width: data.width,
+        height: data.height,
+      },
+      screenshotPath: '',
+    });
+  }
+
+  return sections;
+}
+
+// ====================
 // VIEWPORT-BASED SPLITTING
 // ====================
 
 /**
  * Split page into sections based on viewport height
- * Used as a fallback for sites with obfuscated class names (like Framer)
- * where semantic section detection fails
+ * Used as a LAST RESORT fallback when all other detection methods fail
  *
  * @param page - Playwright Page instance
  * @param options - Optional configuration
@@ -548,36 +761,41 @@ export async function detectAllSections(
     Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
   );
 
-  // Try specific detection first
-  const specificSections = await detectSections(page, options);
+  // Helper to calculate page coverage
+  const calculateCoverage = (sections: SectionInfo[]) => {
+    if (sections.length === 0) return 0;
+    const coveredHeight = sections.reduce((sum, s) => sum + s.boundingBox.height, 0);
+    return coveredHeight / pageHeight;
+  };
 
-  // Check if detected sections cover most of the page (> 80%)
-  let sections = specificSections;
-  if (specificSections.length >= 3) {
-    const coveredHeight = specificSections.reduce((sum, s) => sum + s.boundingBox.height, 0);
-    const coverage = coveredHeight / pageHeight;
+  // Detection priority:
+  // 1. Try specific CSS-based detection (class names, semantic HTML)
+  // 2. Try Framer-specific detection (data-framer-name attributes)
+  // 3. Fall back to viewport-based splitting only if nothing else works
 
-    if (coverage <= 0.8 && useGenericFallback) {
-      // Use viewport-based splitting to ensure full page coverage
-      sections = await viewportBasedSplitting(page, options);
+  // Step 1: Try specific detection
+  let sections = await detectSections(page, options);
+  let coverage = calculateCoverage(sections);
+
+  // Step 2: If poor coverage, try Framer-specific detection
+  if (sections.length < 3 || coverage < 0.5) {
+    const framerSections = await detectFramerSections(page, options);
+    const framerCoverage = calculateCoverage(framerSections);
+
+    // Use Framer sections if they provide better coverage
+    if (framerSections.length >= 3 && framerCoverage > coverage) {
+      sections = framerSections;
+      coverage = framerCoverage;
     }
-  } else if (useGenericFallback) {
+  }
+
+  // Step 3: Fall back to viewport-based splitting only as last resort
+  if ((sections.length < 3 || coverage < 0.5) && useGenericFallback) {
     sections = await viewportBasedSplitting(page, options);
   }
 
-  // If we found fixed navigation, add it as metadata to the first section (header)
-  // or include it separately if it's not already captured
-  if (fixedNav) {
-    const firstSection = sections[0];
-    if (firstSection && firstSection.type === 'header') {
-      // Merge fixed nav HTML with header
-      firstSection.metadata = {
-        ...firstSection.metadata,
-        fixedNavHtml: fixedNav.htmlSnapshot,
-        hasFixedNav: true,
-      };
-    }
-  }
+  // Fixed navigation is already captured in the header section's bounding box
+  // The HTML snapshot would need to be stored elsewhere if needed later
 
   return sections;
 }
@@ -602,7 +820,7 @@ async function detectFixedNavigation(page: Page): Promise<SectionInfo | null> {
     ];
 
     for (const sel of selectors) {
-      const elements = document.querySelectorAll(sel);
+      const elements = Array.from(document.querySelectorAll(sel));
       for (const el of elements) {
         const computed = window.getComputedStyle(el);
         const position = computed.position;
@@ -637,16 +855,9 @@ async function detectFixedNavigation(page: Page): Promise<SectionInfo | null> {
   if (navInfo) {
     return {
       id: `nav-${randomUUID().slice(0, 8)}`,
-      type: 'header', // Navigation is part of header
+      type: 'header' as const, // Navigation is part of header
       boundingBox: navInfo.boundingBox,
       screenshotPath: '',
-      htmlSnapshot: navInfo.html,
-      confidence: 0.95,
-      metadata: {
-        isFixedNav: true,
-        hasLogo: navInfo.hasLogo,
-        linkCount: navInfo.linkCount,
-      },
     };
   }
   return null;

@@ -9,8 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { calculateHarmony, canCalculateHarmony } from '@/lib/template/harmony-checker';
-import type { Reference, SectionMapping, HarmonyCheckOptions } from '@/types';
+import { calculateHarmony, canCalculateHarmony, type HarmonyCheckOptions } from '@/lib/template/harmony-checker';
+import type { Reference, SectionMapping } from '@/types';
 
 // ====================
 // POST /api/template/harmony

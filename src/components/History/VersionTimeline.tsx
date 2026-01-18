@@ -40,7 +40,7 @@ export function VersionTimeline({ versions, onVersionClick }: VersionTimelinePro
       {/* Version nodes */}
       <div className="space-y-6">
         {sortedVersions.map((version, index) => {
-          const isActive = version.is_active === 1;
+          const isActive = version.is_active;
           const isRollback = version.parent_version_id !== null;
           const formattedDate = new Date(version.created_at).toLocaleString('en-US', {
             month: 'short',

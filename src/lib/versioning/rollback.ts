@@ -8,7 +8,7 @@
  */
 
 import fs from 'fs';
-import { getVersionById, getVersions } from '@/lib/db/client';
+import { getVersionById, getVersions, type VersionRecord } from '@/lib/db/client';
 import type { Version } from '@/types';
 import {
   getVersionPath,
@@ -34,8 +34,8 @@ export interface RollbackOptions {
  * Result of a rollback operation
  */
 export interface RollbackResult {
-  newVersion: Version;
-  targetVersion: Version;
+  newVersion: VersionRecord;
+  targetVersion: VersionRecord;
   versionPath: string;
   filesCopied: number;
 }
@@ -55,7 +55,7 @@ export interface RollbackResult {
 function validateRollbackTarget(
   versionId: string,
   websiteId: string
-): Version {
+): VersionRecord {
   // Get version from database
   const version = getVersionById(versionId);
   if (!version) {
@@ -159,7 +159,7 @@ export function canRollback(
     }
 
     // Check if trying to rollback to the current active version
-    const activeVersion = versions.find((v) => v.is_active === 1);
+    const activeVersion = versions.find((v) => v.is_active);
     if (activeVersion && activeVersion.id === targetVersionId) {
       return {
         canRollback: false,
@@ -187,9 +187,9 @@ export function getRollbackPreview(
   websiteId: string,
   targetVersionId: string
 ): {
-  targetVersion: Version;
+  targetVersion: VersionRecord;
   newVersionNumber: string;
-  affectedVersions: Version[];
+  affectedVersions: VersionRecord[];
 } {
   // Validate target version
   const targetVersion = validateRollbackTarget(targetVersionId, websiteId);

@@ -11,9 +11,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   initializeDatabase,
   getWebsiteById,
-  getComponentsByWebsite,
-  getVariantsByComponent,
-  getDesignTokensByWebsite,
 } from '@/lib/db/client';
 import { generateQualityReport, type QualityReport } from '@/lib/export/quality-report';
 
@@ -85,43 +82,8 @@ export async function GET(
       );
     }
 
-    // Get components and their variants
-    const componentRecords = getComponentsByWebsite(websiteId);
-
-    // Transform to GeneratedComponent format
-    const components = componentRecords.map((record) => {
-      const variants = getVariantsByComponent(record.id);
-
-      return {
-        id: record.id,
-        websiteId: record.website_id,
-        name: record.name,
-        type: record.type,
-        order: record.order_index,
-        variants: variants.map((v) => ({
-          id: v.id,
-          name: v.variant_name as 'Variant A' | 'Variant B' | 'Variant C',
-          description: v.description || '',
-          code: v.code,
-          previewImage: v.preview_image || undefined,
-          accuracyScore: v.accuracy_score || undefined,
-        })),
-        selectedVariant: record.selected_variant,
-        customCode: record.custom_code || undefined,
-        status: record.status,
-        errorMessage: record.error_message || undefined,
-        createdAt: new Date().toISOString(),
-      };
-    });
-
-    // Get design tokens
-    const tokensRecord = getDesignTokensByWebsite(websiteId);
-    const designTokens = tokensRecord?.tokens_json
-      ? JSON.parse(tokensRecord.tokens_json)
-      : null;
-
-    // Generate quality report
-    const report = generateQualityReport(websiteId, website.url, components, designTokens);
+    // Generate quality report (function loads its own data internally)
+    const report = await generateQualityReport(websiteId);
 
     return NextResponse.json(
       {

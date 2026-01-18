@@ -20,7 +20,7 @@ import type {
 } from '../types';
 import type { CaptureProgress, ExtractionError } from '@/types';
 import { updateProgress, addError } from '../shared/context';
-import { publish } from '../shared/messages';
+import { publishAgentStarted, publishError, createProgressPublisher } from '../shared/messages';
 
 // ====================
 // TYPE DEFINITIONS
@@ -70,11 +70,7 @@ export async function delegateTool(
   const { websiteId } = context;
 
   // Publish agent delegation start event
-  publish(websiteId, {
-    type: 'agent:started',
-    agentType: targetAgent,
-    message: `Delegating to ${targetAgent} agent: ${task}`,
-  });
+  publishAgentStarted(websiteId, targetAgent, `Delegating to ${targetAgent} agent: ${task}`);
 
   // NOTE: This is a stub implementation that publishes events.
   // The actual agent execution happens via the orchestrator's delegation functions.
@@ -140,11 +136,8 @@ export async function trackProgressTool(
     const updated = updateProgress(websiteId, progress);
 
     // Publish progress event
-    publish(websiteId, {
-      type: 'progress',
-      agentType: 'orchestrator',
-      progress,
-    });
+    const progressPublisher = createProgressPublisher(websiteId, 'orchestrator');
+    progressPublisher(progress);
 
     return {
       success: true,
@@ -203,12 +196,7 @@ export async function handleErrorTool(
     const shouldContinue = continueOnError && error.recoverable;
 
     // Publish error event
-    publish(websiteId, {
-      type: 'error',
-      agentType: 'orchestrator',
-      error,
-      fatal: !shouldContinue,
-    });
+    publishError(websiteId, 'orchestrator', error, !shouldContinue);
 
     return {
       success: true,

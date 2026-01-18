@@ -63,7 +63,7 @@ function identifyImprovementTargets(
     .filter((s) => s.accuracy < targetAccuracy)
     .map((s) => ({
       ...s,
-      priority: s.accuracy < 30 ? 'high' : s.accuracy < 60 ? 'medium' : 'low',
+      priority: (s.accuracy < 30 ? 'high' : s.accuracy < 60 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
     }))
     .sort((a, b) => a.accuracy - b.accuracy);
 }

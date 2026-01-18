@@ -204,6 +204,8 @@ function htmlToJsx(html: string): string {
           if (prop.includes(' ') || !/^[a-zA-Z-]+$/.test(prop)) return '';
           // Skip backdrop-filter (not well supported in JSX inline styles)
           if (prop === 'backdrop-filter') return '';
+          // Skip mix-blend-mode: overlay (noise overlay effect - should be generated separately)
+          if (prop === 'mix-blend-mode' && val === 'overlay') return '';
           const camelProp = prop.replace(/-([a-z])/g, (_: string, l: string) => l.toUpperCase());
           // Escape single quotes in values and remove var() tokens
           let escapedVal = val.replace(/'/g, "\\'");

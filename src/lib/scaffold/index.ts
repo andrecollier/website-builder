@@ -21,6 +21,10 @@ interface ScaffoldOptions {
   siteName?: string;
   /** Force a specific platform (auto-detected if not provided) */
   platform?: Platform;
+  /** Automatically start the dev server after scaffold (default: false) */
+  autoStart?: boolean;
+  /** Port for the dev server (default: 3002) */
+  port?: number;
 }
 
 interface PlatformConfig {
@@ -555,9 +559,11 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
   success: boolean;
   generatedPath: string;
   platform?: Platform;
+  previewUrl?: string;
+  previewPort?: number;
   error?: string;
 }> {
-  const { websiteId, websitesDir, siteName = 'Generated Site' } = options;
+  const { websiteId, websitesDir, siteName = 'Generated Site', autoStart = false, port = 3002 } = options;
 
   const websiteDir = path.join(websitesDir, websiteId);
   const currentDir = path.join(websiteDir, 'current');
@@ -670,7 +676,7 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
     }
 
     // Run npm install
-    const { execSync } = await import('child_process');
+    const { execSync, spawn } = await import('child_process');
     try {
       execSync('npm install', {
         cwd: generatedDir,
@@ -682,10 +688,48 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
       // Continue even if npm install has warnings
     }
 
+    // Auto-start preview server if requested
+    let previewUrl: string | undefined;
+    let previewPort: number | undefined;
+
+    if (autoStart) {
+      try {
+        // Kill any existing process on the port first
+        try {
+          execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null || true`, { stdio: 'pipe' });
+        } catch {
+          // Ignore errors - port might not be in use
+        }
+
+        // Start the dev server in background
+        const devProcess = spawn('npm', ['run', 'dev'], {
+          cwd: generatedDir,
+          detached: true,
+          stdio: 'ignore',
+        });
+
+        // Detach the process so it continues running after scaffold completes
+        devProcess.unref();
+
+        previewPort = port;
+        previewUrl = `http://localhost:${port}`;
+
+        // Wait a moment for the server to start
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        console.log(`[Scaffold] Preview server started at ${previewUrl}`);
+      } catch (startError) {
+        console.warn('Failed to auto-start preview server:', startError instanceof Error ? startError.message : 'Unknown error');
+        // Don't fail scaffold if server start fails
+      }
+    }
+
     return {
       success: true,
       generatedPath: generatedDir,
       platform: platformConfig?.platform,
+      previewUrl,
+      previewPort,
     };
   } catch (error) {
     return {

@@ -410,7 +410,7 @@ function mergeDesignTokens(
   try {
     const strategy =
       customStrategy ||
-      createSimpleMergeStrategy(references[primaryIndex].id, references);
+      createSimpleMergeStrategy(references[primaryIndex].id);
 
     const result = mergeTokens({
       references,
@@ -460,10 +460,7 @@ function performHarmonyCheck(
   }
 
   try {
-    const harmonyResult = checkHarmony({
-      references,
-      sectionMapping,
-    });
+    const harmonyResult = checkHarmony(references, sectionMapping);
 
     if (emitProgress) {
       emitProgress(
@@ -873,14 +870,4 @@ export function getResultSummary(result: TemplateGenerationResult): string {
   return lines.join('\n');
 }
 
-// ====================
-// EXPORTS
-// ====================
-
-export type {
-  GenerateTemplateOptions,
-  TemplateGenerationResult,
-  TemplateGenerationError,
-  TemplateGenerationProgress,
-  TemplateGenerationPhase,
-};
+// Types are exported inline with their definitions

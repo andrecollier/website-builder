@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Reference, DesignSystem, SectionInfo, RawPageData } from '@/types';
 import { captureWebsite, extractDomain } from '@/lib/playwright';
 import { synthesizeDesignSystem } from '@/lib/design-system/synthesizer';
-import { getTokens, setTokens, isTokenCacheValid } from '@/lib/cache/token-cache';
+import { getTokens, setTokens, isCacheValid } from '@/lib/cache/token-cache';
 
 // ====================
 // TYPES
@@ -269,11 +269,14 @@ export async function processReference(
 
   // Process the reference website
   try {
+    // Generate a consistent website ID from the domain
+    const websiteId = `ref-${domain.replace(/\./g, '-')}`;
+
     // Capture website (screenshots + sections + raw data)
     const captureResult = await captureWebsite({
+      websiteId,
       url,
-      outputDir: getReferenceCacheDir(domain),
-      forceRecapture: config?.forceReprocess ?? false,
+      skipCache: config?.forceReprocess ?? false,
     });
 
     if (captureResult.error) {
@@ -284,17 +287,22 @@ export async function processReference(
     let tokens: DesignSystem;
 
     // First check if tokens are already cached
-    if (!config?.forceReprocess && isTokenCacheValid(url)) {
+    if (!config?.forceReprocess && isCacheValid(domain)) {
       const cachedTokens = getTokens(url);
       if (cachedTokens) {
         tokens = cachedTokens.tokens;
-      } else {
+      } else if (captureResult.rawData) {
         // Fallback: synthesize from raw data
-        tokens = synthesizeDesignSystem(captureResult.rawData || undefined, url);
+        tokens = synthesizeDesignSystem(captureResult.rawData);
+      } else {
+        throw new Error('No cached tokens and no raw data available');
       }
     } else {
       // Synthesize design system from raw data
-      tokens = synthesizeDesignSystem(captureResult.rawData || undefined, url);
+      if (!captureResult.rawData) {
+        throw new Error('No raw data available to synthesize design system');
+      }
+      tokens = synthesizeDesignSystem(captureResult.rawData);
 
       // Cache the tokens for future use
       setTokens(url, tokens, { ttlHours: config?.ttlHours });

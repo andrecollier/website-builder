@@ -411,6 +411,210 @@ async function delegateToCaptureAgent(
 }
 
 /**
+ * Asset Extraction Result type
+ */
+interface AssetExtractionResult {
+  success: boolean;
+  manifest?: {
+    images: Array<{
+      id: string;
+      originalUrl: string;
+      localPath: string;
+      width: number;
+      height: number;
+      role: string;
+      aiPrompt?: string;
+    }>;
+    fonts: Array<{
+      family: string;
+      weights: string[];
+      source: string;
+    }>;
+    icons: Array<{
+      id: string;
+      type: string;
+      localPath?: string;
+    }>;
+    summary: {
+      imageCount: number;
+      fontCount: number;
+      iconCount: number;
+      downloadedSize: string;
+    };
+  };
+  error?: string;
+}
+
+/**
+ * Delegate to Asset Extraction
+ * Downloads images, fonts, and icons locally to ensure reliable rendering
+ */
+async function delegateToAssetExtraction(
+  context: AgentContext,
+  options: OrchestratorOptions
+): Promise<AssetExtractionResult> {
+  publishAgentStarted(options.websiteId, 'asset-extraction', 'Extracting and downloading assets...');
+
+  try {
+    const { chromium } = await import('playwright');
+    const { extractAssets, formatAssetReport } = await import('@/lib/extraction/asset-extractor');
+    const path = await import('path');
+
+    const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
+
+    // Launch browser to extract assets
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+
+    try {
+      await page.goto(options.url, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.waitForTimeout(1000); // Wait for lazy-loaded images
+
+      const manifest = await extractAssets(page, options.websiteId, websitesDir, {
+        downloadImages: true,
+        maxImages: 50,
+        timeout: 30000,
+      });
+
+      // Log the report
+      console.log('\n' + formatAssetReport(manifest));
+
+      publishAgentCompleted(
+        options.websiteId,
+        'asset-extraction',
+        `Assets extracted: ${manifest.summary.imageCount} images (${manifest.summary.downloadedSize})`,
+        manifest.summary
+      );
+
+      return {
+        success: true,
+        manifest: {
+          images: manifest.images,
+          fonts: manifest.fonts,
+          icons: manifest.icons,
+          summary: manifest.summary,
+        },
+      };
+    } finally {
+      await browser.close();
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn('[Orchestrator] Asset extraction failed (non-fatal):', errorMsg);
+
+    publishAgentFailed(options.websiteId, 'asset-extraction', createError(
+      1.25,
+      `Asset extraction failed: ${errorMsg}`,
+      true
+    ));
+
+    return {
+      success: false,
+      error: errorMsg,
+    };
+  }
+}
+
+/**
+ * Semantic Extraction Result type
+ */
+interface SemanticExtractionResult {
+  success: boolean;
+  semantics?: {
+    pageTitle: string;
+    sections: Array<{
+      sectionId: string;
+      sectionType: string;
+      summary: string;
+      layout: { type: string; columns?: number };
+      interactiveElements: Array<{ type: string; text?: string }>;
+      images: Array<{ role: string; dimensions: { width: number; height: number } }>;
+    }>;
+  };
+  error?: string;
+}
+
+/**
+ * Delegate to Semantic Extraction
+ * Extracts detailed UI/UX descriptions for better component generation
+ */
+async function delegateToSemanticExtraction(
+  context: AgentContext,
+  options: OrchestratorOptions,
+  captureResult: CaptureResult
+): Promise<SemanticExtractionResult> {
+  publishAgentStarted(options.websiteId, 'semantic-extraction', 'Extracting UI/UX semantics...');
+
+  try {
+    const { chromium } = await import('playwright');
+    const { extractPageSemantics, formatSemanticReport } = await import('@/lib/extraction/semantic-analyzer');
+    const pathModule = await import('path');
+    const fs = await import('fs/promises');
+
+    const websitesDir = process.env.WEBSITES_DIR || pathModule.join(process.cwd(), 'Websites');
+
+    // Launch browser for semantic extraction
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+
+    try {
+      await page.goto(options.url, { waitUntil: 'networkidle', timeout: 30000 });
+      await page.waitForTimeout(500);
+
+      // Get sections from capture result
+      const sections = captureResult.sections || [];
+
+      const semantics = await extractPageSemantics(page, sections);
+      const report = formatSemanticReport(semantics);
+
+      // Save semantics to file
+      const semanticsPath = pathModule.join(websitesDir, options.websiteId, 'semantics.json');
+      await fs.writeFile(semanticsPath, JSON.stringify(semantics, null, 2));
+
+      console.log('\n' + report);
+
+      publishAgentCompleted(
+        options.websiteId,
+        'semantic-extraction',
+        `Semantic extraction complete: ${semantics.sections.length} sections analyzed`,
+        { sectionCount: semantics.sections.length }
+      );
+
+      return {
+        success: true,
+        semantics: {
+          pageTitle: semantics.pageTitle,
+          sections: semantics.sections.map(s => ({
+            sectionId: s.sectionId,
+            sectionType: s.sectionType,
+            summary: s.summary,
+            layout: s.layout,
+            interactiveElements: s.interactiveElements,
+            images: s.images,
+          })),
+        },
+      };
+    } finally {
+      await browser.close();
+    }
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.warn('[Orchestrator] Semantic extraction failed (non-fatal):', errorMsg);
+
+    publishAgentFailed(options.websiteId, 'semantic-extraction', createError(
+      1.3,
+      `Semantic extraction failed: ${errorMsg}`,
+      true
+    ));
+
+    return {
+      success: false,
+      error: errorMsg,
+    };
+  }
+}
+
+/**
  * Delegate to Responsive Capture
  * Captures at multiple viewports (mobile, tablet, desktop) for responsive generation
  */
@@ -659,6 +863,8 @@ async function delegateToScaffoldAgent(
       websiteId: context.websiteId,
       websitesDir,
       siteName: 'Generated Site',
+      autoStart: true, // Automatically start preview server
+      port: 3002,
     });
 
     if (!result.success) {
@@ -669,7 +875,11 @@ async function delegateToScaffoldAgent(
       context.websiteId,
       'scaffold',
       'Scaffold completed successfully',
-      { generatedPath: result.generatedPath }
+      {
+        generatedPath: result.generatedPath,
+        previewUrl: result.previewUrl,
+        previewPort: result.previewPort,
+      }
     );
 
     return { success: true };
@@ -736,6 +946,97 @@ async function delegateToComparatorAgent(
         details: extractionError.details,
         recoverable: true,
       },
+    };
+  }
+}
+
+/**
+ * Structural Validation Result type
+ * Checks for blank components, broken images, layout issues
+ */
+interface StructuralValidationResult {
+  success: boolean;
+  summary: {
+    total: number;
+    ok: number;
+    warnings: number;
+    errors: number;
+  };
+  issues: Array<{
+    component: string;
+    status: 'ok' | 'warning' | 'error';
+    issues: Array<{
+      type: 'error' | 'warning' | 'info';
+      code: string;
+      message: string;
+      details?: string;
+    }>;
+    suggestions: string[];
+  }>;
+  formattedReport: string;
+}
+
+/**
+ * Delegate to Structural Validation Agent
+ * Validates generated components for blank content, broken images, layout issues
+ */
+async function delegateToStructuralValidationAgent(
+  context: AgentContext,
+  previewUrl: string,
+  componentNames: string[]
+): Promise<StructuralValidationResult> {
+  publishAgentStarted(context.websiteId, 'structural-validation', 'Running structural validation...');
+
+  try {
+    const { chromium } = await import('playwright');
+    const { validateAllComponents, formatValidationReport } = await import('@/lib/validation/component-validator');
+
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+
+    try {
+      const report = await validateAllComponents(page, previewUrl, componentNames);
+      const formattedReport = formatValidationReport(report);
+
+      // Log the report for visibility
+      console.log('\n' + formattedReport);
+
+      const result: StructuralValidationResult = {
+        success: true,
+        summary: report.summary,
+        issues: report.components.filter(c => c.status !== 'ok').map(c => ({
+          component: c.component,
+          status: c.status,
+          issues: c.issues,
+          suggestions: c.suggestions,
+        })),
+        formattedReport,
+      };
+
+      publishAgentCompleted(
+        context.websiteId,
+        'structural-validation',
+        `Structural validation: ${report.summary.ok}/${report.summary.total} OK | ${report.summary.warnings} warnings | ${report.summary.errors} errors`,
+        result
+      );
+
+      return result;
+    } finally {
+      await browser.close();
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    publishAgentFailed(context.websiteId, 'structural-validation', createError(
+      4.5,
+      `Structural validation failed: ${errorMessage}`,
+      true
+    ));
+
+    return {
+      success: false,
+      summary: { total: 0, ok: 0, warnings: 0, errors: 0 },
+      issues: [],
+      formattedReport: `Structural validation failed: ${errorMessage}`,
     };
   }
 }
@@ -866,6 +1167,12 @@ export async function executeOrchestrator(
   // Pipeline result accumulator
   const pipelineResult: {
     captureResult?: CaptureResult;
+    assetManifest?: {
+      images: Array<{ id: string; originalUrl: string; localPath: string; width: number; height: number; role: string; aiPrompt?: string }>;
+      fonts: Array<{ family: string; weights: string[]; source: string }>;
+      icons: Array<{ id: string; type: string; localPath?: string }>;
+      summary: { imageCount: number; fontCount: number; iconCount: number; downloadedSize: string };
+    };
     responsiveData?: {
       fullPagePaths: Record<string, string>;
       sections: any[];
@@ -873,6 +1180,15 @@ export async function executeOrchestrator(
     };
     designSystem?: DesignSystem;
     components?: GeneratedComponent[];
+    structuralValidation?: {
+      summary: { total: number; ok: number; warnings: number; errors: number };
+      issues: Array<{
+        component: string;
+        status: 'ok' | 'warning' | 'error';
+        issues: Array<{ type: 'error' | 'warning' | 'info'; code: string; message: string; details?: string }>;
+        suggestions: string[];
+      }>;
+    };
     componentValidation?: {
       totalComponents: number;
       passedComponents: number;
@@ -906,16 +1222,54 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.captureResult = captureRetry.result.data;
-    emitProgress('capturing', 20, 'Desktop capture completed');
+    emitProgress('capturing', 18, 'Desktop capture completed');
 
     // ========================================
-    // PHASE 1.5: RESPONSIVE CAPTURE (20-28%)
+    // PHASE 1.25: ASSET EXTRACTION (18-22%)
+    // Downloads images, fonts, icons locally for reliable rendering
+    // ========================================
+    emitProgress('capturing', 18, 'Phase 1.25/7: Extracting and downloading assets...');
+
+    const assetResult = await delegateToAssetExtraction(agentContext, options);
+
+    if (assetResult.success && assetResult.manifest) {
+      pipelineResult.assetManifest = assetResult.manifest;
+      emitProgress('capturing', 20, `Assets extracted: ${assetResult.manifest.summary.imageCount} images downloaded`);
+    } else {
+      // Asset extraction failure is non-fatal - continue without local assets
+      console.warn('[Orchestrator] Asset extraction failed, using remote URLs:', assetResult.error);
+      emitProgress('capturing', 20, 'Asset extraction skipped (using remote URLs)');
+    }
+
+    // ========================================
+    // PHASE 1.3: SEMANTIC EXTRACTION (20-22%)
+    // Extracts detailed UI/UX descriptions for better generation
+    // ========================================
+    emitProgress('capturing', 20, 'Phase 1.3/7: Analyzing UI/UX semantics...');
+
+    const semanticResult = await delegateToSemanticExtraction(
+      agentContext,
+      options,
+      pipelineResult.captureResult
+    );
+
+    if (semanticResult.success && semanticResult.semantics) {
+      // Store semantics for use in generation
+      (pipelineResult as any).semantics = semanticResult.semantics;
+      emitProgress('capturing', 22, `Semantics extracted: ${semanticResult.semantics.sections.length} sections analyzed`);
+    } else {
+      console.warn('[Orchestrator] Semantic extraction failed (non-fatal):', semanticResult.error);
+      emitProgress('capturing', 22, 'Semantic extraction skipped');
+    }
+
+    // ========================================
+    // PHASE 1.5: RESPONSIVE CAPTURE (22-28%)
     // ========================================
     const { enableResponsive = true } = options;
     let responsiveData: any = null;
 
     if (enableResponsive) {
-      emitProgress('capturing', 20, 'Phase 1.5/7: Capturing responsive viewports (mobile, tablet)...');
+      emitProgress('capturing', 22, 'Phase 1.5/7: Capturing responsive viewports (mobile, tablet)...');
 
       const responsiveResult = await delegateToResponsiveCapture(agentContext, options);
 
@@ -957,7 +1311,39 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.designSystem = extractorRetry.result.data;
-    emitProgress('extracting', 38, 'Design tokens extracted successfully');
+    emitProgress('extracting', 36, 'Design tokens extracted successfully');
+
+    // ========================================
+    // PHASE 2.5: DESIGN SYSTEM PREVIEW (36-38%)
+    // Generates visual preview of extracted tokens
+    // ========================================
+    emitProgress('extracting', 36, 'Phase 2.5/7: Generating design system preview...');
+
+    try {
+      const { generateDesignSystemPreview, generatePreviewHtml, formatDesignSystemReport } = await import('@/lib/design-system/preview');
+      const pathModule = await import('path');
+      const fs = await import('fs/promises');
+
+      const websitesDir = process.env.WEBSITES_DIR || pathModule.join(process.cwd(), 'Websites');
+
+      const preview = generateDesignSystemPreview(pipelineResult.designSystem);
+      const htmlPreview = generatePreviewHtml(preview);
+      const textReport = formatDesignSystemReport(preview);
+
+      // Save preview files
+      const previewDir = pathModule.join(websitesDir, websiteId, 'design-system');
+      await fs.mkdir(previewDir, { recursive: true });
+
+      await fs.writeFile(pathModule.join(previewDir, 'preview.html'), htmlPreview);
+      await fs.writeFile(pathModule.join(previewDir, 'preview.json'), JSON.stringify(preview, null, 2));
+
+      console.log('\n' + textReport);
+
+      emitProgress('extracting', 38, `Design system preview: ${preview.summary.colorCount} colors, ${preview.summary.fontCount} fonts`);
+    } catch (error) {
+      console.warn('[Orchestrator] Design system preview failed (non-fatal):', error);
+      emitProgress('extracting', 38, 'Design system preview skipped');
+    }
 
     // ========================================
     // PHASE 3: GENERATE (38-55%)
@@ -997,7 +1383,94 @@ export async function executeOrchestrator(
       // Scaffold failure is non-fatal - continue with validation (will have 0% accuracy)
       console.warn('Scaffold failed, component validation will have limited accuracy:', scaffoldResult.error);
     } else {
-      emitProgress('scaffolding', 65, 'Project scaffolded successfully');
+      emitProgress('scaffolding', 63, 'Project scaffolded successfully');
+    }
+
+    // ========================================
+    // PHASE 4.5: STRUCTURAL VALIDATION (63-65%)
+    // Checks for blank components, broken images, layout issues
+    // ========================================
+    if (scaffoldResult.success && pipelineResult.components) {
+      emitProgress('validating', 63, 'Phase 4.5/7: Running structural validation...');
+
+      // Get component names from generated components
+      const componentNames = pipelineResult.components.map(c => c.name);
+
+      // Preview URL - scaffold uses port 3002 by default
+      const previewUrl = 'http://localhost:3002';
+
+      const structuralResult = await delegateToStructuralValidationAgent(
+        agentContext,
+        previewUrl,
+        componentNames
+      );
+
+      if (structuralResult.success) {
+        pipelineResult.structuralValidation = {
+          summary: structuralResult.summary,
+          issues: structuralResult.issues,
+        };
+
+        const statusMsg = structuralResult.summary.errors > 0
+          ? `${structuralResult.summary.errors} errors found`
+          : structuralResult.summary.warnings > 0
+          ? `${structuralResult.summary.warnings} warnings`
+          : 'All components OK';
+
+        emitProgress('validating', 65, `Structural validation: ${statusMsg}`);
+
+        // ========================================
+        // PHASE 4.6: ITERATIVE FIX (65-67%)
+        // Auto-fix components that failed structural validation
+        // ========================================
+        if (structuralResult.summary.errors > 0 || structuralResult.summary.warnings > 0) {
+          emitProgress('validating', 65, 'Phase 4.6/7: Auto-fixing failed components...');
+
+          const { runIterativeFixes, formatFixReport } = await import('@/lib/improvement/component-fixer');
+          const pathModule = await import('path');
+
+          const websitesDir = process.env.WEBSITES_DIR || pathModule.join(process.cwd(), 'Websites');
+
+          // Build failed components list (only error/warning, not ok)
+          const failedComponents = structuralResult.issues
+            .filter(issue => issue.status === 'error' || issue.status === 'warning')
+            .map(issue => ({
+              name: issue.component,
+              componentPath: pathModule.join(
+                websitesDir,
+                websiteId,
+                'generated',
+                'src',
+                'components',
+                issue.component,
+                `${issue.component}.tsx`
+              ),
+              status: issue.status as 'error' | 'warning',
+              issues: issue.issues,
+              suggestions: issue.suggestions,
+            }));
+
+          const fixResult = await runIterativeFixes(failedComponents, {
+            maxAttempts: 2,
+            assetManifest: pipelineResult.assetManifest,
+            onProgress: (progress) => {
+              const percent = 65 + ((progress.current / progress.total) * 2);
+              emitProgress('validating', percent, `Fixing ${progress.component}...`);
+            },
+          });
+
+          console.log('\n' + formatFixReport(fixResult));
+
+          if (fixResult.componentsFixed > 0) {
+            emitProgress('validating', 67, `Auto-fixed ${fixResult.componentsFixed} component(s)`);
+          } else {
+            emitProgress('validating', 67, 'No automatic fixes applied');
+          }
+        }
+      } else {
+        console.warn('[Orchestrator] Structural validation failed (non-fatal):', structuralResult.formattedReport);
+        emitProgress('validating', 67, 'Structural validation skipped');
+      }
     }
 
     // ========================================
@@ -1048,7 +1521,7 @@ export async function executeOrchestrator(
           status: 'awaiting_approval',
           checkpointSaved: true,
           scaffoldPath: scaffoldResult,
-        },
+        } as any,
       };
     }
 

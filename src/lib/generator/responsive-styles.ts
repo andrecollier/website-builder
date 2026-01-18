@@ -276,11 +276,11 @@ export function detectResponsiveChanges(
   const desktop = responsiveStyles.find((s) => s.viewport === 'desktop')?.styles || {};
 
   // Get all unique properties
-  const allProps = new Set([
+  const allProps = Array.from(new Set([
     ...Object.keys(mobile),
     ...Object.keys(tablet),
     ...Object.keys(desktop),
-  ]);
+  ]));
 
   for (const prop of allProps) {
     const mobileVal = mobile[prop] || '';

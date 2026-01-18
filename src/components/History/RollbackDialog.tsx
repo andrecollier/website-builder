@@ -47,7 +47,7 @@ export function RollbackDialog({
             Confirm Rollback
           </Dialog.Title>
           <Dialog.Description className="text-sm text-gray-600 mb-6">
-            This will create a new version based on the selected version's state
+            This will create a new version based on the selected version&apos;s state
           </Dialog.Description>
 
           {/* Non-Destructive Notice */}

@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { rollbackToVersion, canRollback, getVersion } from '@/lib/versioning';
-import type { Version } from '@/types';
+import type { VersionRecord } from '@/lib/db/client';
 
 interface RollbackRequest {
   changelog?: string;
@@ -17,8 +17,8 @@ interface RollbackRequest {
 
 interface RollbackResponse {
   success: boolean;
-  newVersion?: Version;
-  targetVersion?: Version;
+  newVersion?: VersionRecord;
+  targetVersion?: VersionRecord;
   error?: string;
 }
 

@@ -174,3 +174,18 @@ export {
   type CSSVariableGroup,
   type CSSVariable,
 } from './css-generator';
+
+// ====================
+// PREVIEW
+// ====================
+
+export {
+  generateDesignSystemPreview,
+  generatePreviewHtml,
+  formatDesignSystemReport,
+  type DesignSystemPreview,
+  type ColorSwatch,
+  type TypographyPreview,
+  type FontPreview,
+  type SpacingPreview,
+} from './preview';

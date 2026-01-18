@@ -541,7 +541,7 @@ function generateCompiledCss(designSystem: DesignSystem): string {
   };
 
   // Generate CSS variables
-  const cssVariables = generateCSSVariables(designSystem.colors, config);
+  const cssVariables = generateCSSVariables(designSystem, config);
 
   // Build complete CSS
   const cssBlocks: string[] = [];
@@ -779,7 +779,7 @@ export async function exportStatic(
     // Determine version ID
     let versionId = providedVersionId;
     if (!versionId) {
-      versionId = getActiveVersionId(websiteId);
+      versionId = getActiveVersionId(websiteId) ?? undefined;
       if (!versionId) {
         throw new Error('No active version found for website');
       }

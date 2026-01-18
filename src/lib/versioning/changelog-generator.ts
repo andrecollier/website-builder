@@ -6,7 +6,7 @@
  * to create understandable descriptions of changes.
  */
 
-import { getVersionById, getVersionFiles } from '@/lib/db/client';
+import { getVersionById, getVersionFiles, type VersionRecord } from '@/lib/db/client';
 import type {
   Version,
   VersionFile,
@@ -173,30 +173,30 @@ function compareColors(
   // Compare primary colors
   if (JSON.stringify(oldColors.primary) !== JSON.stringify(newColors.primary)) {
     changes.push({
-      field: 'colors.primary',
+      property: 'colors.primary',
       oldValue: oldColors.primary.join(', '),
       newValue: newColors.primary.join(', '),
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
   // Compare secondary colors
   if (JSON.stringify(oldColors.secondary) !== JSON.stringify(newColors.secondary)) {
     changes.push({
-      field: 'colors.secondary',
+      property: 'colors.secondary',
       oldValue: oldColors.secondary.join(', '),
       newValue: newColors.secondary.join(', '),
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
   // Compare neutral colors
   if (JSON.stringify(oldColors.neutral) !== JSON.stringify(newColors.neutral)) {
     changes.push({
-      field: 'colors.neutral',
+      property: 'colors.neutral',
       oldValue: oldColors.neutral.join(', '),
       newValue: newColors.neutral.join(', '),
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
@@ -205,10 +205,10 @@ function compareColors(
   for (const key of semanticKeys) {
     if (oldColors.semantic[key] !== newColors.semantic[key]) {
       changes.push({
-        field: `colors.semantic.${key}`,
+        property: `colors.semantic.${key}`,
         oldValue: oldColors.semantic[key],
         newValue: newColors.semantic[key],
-        changeType: 'modified',
+        category: 'modified',
       });
     }
   }
@@ -230,10 +230,10 @@ function compareTypography(
   for (const key of fontKeys) {
     if (oldTypo.fonts[key] !== newTypo.fonts[key]) {
       changes.push({
-        field: `typography.fonts.${key}`,
+        property: `typography.fonts.${key}`,
         oldValue: oldTypo.fonts[key] || null,
         newValue: newTypo.fonts[key] || null,
-        changeType: 'modified',
+        category: 'modified',
       });
     }
   }
@@ -245,10 +245,10 @@ function compareTypography(
   for (const key of scaleKeys) {
     if (oldTypo.scale[key] !== newTypo.scale[key]) {
       changes.push({
-        field: `typography.scale.${key}`,
+        property: `typography.scale.${key}`,
         oldValue: oldTypo.scale[key],
         newValue: newTypo.scale[key],
-        changeType: 'modified',
+        category: 'modified',
       });
     }
   }
@@ -256,10 +256,10 @@ function compareTypography(
   // Compare weights
   if (JSON.stringify(oldTypo.weights) !== JSON.stringify(newTypo.weights)) {
     changes.push({
-      field: 'typography.weights',
+      property: 'typography.weights',
       oldValue: oldTypo.weights.join(', '),
       newValue: newTypo.weights.join(', '),
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
@@ -277,28 +277,28 @@ function compareSpacing(
 
   if (oldSpacing.baseUnit !== newSpacing.baseUnit) {
     changes.push({
-      field: 'spacing.baseUnit',
+      property: 'spacing.baseUnit',
       oldValue: String(oldSpacing.baseUnit),
       newValue: String(newSpacing.baseUnit),
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
   if (JSON.stringify(oldSpacing.scale) !== JSON.stringify(newSpacing.scale)) {
     changes.push({
-      field: 'spacing.scale',
+      property: 'spacing.scale',
       oldValue: oldSpacing.scale.join(', '),
       newValue: newSpacing.scale.join(', '),
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
   if (oldSpacing.containerMaxWidth !== newSpacing.containerMaxWidth) {
     changes.push({
-      field: 'spacing.containerMaxWidth',
+      property: 'spacing.containerMaxWidth',
       oldValue: oldSpacing.containerMaxWidth,
       newValue: newSpacing.containerMaxWidth,
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
@@ -319,10 +319,10 @@ function compareEffects(
   for (const key of shadowKeys) {
     if (oldEffects.shadows[key] !== newEffects.shadows[key]) {
       changes.push({
-        field: `effects.shadows.${key}`,
+        property: `effects.shadows.${key}`,
         oldValue: oldEffects.shadows[key],
         newValue: newEffects.shadows[key],
-        changeType: 'modified',
+        category: 'modified',
       });
     }
   }
@@ -332,10 +332,10 @@ function compareEffects(
   for (const key of radiiKeys) {
     if (oldEffects.radii[key] !== newEffects.radii[key]) {
       changes.push({
-        field: `effects.radii.${key}`,
+        property: `effects.radii.${key}`,
         oldValue: oldEffects.radii[key],
         newValue: newEffects.radii[key],
-        changeType: 'modified',
+        category: 'modified',
       });
     }
   }
@@ -345,10 +345,10 @@ function compareEffects(
   for (const key of transitionKeys) {
     if (oldEffects.transitions[key] !== newEffects.transitions[key]) {
       changes.push({
-        field: `effects.transitions.${key}`,
+        property: `effects.transitions.${key}`,
         oldValue: oldEffects.transitions[key],
         newValue: newEffects.transitions[key],
-        changeType: 'modified',
+        category: 'modified',
       });
     }
   }
@@ -376,7 +376,7 @@ function compareFiles(oldFiles: VersionFile[], newFiles: VersionFile[]): FileDif
   const modified: VersionFile[] = [];
 
   // Find added and modified files
-  for (const [path, newFile] of newFileMap) {
+  for (const [path, newFile] of Array.from(newFileMap.entries())) {
     const oldFile = oldFileMap.get(path);
     if (!oldFile) {
       added.push(newFile);
@@ -386,7 +386,7 @@ function compareFiles(oldFiles: VersionFile[], newFiles: VersionFile[]): FileDif
   }
 
   // Find removed files
-  for (const [path, oldFile] of oldFileMap) {
+  for (const [path, oldFile] of Array.from(oldFileMap.entries())) {
     if (!newFileMap.has(path)) {
       removed.push(oldFile);
     }
@@ -504,28 +504,28 @@ function generateFileChanges(fileDiff: FileDiff): Change[] {
 
   for (const file of fileDiff.added) {
     changes.push({
-      field: `file.${file.file_path}`,
+      property: `file.${file.file_path}`,
       oldValue: null,
       newValue: file.file_hash,
-      changeType: 'added',
+      category: 'added',
     });
   }
 
   for (const file of fileDiff.removed) {
     changes.push({
-      field: `file.${file.file_path}`,
+      property: `file.${file.file_path}`,
       oldValue: file.file_hash,
       newValue: null,
-      changeType: 'removed',
+      category: 'removed',
     });
   }
 
   for (const file of fileDiff.modified) {
     changes.push({
-      field: `file.${file.file_path}`,
+      property: `file.${file.file_path}`,
       oldValue: null, // We don't track old hash in modified files
       newValue: file.file_hash,
-      changeType: 'modified',
+      category: 'modified',
     });
   }
 
@@ -540,7 +540,7 @@ function generateFileChanges(fileDiff: FileDiff): Change[] {
  * Format a color change into human-readable text
  */
 function formatColorChange(change: Change): string {
-  const field = change.field.replace('colors.', '');
+  const field = change.property.replace('colors.', '');
 
   if (field === 'primary') {
     return `Updated primary color palette`;
@@ -563,7 +563,7 @@ function formatColorChange(change: Change): string {
  * Format a typography change into human-readable text
  */
 function formatTypographyChange(change: Change): string {
-  const field = change.field.replace('typography.', '');
+  const field = change.property.replace('typography.', '');
 
   if (field.startsWith('fonts.')) {
     const fontType = field.replace('fonts.', '');
@@ -586,7 +586,7 @@ function formatTypographyChange(change: Change): string {
  * Format a spacing change into human-readable text
  */
 function formatSpacingChange(change: Change): string {
-  const field = change.field.replace('spacing.', '');
+  const field = change.property.replace('spacing.', '');
 
   if (field === 'baseUnit') {
     return `Changed base spacing unit from ${change.oldValue}px to ${change.newValue}px`;
@@ -607,7 +607,7 @@ function formatSpacingChange(change: Change): string {
  * Format an effects change into human-readable text
  */
 function formatEffectsChange(change: Change): string {
-  const field = change.field.replace('effects.', '');
+  const field = change.property.replace('effects.', '');
 
   if (field.startsWith('shadows.')) {
     const size = field.replace('shadows.', '');
@@ -634,7 +634,7 @@ function formatEffectsChange(change: Change): string {
  * @param version - Version being described
  * @returns Summary text
  */
-function generateSummary(entries: ChangelogEntry[], version: Version): string {
+function generateSummary(entries: ChangelogEntry[], version: VersionRecord): string {
   if (entries.length === 0) {
     return 'No changes detected';
   }
@@ -665,4 +665,4 @@ function capitalize(str: string): string {
 // EXPORTS (types only - functions exported inline)
 // ====================
 
-export type { ChangelogResult, TokenDiff, FileDiff };
+export type { TokenDiff, FileDiff };

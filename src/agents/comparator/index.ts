@@ -453,7 +453,6 @@ export async function executeComparator(
     // Update shared context with comparison results
     updateContext(websiteId, {
       status: 'complete',
-      comparisonReport: report,
       errors,
     });
 

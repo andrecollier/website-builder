@@ -281,11 +281,10 @@ function calculateTypographySimilarity(
 function getAllSpacingValues(spacing: SpacingExtraction): number[] {
   const values: number[] = [];
 
-  // Extract values from scale object
+  // Extract values from scale array
   if (spacing.scale) {
-    Object.values(spacing.scale).forEach(value => {
-      const parsed = extractFontSize(value); // Reuse size extraction
-      if (parsed > 0) values.push(parsed);
+    spacing.scale.forEach(value => {
+      if (typeof value === 'number' && value > 0) values.push(value);
     });
   }
 
@@ -739,9 +738,4 @@ export function meetsHarmonyThreshold(
 // EXPORTS
 // ====================
 
-export {
-  type HarmonyCheckOptions,
-  type HarmonyBreakdown,
-  type DetailedHarmonyResult,
-  HARMONY_CONFIG,
-};
+export { HARMONY_CONFIG };

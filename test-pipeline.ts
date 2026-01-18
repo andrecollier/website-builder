@@ -28,7 +28,6 @@ async function main() {
     console.log('✅ Pipeline completed successfully!');
     console.log(`   Components: ${result.data?.components?.length || 0}`);
     console.log(`   Accuracy: ${result.data?.overallAccuracy?.toFixed(1) || 'N/A'}%`);
-    console.log(`   Responsive: ${result.data?.responsiveData ? 'Yes (3 viewports)' : 'No'}`);
   } else {
     console.log('❌ Pipeline failed:', result.error?.message);
   }

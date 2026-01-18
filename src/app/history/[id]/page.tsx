@@ -49,7 +49,7 @@ export default function HistoryPage() {
 
   // Derived state
   const selectedVersion = versions.find((v) => v.id === selectedVersionId) || null;
-  const currentVersion = versions.find((v) => v.is_active === 1) || null;
+  const currentVersion = versions.find((v) => v.is_active) || null;
   const changelogEntries: ChangelogEntry[] = selectedVersion?.changelog
     ? parseChangelog(selectedVersion.changelog)
     : [];
@@ -94,7 +94,7 @@ export default function HistoryPage() {
         if (data.success && data.versions) {
           setVersions(data.versions);
           // Auto-select active version
-          const active = data.versions.find((v) => v.is_active === 1);
+          const active = data.versions.find((v) => v.is_active);
           if (active) {
             setSelectedVersionId(active.id);
           }
@@ -130,7 +130,7 @@ export default function HistoryPage() {
         setVersions((prev) =>
           prev.map((v) => ({
             ...v,
-            is_active: v.id === versionId ? 1 : 0,
+            is_active: v.id === versionId,
           }))
         );
       } else {
@@ -172,7 +172,7 @@ export default function HistoryPage() {
       if (data.success && data.newVersion) {
         // Add new version to list and set as active
         setVersions((prev) => [
-          ...prev.map((v) => ({ ...v, is_active: 0 })),
+          ...prev.map((v) => ({ ...v, is_active: false })),
           data.newVersion!,
         ]);
         setSelectedVersionId(data.newVersion.id);
@@ -303,7 +303,7 @@ export default function HistoryPage() {
                       <h2 className="text-lg font-semibold text-gray-900">
                         v{selectedVersion.version_number}
                       </h2>
-                      {selectedVersion.is_active === 1 && (
+                      {selectedVersion.is_active && (
                         <span className="px-2 py-0.5 text-xs font-medium text-white bg-blue-600 rounded">
                           Active
                         </span>

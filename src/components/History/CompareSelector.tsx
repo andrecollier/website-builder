@@ -62,7 +62,7 @@ export function CompareSelector({ versions, onCompare }: CompareSelectorProps) {
                 <option key={version.id} value={version.id}>
                   v{version.version_number} -{' '}
                   {new Date(version.created_at).toLocaleDateString()}
-                  {version.is_active === 1 ? ' (Active)' : ''}
+                  {version.is_active ? ' (Active)' : ''}
                 </option>
               ))}
             </select>
@@ -111,7 +111,7 @@ export function CompareSelector({ versions, onCompare }: CompareSelectorProps) {
                 <option key={version.id} value={version.id}>
                   v{version.version_number} -{' '}
                   {new Date(version.created_at).toLocaleDateString()}
-                  {version.is_active === 1 ? ' (Active)' : ''}
+                  {version.is_active ? ' (Active)' : ''}
                 </option>
               ))}
             </select>
@@ -132,7 +132,7 @@ export function CompareSelector({ versions, onCompare }: CompareSelectorProps) {
                   <span className="text-sm font-semibold text-blue-900">
                     Version A: v{versionA.version_number}
                   </span>
-                  {versionA.is_active === 1 && (
+                  {versionA.is_active && (
                     <span className="px-2 py-0.5 text-xs font-medium text-white bg-blue-600 rounded">
                       Active
                     </span>
@@ -162,7 +162,7 @@ export function CompareSelector({ versions, onCompare }: CompareSelectorProps) {
                   <span className="text-sm font-semibold text-purple-900">
                     Version B: v{versionB.version_number}
                   </span>
-                  {versionB.is_active === 1 && (
+                  {versionB.is_active && (
                     <span className="px-2 py-0.5 text-xs font-medium text-white bg-purple-600 rounded">
                       Active
                     </span>

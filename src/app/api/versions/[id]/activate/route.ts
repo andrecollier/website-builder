@@ -8,11 +8,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { activateVersion, getVersion } from '@/lib/versioning';
-import type { Version } from '@/types';
+import type { VersionRecord } from '@/lib/db/client';
 
 interface ActivateResponse {
   success: boolean;
-  version?: Version;
+  version?: VersionRecord;
   error?: string;
 }
 

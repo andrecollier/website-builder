@@ -306,7 +306,7 @@ export function TokenSourceSelector({
           </svg>
           <div className="text-xs text-[rgb(var(--muted-foreground))] space-y-1">
             <p>
-              The primary token source provides the foundation for your website's design system,
+              The primary token source provides the foundation for your website&apos;s design system,
               including color palette, typography, and spacing values.
             </p>
             <p>

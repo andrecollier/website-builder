@@ -58,16 +58,17 @@ async function detectComponentType(
 ): Promise<{ type: string; confidence: number }> {
   // First, check for explicit data-component-type attribute (set by scaffold)
   const explicitType = await handle.evaluate((el) => {
-    return el.getAttribute('data-component-type');
+    return (el as Element).getAttribute('data-component-type');
   });
 
   if (explicitType) {
     return { type: explicitType.toLowerCase(), confidence: 1.0 };
   }
 
-  const info = await handle.evaluate((el, { idx, total }) => {
+  const info = await handle.evaluate((node, { idx, total }) => {
+    const el = node as Element;
     const tagName = el.tagName.toLowerCase();
-    const className = el.className || '';
+    const className = el.className as string || '';
     const id = el.id || '';
     const innerHTML = el.innerHTML || '';
     const textContent = el.textContent || '';

@@ -207,12 +207,12 @@ export function publish(websiteId: string, message: Omit<AgentMessage, 'websiteI
   }
 
   // Wire progress events to SSE stream
-  if (message.type === 'progress') {
-    publishCaptureProgress(websiteId, message.progress);
+  if (fullMessage.type === 'progress') {
+    publishCaptureProgress(websiteId, (fullMessage as ProgressMessage).progress);
   }
 
   // Clean up completed or failed pipelines after a delay
-  if (message.type === 'pipeline:completed' || message.type === 'pipeline:failed') {
+  if (fullMessage.type === 'pipeline:completed' || fullMessage.type === 'pipeline:failed') {
     setTimeout(() => {
       clearMessages(websiteId);
     }, 30000); // Keep for 30 seconds for late subscribers
@@ -303,7 +303,7 @@ export function createProgressPublisher(
       type: 'progress',
       agentType,
       progress,
-    });
+    } as Omit<ProgressMessage, 'websiteId' | 'timestamp'>);
   };
 }
 
@@ -319,7 +319,7 @@ export function publishAgentStarted(
     type: 'agent:started',
     agentType,
     message,
-  });
+  } as Omit<AgentStartedMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**
@@ -336,7 +336,7 @@ export function publishAgentCompleted(
     agentType,
     message,
     result,
-  });
+  } as Omit<AgentCompletedMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**
@@ -351,7 +351,7 @@ export function publishAgentFailed(
     type: 'agent:failed',
     agentType,
     error,
-  });
+  } as Omit<AgentFailedMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**
@@ -368,7 +368,7 @@ export function publishError(
     agentType,
     error,
     fatal,
-  });
+  } as Omit<ErrorMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**
@@ -379,7 +379,7 @@ export function publishPipelineStarted(websiteId: string, message: string): void
     type: 'pipeline:started',
     agentType: 'orchestrator',
     message,
-  });
+  } as Omit<PipelineStartedMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**
@@ -390,7 +390,7 @@ export function publishPipelineCompleted(websiteId: string, message: string): vo
     type: 'pipeline:completed',
     agentType: 'orchestrator',
     message,
-  });
+  } as Omit<PipelineCompletedMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**
@@ -401,7 +401,7 @@ export function publishPipelineFailed(websiteId: string, error: ExtractionError)
     type: 'pipeline:failed',
     agentType: 'orchestrator',
     error,
-  });
+  } as Omit<PipelineFailedMessage, 'websiteId' | 'timestamp'>);
 }
 
 /**

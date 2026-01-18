@@ -467,7 +467,10 @@ export async function captureResponsive(
     emitProgress('complete', 95, 'Merging responsive data...');
 
     // Use desktop sections as base (most detailed)
-    const desktopData = viewportData.get('desktop') || viewportData.values().next().value;
+    const desktopData = viewportData.get('desktop') || Array.from(viewportData.values())[0];
+    if (!desktopData) {
+      throw new Error('No viewport data available');
+    }
     const responsiveSections: ResponsiveSectionInfo[] = desktopData.sections.map(
       (section) => {
         const responsiveStyles: ViewportStyles[] = [];
@@ -477,7 +480,7 @@ export async function captureResponsive(
           SectionInfo['boundingBox']
         > = {} as any;
 
-        for (const [viewportName, data] of viewportData) {
+        for (const [viewportName, data] of Array.from(viewportData.entries())) {
           // Find matching section by index/type
           const matchingSection = data.sections.find(
             (s) => s.type === section.type
@@ -572,11 +575,11 @@ export function compareViewportStyles(
     responsiveStyles.find((s) => s.viewport === 'desktop')?.styles || {};
 
   // Find all unique style properties
-  const allProps = new Set([
+  const allProps = Array.from(new Set([
     ...Object.keys(mobileStyles),
     ...Object.keys(tabletStyles),
     ...Object.keys(desktopStyles),
-  ]);
+  ]));
 
   for (const prop of allProps) {
     const mobile = mobileStyles[prop];
@@ -646,7 +649,7 @@ export function generateResponsiveTailwindClasses(
     },
   };
 
-  for (const [prop, values] of styleChanges) {
+  for (const [prop, values] of Array.from(styleChanges.entries())) {
     const mapper = propertyMappings[prop];
     if (!mapper) continue;
 

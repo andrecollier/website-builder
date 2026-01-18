@@ -115,7 +115,7 @@ async function runExtractionPipeline(websiteId: string, url: string, requireAppr
 
     if (result.success && result.data) {
       // Check if pipeline is awaiting approval
-      if (result.data.status === 'awaiting_approval') {
+      if ((result.data as any).status === 'awaiting_approval') {
         saveProgress(websiteId, 'awaiting_approval', 65, 'Scaffold complete - preview available. Awaiting approval.');
         updateWebsiteStatus(websiteId, 'awaiting_approval');
         return; // Don't clean up progress store yet - user needs to see the state

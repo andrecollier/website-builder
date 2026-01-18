@@ -240,25 +240,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     switch (exportRequest.format) {
       case 'nextjs':
         exportDir = path.join(exportsBaseDir, `nextjs-${exportRequest.websiteId}-${timestamp}`);
-        result = await exportNextJS(components, designTokens, {
+        result = await exportNextJS({
+          websiteId: exportRequest.websiteId,
+          designSystem: designTokens,
           outputDir: exportDir,
-          seoMetadata: exportRequest.seoMetadata,
-          projectName: exportRequest.seoMetadata.title || website.url.replace(/https?:\/\//, '').replace(/[^a-z0-9]/gi, '-'),
+          seo: exportRequest.seoMetadata,
+          projectName: exportRequest.seoMetadata.title || website.reference_url.replace(/https?:\/\//, '').replace(/[^a-z0-9]/gi, '-'),
         });
         break;
 
       case 'static':
         exportDir = path.join(exportsBaseDir, `static-${exportRequest.websiteId}-${timestamp}`);
-        result = await exportStatic(components, designTokens, {
+        result = await exportStatic({
+          websiteId: exportRequest.websiteId,
+          designSystem: designTokens,
           outputDir: exportDir,
-          seoMetadata: exportRequest.seoMetadata,
-          includeInteractivity: exportRequest.options.enableInteractivity,
+          seo: exportRequest.seoMetadata,
         });
         break;
 
       case 'components':
         exportDir = path.join(exportsBaseDir, `components-${exportRequest.websiteId}-${timestamp}`);
-        result = await exportComponents(components, designTokens, {
+        result = await exportComponents({
+          websiteId: exportRequest.websiteId,
+          designSystem: designTokens,
           outputDir: exportDir,
           packageName: exportRequest.seoMetadata.title?.toLowerCase().replace(/\s+/g, '-') || 'website-components',
         });
@@ -278,7 +283,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           success: false,
-          error: result.error || 'Export failed',
+          error: result.errors?.[0]?.message || 'Export failed',
         },
         { status: 500 }
       );
@@ -286,7 +291,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Generate ZIP file
     zipPath = path.join(exportsBaseDir, `${exportRequest.websiteId}-${exportRequest.format}-${timestamp}.zip`);
-    const zipResult = await generateZip(exportDir, zipPath, {
+    const zipResult = await generateZip({
+      sourceDir: exportDir,
+      outputPath: zipPath,
       compressionLevel: 9,
       exclude: ['node_modules', '.git', '.DS_Store'],
     });
@@ -295,7 +302,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           success: false,
-          error: zipResult.error || 'ZIP generation failed',
+          error: (zipResult as any).error || 'ZIP generation failed',
         },
         { status: 500 }
       );

@@ -1,6 +1,7 @@
 // Database Models
 
 import type { RawPageData } from '@/lib/design-system/synthesizer';
+export type { RawPageData };
 
 export type WebsiteStatus = 'pending' | 'in_progress' | 'awaiting_approval' | 'completed' | 'failed';
 
@@ -57,6 +58,22 @@ export interface VersionFileInsert {
   file_size: number;
 }
 
+export type ChangelogEntryType = 'color' | 'typography' | 'spacing' | 'effects' | 'component' | 'layout' | 'other';
+
+export interface ChangelogEntry {
+  type: ChangelogEntryType;
+  description: string;
+  timestamp: string;
+}
+
+export interface Change {
+  category: string;
+  property: string;
+  oldValue: string | null;
+  newValue: string | null;
+  description?: string;
+}
+
 export interface Website {
   id: string;
   name: string;
@@ -83,6 +100,7 @@ export type PhaseName =
   | 'Analyzing Layout'
   | 'Generating Components'
   | 'Building Pages'
+  | 'Building Project'
   | 'Visual Comparison'
   | 'Refinement'
   | 'Finalization';
@@ -151,6 +169,7 @@ export interface StartExtractionRequest {
   mode: ExtractionMode;
   name?: string;
   templateConfig?: TemplateConfig;
+  requireApproval?: boolean;
 }
 
 export interface StartExtractionResponse {

@@ -17,6 +17,7 @@ import {
   getActiveVersion,
   createVersionFilesBatch,
   getVersionFiles,
+  type VersionRecord,
 } from '@/lib/db/client';
 import type { Version, VersionInsert, VersionFileInsert } from '@/types';
 
@@ -55,7 +56,7 @@ export interface CreateVersionOptions {
  * Result of version creation
  */
 export interface CreateVersionResult {
-  version: Version;
+  version: VersionRecord;
   versionPath: string;
   filesCopied: number;
 }
@@ -346,10 +347,12 @@ export function createNewVersion(
   // Create version file records with hashes
   const versionFileInserts: VersionFileInsert[] = copiedFiles.map((filePath) => {
     const fullPath = path.join(versionPath, filePath);
+    const stats = fs.statSync(fullPath);
     return {
       version_id: '', // Will be set after version is created
       file_path: filePath,
       file_hash: calculateFileHash(fullPath),
+      file_size: stats.size,
     };
   });
 
@@ -392,7 +395,7 @@ export function createNewVersion(
  * @param websiteId - Website ID
  * @returns Array of versions sorted by creation date (newest first)
  */
-export function listVersions(websiteId: string): Version[] {
+export function listVersions(websiteId: string): VersionRecord[] {
   return getVersions(websiteId);
 }
 
@@ -407,7 +410,7 @@ export function listVersions(websiteId: string): Version[] {
 export function activateVersion(
   versionId: string,
   websiteId: string
-): Version | null {
+): VersionRecord | null {
   // Update database (deactivates others, activates this one)
   const version = dbSetActiveVersion(versionId);
 
@@ -427,7 +430,7 @@ export function activateVersion(
  * @param websiteId - Website ID
  * @returns Active version or null if none active
  */
-export function getCurrentVersion(websiteId: string): Version | null {
+export function getCurrentVersion(websiteId: string): VersionRecord | null {
   return getActiveVersion(websiteId);
 }
 
@@ -437,7 +440,7 @@ export function getCurrentVersion(websiteId: string): Version | null {
  * @param versionId - Version ID
  * @returns Version or null if not found
  */
-export function getVersion(versionId: string): Version | null {
+export function getVersion(versionId: string): VersionRecord | null {
   return getVersionById(versionId);
 }
 

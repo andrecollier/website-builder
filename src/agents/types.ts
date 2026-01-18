@@ -24,7 +24,14 @@ export type AgentType =
   | 'extractor' // Extracts design tokens
   | 'generator' // Generates React components
   | 'scaffold' // Creates runnable Next.js project
-  | 'comparator'; // Compares visual outputs
+  | 'comparator' // Compares visual outputs
+  | 'asset-extraction' // Downloads images/fonts locally
+  | 'semantic-extraction' // Extracts UI/UX descriptions
+  | 'design-preview' // Visual design system preview
+  | 'component-fixer' // Auto-fixes failed components
+  | 'responsive-capture' // Multi-viewport responsive capture
+  | 'structural-validation' // Validates component structure
+  | 'component-validation'; // Per-component visual validation
 
 /**
  * Agent Context Interface

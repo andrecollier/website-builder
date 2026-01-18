@@ -24,9 +24,9 @@ import { randomUUID } from 'crypto';
  * that make components invisible when captured. This function normalizes
  * these styles to ensure components are visible.
  *
- * NOTE: Noise overlay elements (256x256 textures) are removed entirely.
- * Noise effects should be generated separately in post-processing
- * (e.g., nano banana integration) for better control.
+ * NOTE: Noise overlay elements (256x256 textures with mixBlendMode: overlay)
+ * are removed entirely. Noise effects should be generated separately in
+ * post-processing (e.g., nano banana integration) for better control.
  *
  * @param html - Raw HTML string from element.outerHTML
  * @returns Normalized HTML with visible styles
@@ -34,13 +34,31 @@ import { randomUUID } from 'crypto';
 export function normalizeFramerStyles(html: string): string {
   if (!html) return html;
 
-  // First pass: Remove noise overlay elements entirely
-  // Framer uses small repeating textures (256x256) as noise overlays
-  // These should be generated in post-processing, not extracted
-  const noiseOverlayPattern = /<div[^>]*style=["'][^"']*(?:background-image\s*:\s*url\([^)]*(?:width=256|height=256)[^)]*\)|background-repeat\s*:\s*repeat)[^"']*["'][^>]*(?:\/>|><\/div>)/gi;
-  let cleaned = html.replace(noiseOverlayPattern, '<!-- noise overlay removed -->');
+  let cleaned = html;
 
-  // Also remove elements with noise/grain texture URLs
+  // First pass: Remove elements with mixBlendMode: 'overlay' (Framer noise overlays)
+  // These are decorative noise textures that should be generated in post-processing
+  // Pattern matches: <section|div with mixBlendMode: 'overlay' or mix-blend-mode: overlay
+  // and removes the entire element including children
+
+  // Match elements with mix-blend-mode: overlay (Framer noise overlays)
+  // The style attribute uses double quotes, and URLs inside use single quotes
+  // Pattern: <section style="...mix-blend-mode: overlay...">...</section>
+  // Must handle: style="display: block; mix-blend-mode: overlay; background-image: url('...')"
+  const blendModeOverlayPattern = /<(section|div|article)[^>]*\sstyle="[^"]*mix-blend-mode:\s*overlay[^"]*"[^>]*>[\s\S]*?<\/\1>/gi;
+  cleaned = cleaned.replace(blendModeOverlayPattern, '<!-- noise overlay removed -->');
+
+  // Also match JSX-style format in case HTML was already partially converted
+  // Pattern: <section style={{...mixBlendMode: 'overlay'...}}>...</section>
+  const jsxBlendModePattern = /<(section|div|article)[^>]*\sstyle=\{\{[^}]*mixBlendMode:\s*['"]overlay['"][^}]*\}\}[^>]*>[\s\S]*?<\/\1>/gi;
+  cleaned = cleaned.replace(jsxBlendModePattern, '<!-- noise overlay removed -->');
+
+  // Second pass: Remove standalone noise texture divs (256x256 repeating textures)
+  // Framer uses small repeating textures as noise overlays
+  const noiseOverlayPattern = /<div[^>]*style=["'][^"']*(?:background-image\s*:\s*url\([^)]*(?:width=256|height=256)[^)]*\)|background-repeat\s*:\s*repeat)[^"']*["'][^>]*(?:\/>|><\/div>)/gi;
+  cleaned = cleaned.replace(noiseOverlayPattern, '<!-- noise overlay removed -->');
+
+  // Third pass: Remove elements with noise/grain texture URLs
   const noiseUrlPattern = /<div[^>]*style=["'][^"']*url\([^)]*(?:noise|grain|texture)[^)]*\)[^"']*["'][^>]*(?:\/>|><\/div>)/gi;
   cleaned = cleaned.replace(noiseUrlPattern, '<!-- noise overlay removed -->');
 

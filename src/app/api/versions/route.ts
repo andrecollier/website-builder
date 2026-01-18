@@ -10,11 +10,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { listVersions, createNewVersion, type CreateVersionOptions } from '@/lib/versioning';
-import type { Version } from '@/types';
+import type { VersionRecord } from '@/lib/db/client';
 
 interface VersionsListResponse {
   success: boolean;
-  versions?: Version[];
+  versions?: VersionRecord[];
   error?: string;
 }
 
@@ -31,7 +31,7 @@ interface CreateVersionRequest {
 
 interface CreateVersionResponse {
   success: boolean;
-  version?: Version;
+  version?: VersionRecord;
   versionPath?: string;
   filesCopied?: number;
   error?: string;

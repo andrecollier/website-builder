@@ -126,7 +126,8 @@ async function diagnose(): Promise<DiagnosticReport> {
     });
 
     // Check if Header is first
-    if (componentMatches.length > 0 && !componentMatches[0].includes('Header')) {
+    const firstComponent = componentMatches[0];
+    if (componentMatches.length > 0 && firstComponent && !firstComponent.includes('Header')) {
       report.issues.push('Header is not the first component - page order is wrong');
     }
   }

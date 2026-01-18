@@ -115,7 +115,7 @@ export async function POST(
 
     const previewRequest: PreviewRequest = {
       websiteId: data.websiteId,
-      format: (data.format as string) || 'static',
+      format: ((data.format as string) || 'static') as 'nextjs' | 'components' | 'static',
       options: {
         enableInteractivity: true,
         optimizeImages: false, // Disable for faster preview generation
@@ -212,9 +212,11 @@ export async function POST(
     const previewDir = path.join(publicDir, `preview-${previewRequest.websiteId}-${timestamp}`);
 
     // Generate static export for preview (always use static format for preview)
-    const result = await exportStatic(components, designTokens, {
+    const result = await exportStatic({
+      websiteId: previewRequest.websiteId,
+      designSystem: designTokens,
       outputDir: previewDir,
-      seoMetadata: previewRequest.seoMetadata,
+      seo: previewRequest.seoMetadata,
       includeInteractivity: previewRequest.options.enableInteractivity,
     });
 
@@ -222,7 +224,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: result.error || 'Preview generation failed',
+          error: result.errors?.[0]?.message || 'Preview generation failed',
         },
         { status: 500 }
       );

@@ -22,7 +22,7 @@ export { DownloadButton } from './DownloadButton';
 // Types
 export type { FormatSelectorProps, ExportFormat } from './FormatSelector';
 export type { OptionsPanelProps, ExportOptions } from './OptionsPanel';
-export type { SEOFormProps } from './SEOForm';
+export type { SEOFormProps, SEOMetadata } from './SEOForm';
 export type { QualityReportViewProps } from './QualityReportView';
 export type { PreviewButtonProps } from './PreviewButton';
 export type { DownloadButtonProps } from './DownloadButton';

@@ -178,7 +178,7 @@ export async function generateComponentTool(
       styles: {
         backgroundColor: designSystem.colors?.primary?.[0] || '#ffffff',
         color: designSystem.colors?.neutral?.[0] || '#000000',
-        padding: designSystem.spacing?.scale?.[4] || '1rem',
+        padding: String(designSystem.spacing?.scale?.[4] ?? '1rem'),
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -298,7 +298,7 @@ export async function generateVariantsTool(
       styles: {
         backgroundColor: designSystem.colors?.primary?.[0] || '#ffffff',
         color: designSystem.colors?.neutral?.[0] || '#000000',
-        padding: designSystem.spacing?.scale?.[4] || '1rem',
+        padding: String(designSystem.spacing?.scale?.[4] ?? '1rem'),
       },
       screenshotPath: '',
     };

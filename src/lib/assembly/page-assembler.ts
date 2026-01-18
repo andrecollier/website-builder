@@ -477,7 +477,7 @@ export async function assemblePage(
     // Determine version ID
     let versionId = providedVersionId;
     if (!versionId) {
-      versionId = getActiveVersionId(websiteId);
+      versionId = getActiveVersionId(websiteId) ?? undefined;
       if (!versionId) {
         throw new Error('No active version found for website');
       }

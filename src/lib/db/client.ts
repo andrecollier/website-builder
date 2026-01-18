@@ -1616,3 +1616,68 @@ export function deleteVersionFiles(versionId: string): number {
   const result = stmt.run(versionId);
   return result.changes;
 }
+
+// ====================
+// DESIGN TOKENS FUNCTIONS
+// ====================
+
+/**
+ * Design tokens record type
+ */
+interface DesignTokensRecord {
+  id: string;
+  website_id: string;
+  tokens_json: string;
+  is_modified: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Get design tokens for a website
+ */
+export function getDesignTokensByWebsite(websiteId: string): DesignTokensRecord | null {
+  const database = getDb();
+  const stmt = database.prepare('SELECT * FROM design_tokens WHERE website_id = ?');
+  return stmt.get(websiteId) as DesignTokensRecord | null;
+}
+
+/**
+ * Create or update design tokens for a website
+ */
+export function upsertDesignTokens(websiteId: string, tokensJson: string): DesignTokensRecord {
+  const database = getDb();
+  const id = `tokens_${Date.now()}`;
+
+  // Check if tokens exist for this website
+  const existing = getDesignTokensByWebsite(websiteId);
+
+  if (existing) {
+    // Update existing
+    const stmt = database.prepare(`
+      UPDATE design_tokens
+      SET tokens_json = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE website_id = ?
+    `);
+    stmt.run(tokensJson, websiteId);
+    return getDesignTokensByWebsite(websiteId)!;
+  } else {
+    // Insert new
+    const stmt = database.prepare(`
+      INSERT INTO design_tokens (id, website_id, tokens_json)
+      VALUES (?, ?, ?)
+    `);
+    stmt.run(id, websiteId, tokensJson);
+    return getDesignTokensByWebsite(websiteId)!;
+  }
+}
+
+/**
+ * Delete design tokens for a website
+ */
+export function deleteDesignTokens(websiteId: string): boolean {
+  const database = getDb();
+  const stmt = database.prepare('DELETE FROM design_tokens WHERE website_id = ?');
+  const result = stmt.run(websiteId);
+  return result.changes > 0;
+}

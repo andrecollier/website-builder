@@ -426,7 +426,7 @@ function generateComponentFile(
   variant: VariantRecord
 ): string {
   const componentName = toPascalCase(component.name);
-  const code = variant.custom_code || variant.code;
+  const code = component.custom_code || variant.code;
 
   // Extract imports and code
   const lines = code.split('\n');
@@ -577,7 +577,7 @@ export async function exportComponents(
              AND (id = ? OR selected = 1)
              LIMIT 1`
           )
-          .get(component.id, component.selected_variant_id) as VariantRecord | undefined;
+          .get(component.id, component.selected_variant) as VariantRecord | undefined;
 
         if (!variant) {
           throw new Error(`No approved variant found for ${component.name}`);

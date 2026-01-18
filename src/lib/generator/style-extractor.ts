@@ -112,7 +112,7 @@ async function extractElementStyles(
 
           // Get attributes
           const attrs: Record<string, string> = {};
-          for (const attr of el.attributes) {
+          for (const attr of Array.from(el.attributes)) {
             if (!attr.name.startsWith('data-framer') && attr.name !== 'class') {
               attrs[attr.name] = attr.value;
             }
@@ -170,12 +170,13 @@ export async function extractSectionWithStyles(
       // Find elements in this Y range
       const allElements = document.querySelectorAll('section, article, main > div, [class*="section"], [data-framer-name], header, footer, nav');
       let bestMatch: Element | null = null;
-      let bestOverlap = 0;
+      let bestScore = -Infinity;
 
       allElements.forEach((el) => {
         const rect = el.getBoundingClientRect();
         const elemTop = rect.top + window.scrollY;
         const elemBottom = elemTop + rect.height;
+        const elemHeight = rect.height;
         const sectionTop = y;
         const sectionBottom = y + height;
 
@@ -183,8 +184,23 @@ export async function extractSectionWithStyles(
         const overlapBottom = Math.min(elemBottom, sectionBottom);
         const overlap = Math.max(0, overlapBottom - overlapTop);
 
-        if (overlap > bestOverlap && overlap > height * 0.3) {
-          bestOverlap = overlap;
+        // Skip elements with less than 30% overlap
+        if (overlap < height * 0.3) return;
+
+        // Calculate how well the element fits the target region
+        // Prefer elements that:
+        // 1. Have high overlap with target
+        // 2. Are closer in size to target (not huge wrapper divs)
+        // 3. Start near the target y position
+        const overlapRatio = overlap / height;
+        const sizeSimilarity = Math.min(height / elemHeight, elemHeight / height);
+        const positionMatch = 1 - Math.min(1, Math.abs(elemTop - sectionTop) / height);
+
+        // Score: prioritize overlap, then size similarity, then position
+        const score = overlapRatio * 0.5 + sizeSimilarity * 0.35 + positionMatch * 0.15;
+
+        if (score > bestScore) {
+          bestScore = score;
           bestMatch = el;
         }
       });
@@ -262,6 +278,14 @@ export async function extractSectionWithStyles(
 
         processElement(el: Element, isRoot: boolean = false): string {
           const computed = window.getComputedStyle(el);
+
+          // Skip elements with mix-blend-mode: overlay (noise overlays)
+          // These are decorative textures that should be generated separately
+          const blendMode = computed.getPropertyValue('mix-blend-mode');
+          if (blendMode === 'overlay' && !isRoot) {
+            return ''; // Skip this element and its children entirely
+          }
+
           const styleObj: string[] = [];
 
           let inheritedBg: { backgroundColor?: string; backgroundImage?: string } = {};
@@ -296,6 +320,11 @@ export async function extractSectionWithStyles(
             }
 
             if (prop === 'fontFamily' && value.includes('system-ui')) {
+              continue;
+            }
+
+            // Skip noise overlay blend modes - these should be generated separately
+            if (prop === 'mixBlendMode' && value === 'overlay') {
               continue;
             }
 
@@ -349,10 +378,11 @@ export async function extractSectionWithStyles(
       const rootStyles: Record<string, string> = {};
 
       // First check child elements for gradient backgrounds (Framer backdrop layers)
-      let inheritedBackground = helpers.findChildGradient(bestMatch);
+      const matchElement = bestMatch as Element;
+      let inheritedBackground = helpers.findChildGradient(matchElement);
       // If not found in children, check parent elements
-      if (!inheritedBackground.backgroundColor && !inheritedBackground.backgroundImage && bestMatch.parentElement) {
-        inheritedBackground = helpers.findParentBackground(bestMatch.parentElement);
+      if (!inheritedBackground.backgroundColor && !inheritedBackground.backgroundImage && matchElement.parentElement) {
+        inheritedBackground = helpers.findParentBackground(matchElement.parentElement);
       }
 
       for (const prop of properties) {

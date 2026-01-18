@@ -373,14 +373,14 @@ function buildPlatformContext(
     components,
     // Extract colors from design system if available
     colors: designSystem?.colors ? {
-      primary: designSystem.colors.primary,
-      secondary: designSystem.colors.secondary,
-      accent: designSystem.colors.accent,
-      background: designSystem.colors.background,
-      text: designSystem.colors.text,
+      primary: designSystem.colors.primary?.[0],
+      secondary: designSystem.colors.secondary?.[0],
+      accent: designSystem.colors.primary?.[1],
+      background: designSystem.colors.neutral?.[0],
+      text: designSystem.colors.neutral?.[1],
     } : undefined,
     fonts: designSystem?.typography ? {
-      primary: designSystem.typography.fontFamily,
+      primary: designSystem.typography.fonts?.body || designSystem.typography.fonts?.heading,
     } : undefined,
   };
 
@@ -751,7 +751,7 @@ export async function generateComponents(
           'nav',
         ];
         for (const sel of navSelectors) {
-          const elements = document.querySelectorAll(sel);
+          const elements = Array.from(document.querySelectorAll(sel));
           for (const el of elements) {
             const computed = window.getComputedStyle(el);
             if (computed.position === 'fixed' || computed.position === 'sticky') {
