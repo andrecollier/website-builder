@@ -24,47 +24,37 @@ import { randomUUID } from 'crypto';
  * that make components invisible when captured. This function normalizes
  * these styles to ensure components are visible.
  *
+ * NOTE: Noise overlay elements (256x256 textures) are removed entirely.
+ * Noise effects should be generated separately in post-processing
+ * (e.g., nano banana integration) for better control.
+ *
  * @param html - Raw HTML string from element.outerHTML
  * @returns Normalized HTML with visible styles
  */
 export function normalizeFramerStyles(html: string): string {
   if (!html) return html;
 
-  // First pass: detect and mark noise overlay elements
+  // First pass: Remove noise overlay elements entirely
   // Framer uses small repeating textures (256x256) as noise overlays
-  const isNoiseOverlay = (styleContent: string): boolean => {
-    const hasNoiseTexture = /background-image\s*:\s*url\([^)]*(?:width=256|height=256|noise|grain|texture)[^)]*\)/i.test(styleContent);
-    const isAbsolute = /position\s*:\s*absolute/i.test(styleContent);
-    const hasZIndex = /z-index\s*:\s*[1-9]/i.test(styleContent) || /zIndex\s*:\s*['"]?[1-9]/i.test(styleContent);
-    return hasNoiseTexture && isAbsolute && hasZIndex;
-  };
+  // These should be generated in post-processing, not extracted
+  const noiseOverlayPattern = /<div[^>]*style=["'][^"']*(?:background-image\s*:\s*url\([^)]*(?:width=256|height=256)[^)]*\)|background-repeat\s*:\s*repeat)[^"']*["'][^>]*(?:\/>|><\/div>)/gi;
+  let cleaned = html.replace(noiseOverlayPattern, '<!-- noise overlay removed -->');
+
+  // Also remove elements with noise/grain texture URLs
+  const noiseUrlPattern = /<div[^>]*style=["'][^"']*url\([^)]*(?:noise|grain|texture)[^)]*\)[^"']*["'][^>]*(?:\/>|><\/div>)/gi;
+  cleaned = cleaned.replace(noiseUrlPattern, '<!-- noise overlay removed -->');
 
   // Pattern to match inline style attributes
   // Handles both style="..." and style='...'
-  return html.replace(/style=(["'])(.*?)\1/gi, (match, quote, styleContent) => {
+  return cleaned.replace(/style=(["'])(.*?)\1/gi, (match, quote, styleContent) => {
     let normalized = styleContent;
 
-    // Detect Framer noise overlay and add proper blend mode/opacity
-    if (isNoiseOverlay(normalized)) {
-      // Add mix-blend-mode and low opacity for noise texture overlays
-      if (!/mix-blend-mode/i.test(normalized)) {
-        normalized += '; mix-blend-mode: overlay';
-      }
-      if (!/opacity\s*:\s*0\.[0-5]/i.test(normalized)) {
-        // Set low opacity for noise overlay (0.15 for subtle effect)
-        normalized = normalized.replace(/opacity\s*:\s*['"]?1['"]?\s*;?/gi, 'opacity: 0.15;');
-        if (!/opacity/i.test(normalized)) {
-          normalized += '; opacity: 0.15';
-        }
-      }
-    } else {
-      // Remove opacity: 0 (with various formats) for non-overlay elements
-      // opacity: 0, opacity:0, opacity: '0', opacity:"0"
-      normalized = normalized.replace(
-        /opacity\s*:\s*['"]?0['"]?\s*;?/gi,
-        'opacity: 1;'
-      );
-    }
+    // Remove opacity: 0 (with various formats)
+    // opacity: 0, opacity:0, opacity: '0', opacity:"0"
+    normalized = normalized.replace(
+      /opacity\s*:\s*['"]?0['"]?\s*;?/gi,
+      'opacity: 1;'
+    );
 
     // Remove transform animations (translateY, translateX, scale, rotate)
     // Keep transform: none or simple transforms
