@@ -630,8 +630,22 @@ function generateSemanticVariant(
   const h1 = headings.find(h => h.level === 1)?.text || '';
   const h2 = headings.find(h => h.level === 2)?.text || headings[0]?.text || '';
   const firstParagraph = paragraphs[0] || '';
-  const primaryButton = buttons.find(b => b.isPrimary) || buttons[0];
-  const secondaryButton = buttons.find(b => !b.isPrimary && b !== primaryButton) || buttons[1];
+
+  // Use buttons if available, otherwise use links that look like CTAs
+  const ctaLinks = links.filter(l =>
+    l.text.toLowerCase().includes('start') ||
+    l.text.toLowerCase().includes('get') ||
+    l.text.toLowerCase().includes('book') ||
+    l.text.toLowerCase().includes('try') ||
+    l.text.toLowerCase().includes('sign') ||
+    l.text.toLowerCase().includes('join') ||
+    l.text.length < 30
+  ).slice(0, 2);
+
+  const primaryButton = buttons.find(b => b.isPrimary) || buttons[0] ||
+    (ctaLinks[0] ? { text: ctaLinks[0].text, href: ctaLinks[0].href, isPrimary: true } : undefined);
+  const secondaryButton = buttons.find(b => !b.isPrimary && b !== buttons[0]) || buttons[1] ||
+    (ctaLinks[1] ? { text: ctaLinks[1].text, href: ctaLinks[1].href, isPrimary: false } : undefined);
 
   // Generate semantic structure with ACTUAL content
   let innerContent: string;
@@ -845,7 +859,20 @@ function generateModernizedVariant(
   const h1 = headings.find(h => h.level === 1)?.text || '';
   const h2 = headings.find(h => h.level === 2)?.text || headings[0]?.text || '';
   const firstParagraph = paragraphs[0] || '';
-  const primaryButton = buttons.find(b => b.isPrimary) || buttons[0];
+
+  // Use buttons if available, otherwise use links that look like CTAs
+  const ctaLinks = links.filter(l =>
+    l.text.toLowerCase().includes('start') ||
+    l.text.toLowerCase().includes('get') ||
+    l.text.toLowerCase().includes('book') ||
+    l.text.toLowerCase().includes('try') ||
+    l.text.toLowerCase().includes('sign') ||
+    l.text.toLowerCase().includes('join') ||
+    l.text.length < 30
+  ).slice(0, 2);
+
+  const primaryButton = buttons.find(b => b.isPrimary) || buttons[0] ||
+    (ctaLinks[0] ? { text: ctaLinks[0].text, href: ctaLinks[0].href, isPrimary: true } : undefined);
 
   // Build ARIA attributes
   const ariaAttrs: string[] = [];
