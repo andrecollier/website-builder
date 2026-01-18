@@ -210,6 +210,7 @@ async function createPage(
 
 /**
  * Navigate to a URL and wait for content to load
+ * Enhanced for Framer and animation-heavy sites
  */
 async function navigateAndLoad(
   page: Page,
@@ -219,14 +220,14 @@ async function navigateAndLoad(
 ): Promise<void> {
   emitProgress('initializing', 10, 'Loading page...');
 
-  // Use domcontentloaded instead of networkidle (times out on analytics-heavy sites)
+  // Use load event for more complete page rendering
   await page.goto(url, {
-    waitUntil: 'domcontentloaded',
+    waitUntil: 'load',
     timeout,
   });
 
-  // Wait for initial page render
-  await page.waitForTimeout(500);
+  // Wait for initial page render and JavaScript execution
+  await page.waitForTimeout(1000);
 
   // Try to dismiss cookie consent banners
   await dismissCookieConsent(page);
@@ -242,6 +243,38 @@ async function navigateAndLoad(
 
   emitProgress('waiting_fonts', 55, 'Waiting for animations to settle...');
   await waitForAnimations(page);
+
+  // Wait for critical hero content to be visible (H1, main headers)
+  emitProgress('waiting_fonts', 58, 'Waiting for hero content...');
+  await waitForHeroContent(page);
+}
+
+/**
+ * Wait for hero content (H1, main headers) to be visible
+ * Critical for Framer sites with entrance animations
+ */
+async function waitForHeroContent(page: Page, maxWait: number = 5000): Promise<void> {
+  try {
+    // Wait for H1 to be visible (most hero sections have one)
+    await page.waitForSelector('h1', {
+      state: 'visible',
+      timeout: maxWait
+    });
+  } catch {
+    // H1 might not exist, try other hero indicators
+    try {
+      // Try common hero section patterns
+      await page.waitForSelector('[class*="hero"] h1, [class*="Hero"] h1, section:first-of-type h1, header + section h1', {
+        state: 'visible',
+        timeout: 2000,
+      });
+    } catch {
+      // No hero content found, continue anyway
+    }
+  }
+
+  // Final wait for any straggler animations
+  await page.waitForTimeout(500);
 }
 
 /**
@@ -744,8 +777,15 @@ export async function captureWebsite(options: CaptureOptions): Promise<CaptureRe
     setCache(url, fullPagePath, successfulSections);
 
     // Extract raw page data for design system generation (before browser closes)
-    emitProgress('complete', 95, 'Extracting design data...');
-    const rawData = await extractRawPageData(page, url);
+    // This is optional - don't fail the capture if it errors
+    let rawData;
+    try {
+      emitProgress('complete', 95, 'Extracting design data...');
+      rawData = await extractRawPageData(page, url);
+    } catch (extractError) {
+      // Log but don't fail - design data extraction is optional
+      console.warn('[capture] Design data extraction failed:', extractError);
+    }
 
     emitProgress('complete', 100, 'Capture complete');
 

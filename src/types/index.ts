@@ -416,9 +416,9 @@ export const CAPTURE_CONFIG = {
   viewport: { width: 1440, height: 900 },
   scrollDistance: 300,
   scrollDelay: 500,
-  animationWait: 2000,
+  animationWait: 3000, // Increased from 2s for Framer entrance animations
   maxRetries: 3,
-  pageTimeout: 30000,
+  pageTimeout: 45000, // Increased from 30s for animation-heavy sites
   maxSections: 10,
 } as const;
 

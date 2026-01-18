@@ -26,7 +26,8 @@ interface ViewModeToggleProps {
 }
 
 interface OriginalPanelProps {
-  screenshotPath: string;
+  websiteId: string;
+  order: number;
   componentType: string;
   boundingBox?: {
     width: number;
@@ -38,17 +39,22 @@ interface GeneratedPanelProps {
   variant: ComponentVariant | null;
   customCode?: string;
   componentName: string;
+  websiteId: string;
 }
 
 interface SliderComparisonProps {
-  screenshotPath: string;
+  websiteId: string;
+  order: number;
+  componentType: string;
   variant: ComponentVariant | null;
   sliderPosition: number;
   onSliderChange: (position: number) => void;
 }
 
 interface OverlayComparisonProps {
-  screenshotPath: string;
+  websiteId: string;
+  order: number;
+  componentType: string;
   variant: ComponentVariant | null;
   opacity: number;
   onOpacityChange: (opacity: number) => void;
@@ -68,16 +74,14 @@ function formatComponentType(type: string): string {
 }
 
 /**
- * Builds the URL for accessing a screenshot
- * Screenshots are stored in the public directory structure
+ * Builds the URL for accessing a screenshot via the API
+ * Screenshots are served from the Websites directory via /api/screenshots
  */
-function getScreenshotUrl(screenshotPath: string): string {
-  // If path already starts with /, it's already a URL path
-  if (screenshotPath.startsWith('/')) {
-    return screenshotPath;
-  }
-  // Otherwise, construct the path from the Websites directory
-  return `/${screenshotPath}`;
+function getScreenshotUrl(websiteId: string, order: number, componentType: string): string {
+  // Screenshots are named: 01-hero.png, 02-features.png, etc.
+  const paddedOrder = String(order + 1).padStart(2, '0');
+  const filename = `${paddedOrder}-${componentType}.png`;
+  return `/api/screenshots/${websiteId}/reference/sections/${filename}`;
 }
 
 // ====================
@@ -187,8 +191,9 @@ function ViewModeToggle({ mode, onChange }: ViewModeToggleProps) {
 /**
  * Panel displaying the original captured screenshot
  */
-function OriginalPanel({ screenshotPath, componentType, boundingBox }: OriginalPanelProps) {
+function OriginalPanel({ websiteId, order, componentType, boundingBox }: OriginalPanelProps) {
   const [imageError, setImageError] = useState(false);
+  const screenshotUrl = getScreenshotUrl(websiteId, order, componentType);
 
   return (
     <div className="flex flex-col h-full">
@@ -207,9 +212,9 @@ function OriginalPanel({ screenshotPath, componentType, boundingBox }: OriginalP
         role="img"
         aria-label={`Original ${componentType} component screenshot`}
       >
-        {!imageError && screenshotPath ? (
+        {!imageError ? (
           <img
-            src={getScreenshotUrl(screenshotPath)}
+            src={screenshotUrl}
             alt={`Original ${componentType} screenshot`}
             className="w-full h-full object-contain"
             onError={() => setImageError(true)}
@@ -243,9 +248,18 @@ function OriginalPanel({ screenshotPath, componentType, boundingBox }: OriginalP
 /**
  * Panel displaying the generated component preview
  */
-function GeneratedPanel({ variant, customCode, componentName }: GeneratedPanelProps) {
+function GeneratedPanel({ variant, customCode, componentName, websiteId }: GeneratedPanelProps) {
+  const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
   const code = customCode || variant?.code;
   const variantName = variant?.name || 'Custom Code';
+
+  // Preview URL for the generated Next.js app
+  const previewUrl = `http://localhost:3001/preview/${componentName.toLowerCase()}`;
+  const fullSiteUrl = `http://localhost:3001`;
+
+  const openInNewTab = () => {
+    window.open(fullSiteUrl, '_blank');
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -253,56 +267,79 @@ function GeneratedPanel({ variant, customCode, componentName }: GeneratedPanelPr
         <h4 className="text-sm font-medium text-[rgb(var(--foreground))]">
           Generated
         </h4>
-        <span className="text-xs text-[rgb(var(--muted-foreground))]">
-          {variantName}
-        </span>
+        <div className="flex items-center gap-2">
+          {code && (
+            <div className="flex rounded-md overflow-hidden border border-[rgb(var(--border))]">
+              <button
+                onClick={() => setViewMode('preview')}
+                className={cn(
+                  "px-2 py-1 text-xs transition-colors",
+                  viewMode === 'preview'
+                    ? "bg-[rgb(var(--accent))] text-white"
+                    : "bg-transparent text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.3)]"
+                )}
+              >
+                Preview
+              </button>
+              <button
+                onClick={() => setViewMode('code')}
+                className={cn(
+                  "px-2 py-1 text-xs transition-colors",
+                  viewMode === 'code'
+                    ? "bg-[rgb(var(--accent))] text-white"
+                    : "bg-transparent text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.3)]"
+                )}
+              >
+                Code
+              </button>
+            </div>
+          )}
+          <button
+            onClick={openInNewTab}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-[rgb(var(--accent)/0.1)] text-[rgb(var(--accent))] rounded hover:bg-[rgb(var(--accent)/0.2)] transition-colors"
+            title="Open full site in new tab"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            Open Site
+          </button>
+        </div>
       </div>
       <div
-        className="flex-1 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.2)] overflow-hidden"
+        className="flex-1 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.2)] overflow-hidden relative"
         role="region"
         aria-label={`Generated ${componentName} component preview`}
       >
         {code ? (
-          <div className="w-full h-full min-h-[200px] p-4 overflow-auto">
-            {/* Render a preview of the generated component */}
-            <div className="flex flex-col items-center justify-center h-full text-[rgb(var(--muted-foreground))]">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-[rgb(var(--accent))]"
-                aria-hidden="true"
-              >
-                <polyline points="16 18 22 12 16 6" />
-                <polyline points="8 6 2 12 8 18" />
-              </svg>
-              <p className="mt-2 text-sm font-medium">
-                {componentName}
-              </p>
-              <p className="text-xs mt-1">
-                {variant?.description || 'Custom implementation'}
-              </p>
-              {variant?.accuracyScore !== undefined && (
-                <div className="mt-3 flex items-center gap-2">
-                  <div className="h-2 w-24 bg-[rgb(var(--muted))] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[rgb(var(--accent))] rounded-full transition-all"
-                      style={{ width: `${variant.accuracyScore}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-mono">
-                    {variant.accuracyScore}%
-                  </span>
-                </div>
-              )}
+          viewMode === 'preview' ? (
+            <div className="w-full h-full min-h-[400px] bg-white">
+              <iframe
+                src={fullSiteUrl}
+                className="w-full h-full border-0"
+                title={`Preview of ${componentName}`}
+                sandbox="allow-scripts allow-same-origin"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="w-full h-full min-h-[200px] overflow-auto bg-[#1e1e1e]">
+              <pre className="p-4 text-xs font-mono text-gray-300 whitespace-pre-wrap break-words">
+                <code>{code.slice(0, 2000)}{code.length > 2000 ? '\n\n... (truncated)' : ''}</code>
+              </pre>
+              <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                <span className="px-2 py-1 text-xs bg-[rgb(var(--accent)/0.2)] text-[rgb(var(--accent))] rounded">
+                  {variantName}
+                </span>
+                {variant?.accuracyScore !== undefined && (
+                  <span className="px-2 py-1 text-xs bg-[rgb(var(--success)/0.2)] text-[rgb(var(--success))] rounded">
+                    {variant.accuracyScore}% match
+                  </span>
+                )}
+              </div>
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-[rgb(var(--muted-foreground))]">
             <svg
@@ -334,13 +371,16 @@ function GeneratedPanel({ variant, customCode, componentName }: GeneratedPanelPr
  * Slider comparison mode - drag to reveal original/generated
  */
 function SliderComparison({
-  screenshotPath,
+  websiteId,
+  order,
+  componentType,
   variant,
   sliderPosition,
   onSliderChange,
 }: SliderComparisonProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const screenshotUrl = getScreenshotUrl(websiteId, order, componentType);
 
   const handleMouseDown = useCallback(() => {
     setIsDragging(true);
@@ -376,9 +416,9 @@ function SliderComparison({
     >
       {/* Original image (full width, clipped) */}
       <div className="absolute inset-0 bg-[rgb(var(--muted)/0.2)]">
-        {!imageError && screenshotPath ? (
+        {!imageError ? (
           <img
-            src={getScreenshotUrl(screenshotPath)}
+            src={screenshotUrl}
             alt="Original"
             className="w-full h-full object-contain"
             onError={() => setImageError(true)}
@@ -462,12 +502,15 @@ function SliderComparison({
  * Overlay comparison mode - adjust opacity to blend views
  */
 function OverlayComparison({
-  screenshotPath,
+  websiteId,
+  order,
+  componentType,
   variant,
   opacity,
   onOpacityChange,
 }: OverlayComparisonProps) {
   const [imageError, setImageError] = useState(false);
+  const screenshotUrl = getScreenshotUrl(websiteId, order, componentType);
 
   return (
     <div className="flex flex-col h-full">
@@ -493,9 +536,9 @@ function OverlayComparison({
           className="absolute inset-0 bg-[rgb(var(--muted)/0.2)]"
           style={{ opacity: (100 - opacity) / 100 }}
         >
-          {!imageError && screenshotPath ? (
+          {!imageError ? (
             <img
-              src={getScreenshotUrl(screenshotPath)}
+              src={screenshotUrl}
               alt="Original"
               className="w-full h-full object-contain"
               onError={() => setImageError(true)}
@@ -612,10 +655,6 @@ export function OriginalComparison({
     );
   }
 
-  // Mock screenshot path from component data
-  // In real implementation, this would come from the detected component data
-  const screenshotPath = `/Websites/website-${component.websiteId}/screenshots/${component.type}.png`;
-
   return (
     <div
       className={cn(
@@ -658,7 +697,8 @@ export function OriginalComparison({
         {viewMode === 'side-by-side' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <OriginalPanel
-              screenshotPath={screenshotPath}
+              websiteId={component.websiteId}
+              order={component.order}
               componentType={component.type}
               boundingBox={{ width: 1440, height: 600 }}
             />
@@ -666,13 +706,16 @@ export function OriginalComparison({
               variant={selectedVariant}
               customCode={component.customCode}
               componentName={component.name}
+              websiteId={component.websiteId}
             />
           </div>
         )}
 
         {viewMode === 'slider' && (
           <SliderComparison
-            screenshotPath={screenshotPath}
+            websiteId={component.websiteId}
+            order={component.order}
+            componentType={component.type}
             variant={selectedVariant}
             sliderPosition={sliderPosition}
             onSliderChange={setSliderPosition}
@@ -681,7 +724,9 @@ export function OriginalComparison({
 
         {viewMode === 'overlay' && (
           <OverlayComparison
-            screenshotPath={screenshotPath}
+            websiteId={component.websiteId}
+            order={component.order}
+            componentType={component.type}
             variant={selectedVariant}
             opacity={overlayOpacity}
             onOpacityChange={setOverlayOpacity}

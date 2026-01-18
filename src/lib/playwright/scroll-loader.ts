@@ -169,10 +169,11 @@ export async function waitForFonts(page: Page, timeout: number = 5000): Promise<
 
 /**
  * Wait for CSS animations and transitions to settle
+ * Enhanced for Framer and modern animation frameworks
  *
  * @param page - Playwright Page instance
- * @param duration - Time to wait in milliseconds (default: 2000)
- * @returns Promise that resolves after the specified duration
+ * @param duration - Base time to wait in milliseconds (default: from config)
+ * @returns Promise that resolves after animations are likely complete
  *
  * @example
  * ```typescript
@@ -184,7 +185,94 @@ export async function waitForAnimations(
   page: Page,
   duration: number = CAPTURE_CONFIG.animationWait
 ): Promise<void> {
+  // Wait for any running CSS animations/transitions to complete
+  await page.evaluate(`
+    new Promise((resolve) => {
+      // Check if there are running animations
+      function checkAnimations() {
+        var animations = document.getAnimations ? document.getAnimations() : [];
+        var running = animations.filter(function(a) {
+          return a.playState === 'running' || a.playState === 'pending';
+        });
+        return running.length;
+      }
+
+      // If no animations API or no running animations, resolve quickly
+      if (!document.getAnimations || checkAnimations() === 0) {
+        resolve();
+        return;
+      }
+
+      // Wait for animations to finish (max 5 seconds)
+      var attempts = 0;
+      var maxAttempts = 25; // 25 * 200ms = 5 seconds
+      var interval = setInterval(function() {
+        attempts++;
+        if (checkAnimations() === 0 || attempts >= maxAttempts) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 200);
+    })
+  `);
+
+  // Additional wait for Framer-specific animations
+  await waitForFramerAnimations(page);
+
+  // Base wait time for any remaining animations
   await page.waitForTimeout(duration);
+}
+
+/**
+ * Wait for Framer-specific animations to settle
+ * Framer uses motion divs and intersection observers that may take time to trigger
+ */
+async function waitForFramerAnimations(page: Page): Promise<void> {
+  await page.evaluate(`
+    new Promise((resolve) => {
+      // Check for Framer motion elements
+      function hasFramerElements() {
+        var framerMotion = document.querySelectorAll('[data-framer-appear-id]');
+        var framerComponents = document.querySelectorAll('[data-framer-component-type]');
+        var motionDivs = document.querySelectorAll('[style*="opacity: 0"]');
+        return framerMotion.length > 0 || framerComponents.length > 0 || motionDivs.length > 0;
+      }
+
+      // If no Framer elements, resolve immediately
+      if (!hasFramerElements()) {
+        resolve();
+        return;
+      }
+
+      // Wait for opacity animations to complete
+      var stableCount = 0;
+      var lastOpacityZeroCount = document.querySelectorAll('[style*="opacity: 0"]').length;
+
+      var interval = setInterval(function() {
+        var currentOpacityZeroCount = document.querySelectorAll('[style*="opacity: 0"]').length;
+
+        // Check if hidden elements count is stable (animations finished)
+        if (currentOpacityZeroCount === lastOpacityZeroCount) {
+          stableCount++;
+        } else {
+          stableCount = 0;
+        }
+        lastOpacityZeroCount = currentOpacityZeroCount;
+
+        // Stable for 5 checks (1 second) or max wait reached
+        if (stableCount >= 5) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 200);
+
+      // Max wait of 3 seconds for Framer animations
+      setTimeout(function() {
+        clearInterval(interval);
+        resolve();
+      }, 3000);
+    })
+  `);
 }
 
 // ====================
