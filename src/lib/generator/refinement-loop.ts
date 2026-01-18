@@ -273,8 +273,8 @@ interface ComparisonResult {
 /**
  * Compare generated component against reference screenshot
  *
- * This is a simplified comparison that can be enhanced with
- * the full visual-diff infrastructure.
+ * Uses visual diff analysis to generate specific, actionable feedback
+ * for the AI to improve the component.
  */
 async function compareComponent(
   input: ComparisonInput
@@ -293,26 +293,24 @@ async function compareComponent(
 
     // Find the specific component's accuracy
     const componentResult = result.sections.find(
-      (s) => s.name.toLowerCase() === componentName.toLowerCase()
+      (s) => s.sectionName.toLowerCase() === componentName.toLowerCase()
     );
 
     if (componentResult) {
+      // Generate detailed feedback based on accuracy
+      const feedback = generateDetailedFeedback(componentResult.accuracy, componentName);
       return {
         accuracy: componentResult.accuracy,
-        feedback: componentResult.accuracy < 80
-          ? `${componentName} has low accuracy. Check: layout, colors, spacing, content positioning.`
-          : componentResult.accuracy < 90
-          ? `${componentName} is close. Fine-tune: minor spacing or color differences.`
-          : 'Excellent match!',
+        feedback,
       };
     }
 
     // If component not found in results, use overall accuracy
     return {
       accuracy: result.overallAccuracy,
-      feedback: `Overall accuracy: ${result.overallAccuracy.toFixed(1)}%`,
+      feedback: generateDetailedFeedback(result.overallAccuracy, componentName),
     };
-  } catch (error) {
+  } catch {
     // If comparison infrastructure fails, try a simple file-based check
     try {
       const generatedScreenshotPath = path.join(
@@ -332,19 +330,24 @@ async function compareComponent(
         // Use pixelmatch for comparison if both screenshots exist
         const { compareImages } = await import('../comparison/visual-diff');
 
-        const similarity = await compareImages(
-          referenceScreenshotPath,
-          generatedScreenshotPath
+        const diffPath = path.join(
+          websitesDir,
+          websiteId,
+          'comparison',
+          'diffs',
+          `${componentName}-diff.png`
         );
 
-        return {
-          accuracy: similarity * 100,
-          feedback: similarity < 0.8
-            ? 'Significant visual differences detected.'
-            : similarity < 0.9
-            ? 'Minor visual differences detected.'
-            : 'Good visual match.',
-        };
+        const comparisonResult = await compareImages(
+          referenceScreenshotPath,
+          generatedScreenshotPath,
+          diffPath
+        );
+
+        const accuracy = comparisonResult.accuracy;
+        const feedback = generateDetailedFeedback(accuracy, componentName);
+
+        return { accuracy, feedback };
       }
     } catch {
       // Fall through to default
@@ -353,9 +356,90 @@ async function compareComponent(
     // Default: assume moderate accuracy and provide generic feedback
     return {
       accuracy: 60,
-      feedback: 'Could not run visual comparison. Regenerating with layout focus.',
+      feedback: generateDetailedFeedback(60, componentName),
     };
   }
+}
+
+/**
+ * Generate detailed, actionable feedback based on accuracy score
+ */
+function generateDetailedFeedback(accuracy: number, componentName: string): string {
+  if (accuracy >= 90) {
+    return 'Excellent visual match! Component meets accuracy target.';
+  }
+
+  const issues: string[] = [];
+
+  if (accuracy < 50) {
+    // Major issues - likely fundamental layout problems
+    issues.push(
+      '1. LAYOUT: The overall structure appears significantly different. Check:',
+      '   - Is the component using the right layout (flex vs grid)?',
+      '   - Are elements stacked when they should be side-by-side (or vice versa)?',
+      '   - Is the content properly centered or aligned?',
+      '',
+      '2. SIZING: Element sizes appear off:',
+      '   - Check if text sizes match (especially headlines)',
+      '   - Verify image aspect ratios and dimensions',
+      '   - Confirm container max-widths are correct',
+      '',
+      '3. CONTENT: Ensure all extracted content is included:',
+      '   - All headings at correct levels',
+      '   - All paragraphs and supporting text',
+      '   - All buttons and links'
+    );
+  } else if (accuracy < 70) {
+    // Moderate issues - partial structure match
+    issues.push(
+      '1. SPACING: Gaps and padding need adjustment:',
+      '   - Increase/decrease vertical padding (py-) between sections',
+      '   - Check horizontal spacing (px-, gap-) between elements',
+      '   - Verify margins around containers',
+      '',
+      '2. TYPOGRAPHY: Text styling needs refinement:',
+      '   - Headline sizes may be too large or small',
+      '   - Check font weights (font-medium vs font-semibold vs font-bold)',
+      '   - Verify line-height (leading-) values',
+      '',
+      '3. COLORS: Some color mismatches detected:',
+      '   - Background colors may not match exactly',
+      '   - Text colors might need adjustment',
+      '   - Button colors should match primary/secondary tokens'
+    );
+  } else if (accuracy < 80) {
+    // Minor-moderate issues
+    issues.push(
+      '1. FINE-TUNE SPACING:',
+      '   - Small adjustments to gap values (try gap-6 vs gap-8, etc.)',
+      '   - Check padding values on containers',
+      '',
+      '2. TYPOGRAPHY DETAILS:',
+      '   - Letter spacing (tracking-) may need adjustment',
+      '   - Check text opacity if text appears lighter/darker',
+      '',
+      '3. ELEMENT POSITIONING:',
+      '   - Minor alignment issues - check items-center, justify-center',
+      '   - Verify max-width constraints'
+    );
+  } else {
+    // Close but not quite (80-90%)
+    issues.push(
+      '1. MICRO-ADJUSTMENTS NEEDED:',
+      '   - Tweak specific spacing values (try ±1 step in Tailwind scale)',
+      '   - Check exact color values against design tokens',
+      '',
+      '2. BORDER & SHADOW DETAILS:',
+      '   - Verify border-radius values',
+      '   - Check shadow intensity (shadow-sm vs shadow-md)',
+      '',
+      '3. RESPONSIVE BREAKPOINTS:',
+      '   - Ensure responsive classes are correct for the viewport size',
+      '   - Check if any elements are hidden/shown incorrectly'
+    );
+  }
+
+  return `${componentName} achieved ${accuracy.toFixed(1)}% accuracy. Issues to fix:\n\n${issues.join('\n')}`;
 }
 
 // ====================

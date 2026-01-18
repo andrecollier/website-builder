@@ -783,11 +783,13 @@ async function delegateToGeneratorAgent(
     }));
 
     // Generate components using the real generator with reference sections
+    // Enable AI generation for pixel-perfect variants (Phase B)
     const result = await generateComponents(page, {
       websiteId: context.websiteId,
       versionId: 'v1',
       designSystem,
       referenceSections, // Pass reference sections to use correct types
+      enableAIGeneration: true, // Use Claude Vision for pixel-perfect variant
       onProgress: (progress) => {
         context.updateProgress({
           phase: 'generating',

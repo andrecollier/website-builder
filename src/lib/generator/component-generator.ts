@@ -964,6 +964,8 @@ export async function generateComponents(
     const enableAIGeneration = options.enableAIGeneration ?? false;
     const aiAvailable = isAIGenerationAvailable();
 
+    console.log(`[ComponentGenerator] Phase 3 - enableAIGeneration: ${enableAIGeneration}, aiAvailable: ${aiAvailable}`);
+
     emitProgress(
       'generating_variants',
       40,

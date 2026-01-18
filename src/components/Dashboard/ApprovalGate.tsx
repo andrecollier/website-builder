@@ -66,8 +66,8 @@ export function ApprovalGate({
     }
   };
 
-  // Construct the preview URL - assuming generated site runs on port 3002
-  const previewUrl = `http://localhost:3002/preview/components`;
+  // Construct the preview URL - use main app's preview route (works before scaffold)
+  const previewUrl = `/preview/${websiteId}`;
 
   return (
     <div className="w-full rounded-lg bg-[rgb(var(--warning)/0.1)] border border-[rgb(var(--warning)/0.3)] p-6">
@@ -109,10 +109,9 @@ export function ApprovalGate({
         </p>
         <a
           href={previewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
           className={cn(
-            'inline-flex items-center gap-2 text-[rgb(var(--accent))] hover:underline font-medium'
+            'inline-flex items-center gap-2 text-[rgb(var(--accent))] hover:underline font-medium',
+            'px-4 py-2 rounded-lg bg-[rgb(var(--accent)/0.1)] hover:bg-[rgb(var(--accent)/0.15)] transition-colors'
           )}
         >
           <svg
@@ -126,12 +125,10 @@ export function ApprovalGate({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
-          View Components Gallery
+          Preview Components & Code
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -143,9 +140,8 @@ export function ApprovalGate({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
           </svg>
         </a>
       </div>

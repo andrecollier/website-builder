@@ -62,3 +62,46 @@ export {
   type GeneratedComponent,
   type ComponentVariant,
 } from './component-generator';
+
+// ====================
+// AI GENERATOR (Phase B)
+// ====================
+
+export {
+  generateComponentWithAI,
+  isAIGenerationAvailable,
+  estimateTokens,
+  type AIGenerationInput,
+  type AIGenerationResult,
+} from './ai-generator';
+
+// ====================
+// REFINEMENT LOOP (Phase C)
+// ====================
+
+export {
+  generateUntilPerfect,
+  refineAllComponents,
+  generateRefinementReport,
+  type RefinementInput,
+  type RefinementProgress,
+  type RefinementAttempt,
+  type RefinementResult,
+} from './refinement-loop';
+
+// ====================
+// DESIGN SYSTEM INJECTOR (Phase D)
+// ====================
+
+export {
+  generateCSSVariables,
+  generateUtilityClasses,
+  generateFullCSS,
+  generateTailwindConfig,
+  injectDesignTokens,
+  isColorDark,
+  getContrastingTextColor,
+  mergeWithDefaults,
+  type CSSOutput,
+  type TailwindConfigExtension,
+} from './design-system-injector';

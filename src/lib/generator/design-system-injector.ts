@@ -238,91 +238,276 @@ h1, h2, h3, h4, h5, h6 {
  * Generate Tailwind CSS configuration extension from design system
  */
 export function generateTailwindConfig(designSystem: DesignSystem): TailwindConfigExtension {
-  // Build colors object
-  const colors: Record<string, string> = {};
+  // Build colors object with proper structure
+  const colors: Record<string, string | Record<string, string>> = {};
 
+  // Primary color with shades
   if (designSystem.colors.primary) {
-    colors.primary = designSystem.colors.primary;
+    colors.primary = {
+      DEFAULT: designSystem.colors.primary[0] || designSystem.colors.primary as unknown as string,
+      ...(Array.isArray(designSystem.colors.primary)
+        ? generateColorShades(designSystem.colors.primary)
+        : { DEFAULT: designSystem.colors.primary as unknown as string }),
+    };
   }
+
+  // Secondary color with shades
   if (designSystem.colors.secondary) {
-    colors.secondary = designSystem.colors.secondary;
+    colors.secondary = {
+      DEFAULT: designSystem.colors.secondary[0] || designSystem.colors.secondary as unknown as string,
+      ...(Array.isArray(designSystem.colors.secondary)
+        ? generateColorShades(designSystem.colors.secondary)
+        : { DEFAULT: designSystem.colors.secondary as unknown as string }),
+    };
+  }
+
+  // Neutral/gray colors
+  if (designSystem.colors.neutral?.length) {
+    colors.neutral = generateColorShades(designSystem.colors.neutral);
   }
 
   // Add background colors
-  designSystem.colors.backgrounds?.forEach((bg, i) => {
-    colors[`bg-${i + 1}`] = bg;
-  });
+  if (designSystem.colors.backgrounds?.length) {
+    designSystem.colors.backgrounds.forEach((bg, i) => {
+      colors[`surface-${i + 1}`] = bg;
+    });
+  }
 
   // Add text colors
-  designSystem.colors.text?.forEach((color, i) => {
-    colors[`text-${i + 1}`] = color;
-  });
+  if (designSystem.colors.text?.length) {
+    designSystem.colors.text.forEach((color, i) => {
+      const names = ['primary', 'secondary', 'muted'];
+      colors[`text-${names[i] || i + 1}`] = color;
+    });
+  }
 
   // Add accent colors
-  designSystem.colors.accent?.forEach((color, i) => {
-    colors[`accent-${i + 1}`] = color;
-  });
+  if (designSystem.colors.accent?.length) {
+    designSystem.colors.accent.forEach((color, i) => {
+      colors[`accent-${i + 1}`] = color;
+    });
+  }
 
   // Build font family object
   const fontFamily: Record<string, string[]> = {};
 
-  if (designSystem.typography.fontFamily) {
+  if (designSystem.typography.fonts?.heading) {
+    fontFamily.heading = [designSystem.typography.fonts.heading, 'system-ui', 'sans-serif'];
+  }
+  if (designSystem.typography.fonts?.body) {
+    fontFamily.body = [designSystem.typography.fonts.body, 'system-ui', 'sans-serif'];
+  }
+  if (designSystem.typography.fonts?.mono) {
+    fontFamily.mono = [designSystem.typography.fonts.mono, 'monospace'];
+  }
+  // Fallback to legacy fields
+  if (!fontFamily.heading && designSystem.typography.fontFamily) {
     fontFamily.sans = [designSystem.typography.fontFamily, 'system-ui', 'sans-serif'];
   }
-  if (designSystem.typography.headingFont) {
-    fontFamily.heading = [designSystem.typography.headingFont, 'system-ui', 'sans-serif'];
-  }
-  if (designSystem.typography.bodyFont) {
-    fontFamily.body = [designSystem.typography.bodyFont, 'system-ui', 'sans-serif'];
-  }
 
-  // Build font size object
-  const fontSize: Record<string, string> = {};
+  // Build font size object with line-height tuples
+  const fontSize: Record<string, [string, { lineHeight: string }]> = {};
 
-  if (designSystem.typography.headingSizes) {
-    Object.entries(designSystem.typography.headingSizes).forEach(([key, value]) => {
-      fontSize[key] = value as string;
+  if (designSystem.typography.scale) {
+    Object.entries(designSystem.typography.scale).forEach(([key, value]) => {
+      const lineHeight = getLineHeightForSize(key);
+      fontSize[key] = [String(value), { lineHeight }];
     });
   }
-  if (designSystem.typography.baseFontSize) {
-    fontSize.base = designSystem.typography.baseFontSize;
+  // Fallback to legacy headingSizes
+  if (Object.keys(fontSize).length === 0 && designSystem.typography.headingSizes) {
+    Object.entries(designSystem.typography.headingSizes).forEach(([key, value]) => {
+      const lineHeight = getLineHeightForSize(key);
+      fontSize[key] = [String(value), { lineHeight }];
+    });
   }
 
   // Build spacing object
   const spacing: Record<string, string> = {};
 
+  if (designSystem.spacing?.baseUnit) {
+    // Generate spacing scale based on base unit
+    const base = designSystem.spacing.baseUnit;
+    spacing['0.5'] = `${base * 0.5}px`;
+    spacing['1'] = `${base}px`;
+    spacing['1.5'] = `${base * 1.5}px`;
+    spacing['2'] = `${base * 2}px`;
+    spacing['3'] = `${base * 3}px`;
+    spacing['4'] = `${base * 4}px`;
+    spacing['5'] = `${base * 5}px`;
+    spacing['6'] = `${base * 6}px`;
+    spacing['8'] = `${base * 8}px`;
+    spacing['10'] = `${base * 10}px`;
+    spacing['12'] = `${base * 12}px`;
+    spacing['16'] = `${base * 16}px`;
+    spacing['20'] = `${base * 20}px`;
+    spacing['24'] = `${base * 24}px`;
+  }
+
+  if (designSystem.spacing?.containerMaxWidth) {
+    spacing['container'] = designSystem.spacing.containerMaxWidth;
+  }
   if (designSystem.spacing?.containerPadding) {
-    spacing.container = designSystem.spacing.containerPadding;
+    spacing['container-padding'] = designSystem.spacing.containerPadding;
   }
   if (designSystem.spacing?.sectionGap) {
-    spacing.section = designSystem.spacing.sectionGap;
+    spacing['section'] = designSystem.spacing.sectionGap;
   }
-  if (designSystem.spacing?.elementGap) {
-    spacing.element = designSystem.spacing.elementGap;
+
+  // Build border radius object
+  const borderRadius: Record<string, string> = {};
+
+  if (designSystem.effects?.radii) {
+    Object.entries(designSystem.effects.radii).forEach(([key, value]) => {
+      borderRadius[key] = String(value);
+    });
+  }
+  if (designSystem.borders?.radius) {
+    Object.entries(designSystem.borders.radius).forEach(([key, value]) => {
+      borderRadius[key] = String(value);
+    });
+  }
+
+  // Build box shadow object
+  const boxShadow: Record<string, string> = {};
+
+  if (designSystem.effects?.shadows) {
+    Object.entries(designSystem.effects.shadows).forEach(([key, value]) => {
+      boxShadow[key] = String(value);
+    });
+  }
+
+  // Build transitions
+  const transitionDuration: Record<string, string> = {};
+
+  if (designSystem.effects?.transitions) {
+    Object.entries(designSystem.effects.transitions).forEach(([key, value]) => {
+      // Extract duration from transition value (e.g., "all 0.2s ease" -> "200ms")
+      const valueStr = String(value);
+      const match = valueStr.match(/(\d+\.?\d*)s/);
+      if (match) {
+        transitionDuration[key] = `${parseFloat(match[1]) * 1000}ms`;
+      }
+    });
   }
 
   // Generate full config string
-  const fullConfig = `/** @type {import('tailwindcss').Config} */
+  const fullConfig = generateFullTailwindConfig({
+    colors: colors as Record<string, string>,
+    fontFamily,
+    fontSize,
+    spacing,
+    borderRadius,
+    boxShadow,
+    transitionDuration,
+  });
+
+  return {
+    colors: colors as Record<string, string>,
+    fontFamily,
+    fontSize: Object.fromEntries(
+      Object.entries(fontSize).map(([k, v]) => [k, v[0]])
+    ),
+    spacing,
+    fullConfig,
+  };
+}
+
+/**
+ * Generate color shades from an array of colors
+ */
+function generateColorShades(colors: string[]): Record<string, string> {
+  const shadeNames = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'];
+  const shades: Record<string, string> = {};
+
+  if (colors.length === 1) {
+    shades['DEFAULT'] = colors[0];
+    shades['500'] = colors[0];
+  } else {
+    // Map colors to shade levels
+    const step = Math.floor(shadeNames.length / colors.length);
+    colors.forEach((color, i) => {
+      const shadeIndex = Math.min(i * step, shadeNames.length - 1);
+      shades[shadeNames[shadeIndex]] = color;
+    });
+  }
+
+  return shades;
+}
+
+/**
+ * Get appropriate line-height for font size key
+ */
+function getLineHeightForSize(sizeKey: string): string {
+  const lineHeights: Record<string, string> = {
+    display: '1.1',
+    h1: '1.2',
+    h2: '1.25',
+    h3: '1.3',
+    h4: '1.35',
+    h5: '1.4',
+    h6: '1.4',
+    body: '1.5',
+    small: '1.5',
+    xs: '1.5',
+  };
+
+  return lineHeights[sizeKey] || '1.5';
+}
+
+/**
+ * Generate the full Tailwind config string
+ */
+function generateFullTailwindConfig(config: {
+  colors: Record<string, string>;
+  fontFamily: Record<string, string[]>;
+  fontSize: Record<string, [string, { lineHeight: string }]>;
+  spacing: Record<string, string>;
+  borderRadius: Record<string, string>;
+  boxShadow: Record<string, string>;
+  transitionDuration: Record<string, string>;
+}): string {
+  const formatObject = (obj: Record<string, unknown>, indent = 8): string => {
+    const spaces = ' '.repeat(indent);
+    const entries = Object.entries(obj);
+
+    if (entries.length === 0) return '{}';
+
+    const lines = entries.map(([key, value]) => {
+      const safeKey = key.includes('-') || key.includes('.') ? `'${key}'` : key;
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
+          return `${spaces}${safeKey}: ${JSON.stringify(value)},`;
+        }
+        return `${spaces}${safeKey}: ${formatObject(value as Record<string, unknown>, indent + 2)},`;
+      }
+      return `${spaces}${safeKey}: '${value}',`;
+    });
+
+    return `{\n${lines.join('\n')}\n${' '.repeat(indent - 2)}}`;
+  };
+
+  return `/** @type {import('tailwindcss').Config} */
 module.exports = {
+  content: [
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
   theme: {
     extend: {
-      colors: ${JSON.stringify(colors, null, 8).replace(/\n/g, '\n      ')},
-      fontFamily: ${JSON.stringify(fontFamily, null, 8).replace(/\n/g, '\n      ')},
-      fontSize: ${JSON.stringify(fontSize, null, 8).replace(/\n/g, '\n      ')},
-      spacing: ${JSON.stringify(spacing, null, 8).replace(/\n/g, '\n      ')},
+      colors: ${formatObject(config.colors)},
+      fontFamily: ${formatObject(config.fontFamily)},
+      fontSize: ${formatObject(config.fontSize as unknown as Record<string, unknown>)},
+      spacing: ${formatObject(config.spacing)},
+      borderRadius: ${formatObject(config.borderRadius)},
+      boxShadow: ${formatObject(config.boxShadow)},
+      transitionDuration: ${formatObject(config.transitionDuration)},
     },
   },
   plugins: [],
 };
 `;
-
-  return {
-    colors,
-    fontFamily,
-    fontSize,
-    spacing,
-    fullConfig,
-  };
 }
 
 // ====================

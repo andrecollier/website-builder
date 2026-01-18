@@ -181,11 +181,12 @@ async function runGenerationProcess(
 
     await navigateAndWait(page, url, CAPTURE_CONFIG.pageTimeout);
 
-    // Generate components
+    // Generate components with AI-enhanced pixel-perfect generation
     const result = await generateComponents(page, {
       websiteId,
       versionId: 'v1', // Default version
       designSystem: options.designSystem as Parameters<typeof generateComponents>[1]['designSystem'],
+      enableAIGeneration: true, // Use Claude Vision for pixel-perfect variant (Phase B)
       onProgress: (progress) => {
         generationProgressStore.set(websiteId, progress);
       },
