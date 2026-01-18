@@ -695,52 +695,54 @@ export async function generateComponents(
           'opacity', 'overflow', 'objectFit',
         ];
 
-        // Use arrow function to avoid __name helper injection from esbuild/tsx
-        const processElement = (el: Element): string => {
-          const computed = window.getComputedStyle(el);
-          const styleObj: string[] = [];
+        // Use object method to avoid __name helper injection from esbuild/tsx
+        const helpers = {
+          processElement(el: Element): string {
+            const computed = window.getComputedStyle(el);
+            const styleObj: string[] = [];
 
-          for (const prop of STYLE_PROPS) {
-            const cssProp = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
-            let value = computed.getPropertyValue(cssProp);
-            if (!value || value === 'none' || value === 'normal' || value === 'auto' ||
-                value === '0px' || value === 'rgba(0, 0, 0, 0)' || value === 'transparent') {
-              continue;
+            for (const prop of STYLE_PROPS) {
+              const cssProp = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+              let value = computed.getPropertyValue(cssProp);
+              if (!value || value === 'none' || value === 'normal' || value === 'auto' ||
+                  value === '0px' || value === 'rgba(0, 0, 0, 0)' || value === 'transparent') {
+                continue;
+              }
+              value = value.replace(/"/g, "'");
+              if (prop === 'fontFamily') {
+                const firstFont = value.split(',')[0].trim().replace(/'/g, '');
+                value = `'${firstFont}', sans-serif`;
+              }
+              styleObj.push(`${cssProp}: ${value}`);
             }
-            value = value.replace(/"/g, "'");
-            if (prop === 'fontFamily') {
-              const firstFont = value.split(',')[0].trim().replace(/'/g, '');
-              value = `'${firstFont}', sans-serif`;
+
+            const tagName = el.tagName.toLowerCase();
+            const styleAttr = styleObj.length > 0 ? ` style="${styleObj.join('; ')}"` : '';
+
+            let attrs = '';
+            if (tagName === 'img') {
+              const img = el as HTMLImageElement;
+              attrs += ` src="${img.src}"`;
+              if (img.alt) attrs += ` alt="${img.alt}"`;
+            } else if (tagName === 'a') {
+              const a = el as HTMLAnchorElement;
+              attrs += ` href="${a.href}"`;
             }
-            styleObj.push(`${cssProp}: ${value}`);
-          }
 
-          const tagName = el.tagName.toLowerCase();
-          const styleAttr = styleObj.length > 0 ? ` style="${styleObj.join('; ')}"` : '';
-
-          let attrs = '';
-          if (tagName === 'img') {
-            const img = el as HTMLImageElement;
-            attrs += ` src="${img.src}"`;
-            if (img.alt) attrs += ` alt="${img.alt}"`;
-          } else if (tagName === 'a') {
-            const a = el as HTMLAnchorElement;
-            attrs += ` href="${a.href}"`;
-          }
-
-          let innerHTML = '';
-          if (el.children.length > 0) {
-            for (let i = 0; i < el.children.length; i++) {
-              innerHTML += processElement(el.children[i]);
+            let innerHTML = '';
+            if (el.children.length > 0) {
+              for (let i = 0; i < el.children.length; i++) {
+                innerHTML += helpers.processElement(el.children[i]);
+              }
+            } else {
+              innerHTML = el.textContent?.trim() || '';
             }
-          } else {
-            innerHTML = el.textContent?.trim() || '';
-          }
 
-          if (['img', 'br', 'hr', 'input'].includes(tagName)) {
-            return `<${tagName}${attrs}${styleAttr} />`;
+            if (['img', 'br', 'hr', 'input'].includes(tagName)) {
+              return `<${tagName}${attrs}${styleAttr} />`;
+            }
+            return `<${tagName}${attrs}${styleAttr}>${innerHTML}</${tagName}>`;
           }
-          return `<${tagName}${attrs}${styleAttr}>${innerHTML}</${tagName}>`;
         };
 
         const navSelectors = [
@@ -757,7 +759,7 @@ export async function generateComponents(
               if (rect.top <= 50 && rect.height > 40 && rect.height < 200) {
                 const links = el.querySelectorAll('a');
                 if (links.length >= 3) {
-                  return processElement(el);
+                  return helpers.processElement(el);
                 }
               }
             }

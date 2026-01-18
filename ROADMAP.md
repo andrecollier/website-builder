@@ -23,6 +23,11 @@
 - [ ] Version history og rollback
 - [ ] Template Mode (mix sections fra flere sider)
 - [ ] Export til standalone filer
+- [ ] Dev Server Management i Dashboard
+  - Start/stopp dev servere fra UI
+  - Swap mellom preview av ulike genererte prosjekter
+  - Automatisk port-allokering (unngå konflikter)
+  - Status-indikatorer for kjørende servere
 
 ---
 
