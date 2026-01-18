@@ -6,6 +6,7 @@ import { UrlInput } from '@/components/Dashboard/UrlInput';
 import { StatusBar } from '@/components/Dashboard/StatusBar';
 import { ProjectList } from '@/components/Dashboard/ProjectList';
 import { ErrorRecoveryPanel } from '@/components/Dashboard/ErrorRecoveryPanel';
+import { ApprovalGate } from '@/components/Dashboard/ApprovalGate';
 import { useStore, useExtractionErrors, useExtractionStatus, useCurrentWebsiteId } from '@/store/useStore';
 import { isValidUrl, cn } from '@/lib/utils';
 import type { Website, StartExtractionResponse } from '@/types';
@@ -28,12 +29,18 @@ export default function Home() {
   // Template Mode toggle
   const [isTemplateMode, setIsTemplateMode] = useState(false);
 
+  // Approval gate toggle - pause after component generation for review
+  const [requireApproval, setRequireApproval] = useState(true);
+
   // Projects state
   const [projects, setProjects] = useState<Website[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
 
   // Loading state for extraction
   const [isStarting, setIsStarting] = useState(false);
+
+  // Approval gate state
+  const [awaitingApprovalWebsite, setAwaitingApprovalWebsite] = useState<Website | null>(null);
 
   // Store state and actions
   const { isRunning } = useExtractionStatus();
@@ -101,7 +108,7 @@ export default function Home() {
 
   /**
    * Fetch project history from API
-   * Also checks for in-progress extractions to resume polling
+   * Also checks for in-progress or awaiting_approval extractions
    */
   const fetchProjects = async () => {
     try {
@@ -111,6 +118,14 @@ export default function Home() {
         const data = await response.json();
         const websites = data.websites || [];
         setProjects(websites);
+
+        // Check for awaiting_approval extractions
+        const awaitingApproval = websites.find((w: Website) => w.status === 'awaiting_approval');
+        if (awaitingApproval) {
+          setAwaitingApprovalWebsite(awaitingApproval);
+        } else {
+          setAwaitingApprovalWebsite(null);
+        }
 
         // Check for in-progress extractions to resume polling after refresh
         const inProgressWebsite = websites.find((w: Website) => w.status === 'in_progress');
@@ -151,6 +166,7 @@ export default function Home() {
         body: JSON.stringify({
           url,
           mode: 'single',
+          requireApproval, // Pause after component generation for review
         }),
       });
 
@@ -262,6 +278,27 @@ export default function Home() {
     store.reset();
   }, [store]);
 
+  /**
+   * Handle approval gate - approve and continue pipeline
+   */
+  const handleApproveExtraction = useCallback(() => {
+    // Clear the awaiting approval state and resume polling
+    if (awaitingApprovalWebsite) {
+      store.setWebsiteId(awaitingApprovalWebsite.id);
+      store.startExtraction(awaitingApprovalWebsite.reference_url);
+    }
+    setAwaitingApprovalWebsite(null);
+    fetchProjects();
+  }, [awaitingApprovalWebsite, store]);
+
+  /**
+   * Handle approval gate - reject extraction
+   */
+  const handleRejectExtraction = useCallback(() => {
+    setAwaitingApprovalWebsite(null);
+    fetchProjects();
+  }, []);
+
   return (
     <main className="min-h-screen flex flex-col">
       {/* Header */}
@@ -354,6 +391,30 @@ export default function Home() {
             </div>
           )}
 
+          {/* Approval Gate Option */}
+          {!isTemplateMode && (
+            <div className="mt-4 flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="require-approval"
+                checked={requireApproval}
+                onChange={(e) => setRequireApproval(e.target.checked)}
+                disabled={isRunning || isStarting}
+                className={cn(
+                  'w-4 h-4 rounded border-[rgb(var(--border))]',
+                  'text-[rgb(var(--accent))] focus:ring-[rgb(var(--accent)/0.3)]',
+                  'disabled:opacity-50'
+                )}
+              />
+              <label
+                htmlFor="require-approval"
+                className="text-sm text-[rgb(var(--muted-foreground))]"
+              >
+                Pause for approval after component generation
+              </label>
+            </div>
+          )}
+
           {/* Start Extraction Button */}
           <button
             onClick={handleStartExtraction}
@@ -418,6 +479,18 @@ export default function Home() {
         <section className="w-full max-w-2xl mb-8">
           <StatusBar />
         </section>
+
+        {/* Approval Gate */}
+        {awaitingApprovalWebsite && (
+          <section className="w-full max-w-2xl mb-8">
+            <ApprovalGate
+              websiteId={awaitingApprovalWebsite.id}
+              websiteName={awaitingApprovalWebsite.name}
+              onApprove={handleApproveExtraction}
+              onReject={handleRejectExtraction}
+            />
+          </section>
+        )}
 
         {/* Error Recovery Panel */}
         {errors.length > 0 && (

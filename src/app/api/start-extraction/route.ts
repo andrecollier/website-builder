@@ -92,8 +92,12 @@ function saveProgress(websiteId: string, phase: CapturePhase, percent: number, m
  * Run the extraction pipeline using the Orchestrator Agent.
  * This function is fire-and-forget - it handles its own errors and updates the database.
  * Uses the agent-based architecture for capture, extraction, generation, and comparison.
+ *
+ * @param websiteId - The website ID
+ * @param url - The URL to extract
+ * @param requireApproval - If true, pause after component generation for approval
  */
-async function runExtractionPipeline(websiteId: string, url: string): Promise<void> {
+async function runExtractionPipeline(websiteId: string, url: string, requireApproval: boolean = false): Promise<void> {
   try {
     // Initial progress
     saveProgress(websiteId, 'initializing', 0, 'Starting extraction pipeline...');
@@ -102,6 +106,7 @@ async function runExtractionPipeline(websiteId: string, url: string): Promise<vo
     const result = await executeOrchestrator({
       websiteId,
       url,
+      requireApproval,
       onProgress: (progress) => {
         // Save to all stores (memory + database)
         saveProgress(websiteId, progress.phase, progress.percent, progress.message);
@@ -109,6 +114,13 @@ async function runExtractionPipeline(websiteId: string, url: string): Promise<vo
     });
 
     if (result.success && result.data) {
+      // Check if pipeline is awaiting approval
+      if (result.data.status === 'awaiting_approval') {
+        saveProgress(websiteId, 'awaiting_approval', 55, 'Components generated - awaiting approval');
+        updateWebsiteStatus(websiteId, 'awaiting_approval');
+        return; // Don't clean up progress store yet - user needs to see the state
+      }
+
       // Save design system files if extraction was successful
       if (result.data.designSystem) {
         try {
@@ -135,9 +147,13 @@ async function runExtractionPipeline(websiteId: string, url: string): Promise<vo
   } finally {
     // Clean up in-memory progress store after a delay to allow final status poll
     // Database progress is kept for refresh recovery
-    setTimeout(() => {
-      captureProgressStore.delete(websiteId);
-    }, 30000);
+    // Skip cleanup if awaiting approval
+    const currentProgress = captureProgressStore.get(websiteId);
+    if (currentProgress?.phase !== 'awaiting_approval') {
+      setTimeout(() => {
+        captureProgressStore.delete(websiteId);
+      }, 30000);
+    }
   }
 }
 
@@ -198,6 +214,7 @@ function validateRequest(
       mode: mode as 'single' | 'template',
       name: typeof data.name === 'string' ? data.name : undefined,
       templateConfig: data.templateConfig as StartExtractionRequest['templateConfig'],
+      requireApproval: data.requireApproval === true,
     },
   };
 }
@@ -258,7 +275,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<StartExtr
       );
     }
 
-    const { url, name } = validation.data;
+    const { url, name, requireApproval } = validation.data;
 
     // Generate display name from URL if not provided
     const displayName = name || getNameFromUrl(url);
@@ -276,7 +293,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<StartExtr
     // Start extraction pipeline asynchronously using Orchestrator Agent (fire-and-forget)
     // The process updates the database status on completion/failure
     // Progress can be polled via the /api/status endpoint
-    runExtractionPipeline(website.id, url).catch(() => {
+    // If requireApproval is true, pipeline will pause after component generation
+    runExtractionPipeline(website.id, url, requireApproval).catch(() => {
       // Error handling is done inside runExtractionPipeline
       // This catch prevents unhandled promise rejection warnings
     });

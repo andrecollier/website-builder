@@ -70,6 +70,31 @@ export interface OrchestratorOptions {
   targetAccuracy?: number;
   /** Enable responsive capture at multiple viewports (default: true) */
   enableResponsive?: boolean;
+  /** Enable component validation step (default: true) */
+  enableComponentValidation?: boolean;
+  /** Threshold for component validation pass (default: 80) */
+  componentValidationThreshold?: number;
+  /** Pause after component generation for user approval (default: false) */
+  requireApproval?: boolean;
+}
+
+/**
+ * State saved when pipeline pauses for approval
+ */
+export interface PipelineCheckpoint {
+  websiteId: string;
+  url: string;
+  phase: 'awaiting_approval';
+  savedAt: string;
+  captureResult: CaptureResult;
+  responsiveData?: {
+    fullPagePaths: Record<string, string>;
+    sections: any[];
+    viewports: any[];
+  };
+  designSystem: DesignSystem;
+  components: GeneratedComponent[];
+  options: Omit<OrchestratorOptions, 'onProgress'>;
 }
 
 /**
@@ -99,30 +124,37 @@ interface PhaseResult {
  * ensuring correct phase execution order.
  */
 export const orchestratorAgentDef: AgentDefinition = {
-  description: 'Orchestrator agent that coordinates the entire extraction pipeline (Capture → Extract → Generate → Compare)',
+  description: 'Orchestrator agent that coordinates the entire extraction pipeline (Capture → Extract → Generate → Scaffold → Validate → Compare)',
   prompt: `You are the Orchestrator Agent for the Website Cooker extraction pipeline. Your role is to:
 
 1. Coordinate the extraction pipeline phases in correct order:
    - Phase 1: Capture (screenshots and page data)
+   - Phase 1.5: Responsive Capture (mobile, tablet viewports)
    - Phase 2: Extract (design system tokens)
    - Phase 3: Generate (React components)
-   - Phase 4: Compare (visual comparison)
+   - Phase 4: Scaffold (Next.js project)
+   - Phase 5: Component Validation (per-component accuracy check)
+   - Phase 6: Compare (full-page visual comparison)
+   - Phase 7: Improve (optional, if accuracy below target)
 
 2. Delegate tasks to specialist agents:
    - Capture Agent (model: haiku) - Playwright operations
    - Extractor Agent (model: sonnet) - Design token extraction
    - Generator Agent (model: sonnet) - Component generation
-   - Comparator Agent (model: haiku) - Visual comparison
+   - Scaffold Agent - Next.js project scaffolding
+   - Component Validator - Individual component accuracy validation
+   - Comparator Agent (model: haiku) - Full-page visual comparison
 
 3. Track progress and handle errors:
    - Monitor each phase completion
    - Catch and report errors
    - Continue pipeline if possible after errors
+   - Flag components with <80% accuracy for review
 
 4. Ensure data flows correctly:
    - Capture result → Extractor
    - Capture result + Design system → Generator
-   - Generated components → Comparator
+   - Generated components → Scaffold → Component Validation → Comparator
 
 Use the Task tool to spawn specialist agents as needed.`,
   tools: ['Task'], // Enable subagent spawning
@@ -243,6 +275,62 @@ function createAgentContext(websiteId: string, url: string): AgentContext {
       failContext(websiteId, error);
     },
   };
+}
+
+// ====================
+// CHECKPOINT MANAGEMENT
+// ====================
+
+/**
+ * Save pipeline checkpoint for later resumption
+ */
+async function saveCheckpoint(checkpoint: PipelineCheckpoint): Promise<void> {
+  const fs = await import('fs/promises');
+  const path = await import('path');
+
+  const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
+  const checkpointDir = path.join(websitesDir, checkpoint.websiteId);
+  const checkpointPath = path.join(checkpointDir, 'checkpoint.json');
+
+  // Ensure directory exists
+  await fs.mkdir(checkpointDir, { recursive: true });
+
+  await fs.writeFile(checkpointPath, JSON.stringify(checkpoint, null, 2), 'utf-8');
+}
+
+/**
+ * Load pipeline checkpoint for resumption
+ */
+async function loadCheckpoint(websiteId: string): Promise<PipelineCheckpoint | null> {
+  const fs = await import('fs/promises');
+  const path = await import('path');
+
+  const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
+  const checkpointPath = path.join(websitesDir, websiteId, 'checkpoint.json');
+
+  try {
+    const data = await fs.readFile(checkpointPath, 'utf-8');
+    return JSON.parse(data) as PipelineCheckpoint;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete checkpoint after successful completion
+ */
+async function deleteCheckpoint(websiteId: string): Promise<void> {
+  const fs = await import('fs/promises');
+  const path = await import('path');
+
+  const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
+  const checkpointPath = path.join(websitesDir, websiteId, 'checkpoint.json');
+
+  try {
+    await fs.unlink(checkpointPath);
+  } catch {
+    // Ignore if file doesn't exist
+  }
 }
 
 // ====================
@@ -652,6 +740,90 @@ async function delegateToComparatorAgent(
   }
 }
 
+/**
+ * Component Validation Result type
+ */
+interface ComponentValidationAgentResult {
+  success: boolean;
+  totalComponents: number;
+  passedComponents: number;
+  failedComponents: number;
+  averageAccuracy: number;
+  flaggedComponents: string[];
+  reportPath?: string;
+}
+
+/**
+ * Delegate to Component Validation Agent
+ * Validates each generated component against its reference screenshot
+ */
+async function delegateToComponentValidationAgent(
+  context: AgentContext,
+  options: {
+    threshold?: number;
+    onProgress?: (progress: { current: number; total: number; componentName: string }) => void;
+  }
+): Promise<ComponentValidationAgentResult> {
+  publishAgentStarted(context.websiteId, 'component-validation', 'Starting component validation...');
+
+  try {
+    const { validateAllComponents } = await import('@/lib/comparison/component-validation');
+    const path = await import('path');
+
+    const websitesDir = process.env.WEBSITES_DIR || path.join(process.cwd(), 'Websites');
+    const threshold = options.threshold ?? 80;
+
+    const result = await validateAllComponents({
+      websiteId: context.websiteId,
+      websitesDir,
+      autoStartServer: true,
+      onProgress: options.onProgress,
+    });
+
+    // Identify components that failed validation (below threshold)
+    const flaggedComponents = result.results
+      .filter(r => r.accuracy < threshold)
+      .map(r => `${r.componentName} (${r.accuracy.toFixed(1)}%)`);
+
+    const reportPath = path.join(
+      websitesDir,
+      context.websiteId,
+      'comparison',
+      'component-validation',
+      'report.json'
+    );
+
+    publishAgentCompleted(
+      context.websiteId,
+      'component-validation',
+      `Component validation completed: ${result.passedComponents}/${result.totalComponents} passed (avg ${result.averageAccuracy.toFixed(1)}%)`,
+      result
+    );
+
+    return {
+      success: true,
+      totalComponents: result.totalComponents,
+      passedComponents: result.passedComponents,
+      failedComponents: result.failedComponents,
+      averageAccuracy: result.averageAccuracy,
+      flaggedComponents,
+      reportPath,
+    };
+  } catch (error) {
+    const extractionError = createError(5.5, error instanceof Error ? error : String(error), true);
+    publishAgentFailed(context.websiteId, 'component-validation', extractionError);
+
+    return {
+      success: false,
+      totalComponents: 0,
+      passedComponents: 0,
+      failedComponents: 0,
+      averageAccuracy: 0,
+      flaggedComponents: [],
+    };
+  }
+}
+
 // ====================
 // MAIN ORCHESTRATOR
 // ====================
@@ -661,9 +833,13 @@ async function delegateToComparatorAgent(
  *
  * Coordinates the following phases:
  * 1. Capture: Screenshot and page data collection
+ * 1.5. Responsive Capture: Multi-viewport screenshots (mobile, tablet, desktop)
  * 2. Extract: Design system token extraction
- * 3. Generate: Component generation with variants (parallel)
- * 4. Compare: Visual comparison with reference (parallel)
+ * 3. Generate: Component generation with variants
+ * 4. Scaffold: Create runnable Next.js project
+ * 5. Component Validation: Per-component accuracy check against reference
+ * 6. Compare: Full-page visual comparison
+ * 7. Improve: Optional auto-improvement if accuracy below target
  *
  * @param options - Orchestrator execution options
  * @returns Promise resolving to orchestrator result
@@ -697,6 +873,13 @@ export async function executeOrchestrator(
     };
     designSystem?: DesignSystem;
     components?: GeneratedComponent[];
+    componentValidation?: {
+      totalComponents: number;
+      passedComponents: number;
+      failedComponents: number;
+      averageAccuracy: number;
+      flaggedComponents: string[];
+    };
     overallAccuracy?: number;
   } = {};
 
@@ -704,7 +887,7 @@ export async function executeOrchestrator(
     // ========================================
     // PHASE 1: CAPTURE (5-20%)
     // ========================================
-    emitProgress('capturing', 5, 'Phase 1/6: Capturing website sections...');
+    emitProgress('capturing', 5, 'Phase 1/7: Capturing website sections...');
 
     const captureRetry = await withRetry(
       async () => {
@@ -732,7 +915,7 @@ export async function executeOrchestrator(
     let responsiveData: any = null;
 
     if (enableResponsive) {
-      emitProgress('capturing', 20, 'Phase 1.5/6: Capturing responsive viewports (mobile, tablet)...');
+      emitProgress('capturing', 20, 'Phase 1.5/7: Capturing responsive viewports (mobile, tablet)...');
 
       const responsiveResult = await delegateToResponsiveCapture(agentContext, options);
 
@@ -752,7 +935,7 @@ export async function executeOrchestrator(
     // ========================================
     // PHASE 2: EXTRACT (28-38%)
     // ========================================
-    emitProgress('extracting', 30, 'Phase 2/6: Analyzing design system...');
+    emitProgress('extracting', 30, 'Phase 2/7: Analyzing design system...');
 
     const extractorRetry = await withRetry(
       async () => {
@@ -777,9 +960,9 @@ export async function executeOrchestrator(
     emitProgress('extracting', 38, 'Design tokens extracted successfully');
 
     // ========================================
-    // PHASE 3: GENERATE (38-60%)
+    // PHASE 3: GENERATE (38-55%)
     // ========================================
-    emitProgress('generating', 40, 'Phase 3/6: Generating React components (with responsive classes)...');
+    emitProgress('generating', 40, 'Phase 3/7: Generating React components (with responsive classes)...');
 
     const generatorRetry = await withRetry(
       async () => {
@@ -802,25 +985,122 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.components = generatorRetry.result.data;
-    emitProgress('generating', 60, 'Components generated successfully (with responsive Tailwind classes)');
+    emitProgress('generating', 55, 'Components generated successfully (with responsive Tailwind classes)');
 
     // ========================================
-    // PHASE 4: SCAFFOLD (60-75%)
+    // APPROVAL GATE (if enabled)
     // ========================================
-    emitProgress('scaffolding', 62, 'Phase 4/6: Building Next.js project...');
+    const { requireApproval = false } = options;
 
-    const scaffoldResult = await delegateToScaffoldAgent(agentContext);
-    if (!scaffoldResult.success) {
-      // Scaffold failure is non-fatal - continue with comparison (will have 0% accuracy)
-      console.warn('Scaffold failed, comparison will have limited accuracy:', scaffoldResult.error);
-    } else {
-      emitProgress('scaffolding', 75, 'Project scaffolded successfully');
+    if (requireApproval) {
+      // Save checkpoint for later resumption
+      const checkpoint: PipelineCheckpoint = {
+        websiteId,
+        url,
+        phase: 'awaiting_approval',
+        savedAt: new Date().toISOString(),
+        captureResult: pipelineResult.captureResult!,
+        responsiveData: pipelineResult.responsiveData,
+        designSystem: pipelineResult.designSystem!,
+        components: pipelineResult.components!,
+        options: {
+          websiteId: options.websiteId,
+          url: options.url,
+          maxRetries: options.maxRetries,
+          skipCache: options.skipCache,
+          autoImprove: options.autoImprove,
+          targetAccuracy: options.targetAccuracy,
+          enableResponsive: options.enableResponsive,
+          enableComponentValidation: options.enableComponentValidation,
+          componentValidationThreshold: options.componentValidationThreshold,
+          requireApproval: false, // Don't require approval again on resume
+        },
+      };
+
+      await saveCheckpoint(checkpoint);
+
+      emitProgress('awaiting_approval', 55, 'Components generated - awaiting user approval before scaffolding');
+
+      // Update context to awaiting_approval status
+      agentContext.updateState({
+        status: 'awaiting_approval' as any,
+      });
+
+      return {
+        success: true,
+        agentType: 'orchestrator',
+        message: 'Pipeline paused - awaiting user approval to continue',
+        data: {
+          ...pipelineResult,
+          status: 'awaiting_approval',
+          checkpointSaved: true,
+        },
+      };
     }
 
     // ========================================
-    // PHASE 5: COMPARE (75-95%)
+    // PHASE 4: SCAFFOLD (55-65%)
     // ========================================
-    emitProgress('comparing', 78, 'Phase 5/6: Comparing to reference...');
+    emitProgress('scaffolding', 57, 'Phase 4/7: Building Next.js project...');
+
+    const scaffoldResult = await delegateToScaffoldAgent(agentContext);
+    if (!scaffoldResult.success) {
+      // Scaffold failure is non-fatal - continue with validation (will have 0% accuracy)
+      console.warn('Scaffold failed, component validation will have limited accuracy:', scaffoldResult.error);
+    } else {
+      emitProgress('scaffolding', 65, 'Project scaffolded successfully');
+    }
+
+    // ========================================
+    // PHASE 5: COMPONENT VALIDATION (65-80%)
+    // ========================================
+    const { enableComponentValidation = true, componentValidationThreshold = 80 } = options;
+
+    if (enableComponentValidation && scaffoldResult.success) {
+      emitProgress('validating', 67, 'Phase 5/7: Validating individual components...');
+
+      const validationResult = await delegateToComponentValidationAgent(agentContext, {
+        threshold: componentValidationThreshold,
+        onProgress: (progress) => {
+          // Map validation progress to 67-80%
+          const percent = 67 + ((progress.current / progress.total) * 13);
+          emitProgress('validating', percent, `Validating ${progress.componentName}...`);
+        },
+      });
+
+      if (validationResult.success) {
+        pipelineResult.componentValidation = {
+          totalComponents: validationResult.totalComponents,
+          passedComponents: validationResult.passedComponents,
+          failedComponents: validationResult.failedComponents,
+          averageAccuracy: validationResult.averageAccuracy,
+          flaggedComponents: validationResult.flaggedComponents,
+        };
+
+        const flaggedMsg = validationResult.flaggedComponents.length > 0
+          ? ` | Flagged (<${componentValidationThreshold}%): ${validationResult.flaggedComponents.join(', ')}`
+          : '';
+        emitProgress(
+          'validating',
+          80,
+          `Component validation: ${validationResult.passedComponents}/${validationResult.totalComponents} passed (${validationResult.averageAccuracy.toFixed(1)}% avg)${flaggedMsg}`
+        );
+      } else {
+        console.warn('[Orchestrator] Component validation failed (non-fatal), continuing...');
+        emitProgress('validating', 80, 'Component validation skipped due to error');
+      }
+    } else {
+      if (!scaffoldResult.success) {
+        emitProgress('validating', 80, 'Component validation skipped (scaffold failed)');
+      } else {
+        emitProgress('validating', 80, 'Component validation disabled');
+      }
+    }
+
+    // ========================================
+    // PHASE 6: COMPARE (80-95%)
+    // ========================================
+    emitProgress('comparing', 82, 'Phase 6/7: Running full-page comparison...');
 
     const comparatorRetry = await withRetry(
       async () => {
@@ -842,10 +1122,10 @@ export async function executeOrchestrator(
     }
 
     pipelineResult.overallAccuracy = comparatorRetry.result.data.overallAccuracy;
-    emitProgress('comparing', 95, `Comparison complete: ${pipelineResult.overallAccuracy?.toFixed(1)}% accuracy`);
+    emitProgress('comparing', 95, `Full-page comparison complete: ${pipelineResult.overallAccuracy?.toFixed(1)}% accuracy`);
 
     // ========================================
-    // OPTIONAL: IMPROVE (95-100%)
+    // PHASE 7 (OPTIONAL): IMPROVE (95-100%)
     // ========================================
     const { autoImprove = false, targetAccuracy = 80 } = options;
 
@@ -934,5 +1214,282 @@ export function getOrchestratorConfig() {
     maxRetries: 3,
     timeout: 300000, // 5 minutes
     verbose: false,
+  };
+}
+
+/**
+ * Continue a paused pipeline from checkpoint
+ *
+ * Resumes execution from the scaffold phase after user approval.
+ * Loads saved state and continues with phases 4-7.
+ *
+ * @param websiteId - Website ID to resume
+ * @param onProgress - Optional progress callback
+ * @returns Promise resolving to orchestrator result
+ */
+export async function continueOrchestrator(
+  websiteId: string,
+  onProgress?: (progress: CaptureProgress) => void
+): Promise<OrchestratorAgentResult> {
+  // Load checkpoint
+  const checkpoint = await loadCheckpoint(websiteId);
+
+  if (!checkpoint) {
+    return {
+      success: false,
+      agentType: 'orchestrator',
+      message: 'No checkpoint found for this website',
+      error: {
+        message: `No checkpoint found for website ${websiteId}. Cannot continue pipeline.`,
+        recoverable: false,
+      },
+    };
+  }
+
+  if (checkpoint.phase !== 'awaiting_approval') {
+    return {
+      success: false,
+      agentType: 'orchestrator',
+      message: `Invalid checkpoint phase: ${checkpoint.phase}`,
+      error: {
+        message: `Expected checkpoint phase 'awaiting_approval', got '${checkpoint.phase}'`,
+        recoverable: false,
+      },
+    };
+  }
+
+  const { url, captureResult, responsiveData, designSystem, components, options } = checkpoint;
+
+  // Reinitialize context
+  const { initializeContext } = await import('../shared/context');
+  initializeContext(websiteId, url);
+
+  // Create agent context
+  const agentContext = createAgentContext(websiteId, url);
+
+  // Create progress emitter
+  const emitProgress = createProgressEmitter(websiteId, onProgress);
+
+  // Publish pipeline resumed event
+  publishPipelineStarted(websiteId, 'Resuming extraction pipeline after approval');
+  emitProgress('scaffolding', 55, 'Resuming pipeline after approval...');
+
+  // Pipeline result accumulator with restored state
+  const pipelineResult: {
+    captureResult?: CaptureResult;
+    responsiveData?: {
+      fullPagePaths: Record<string, string>;
+      sections: any[];
+      viewports: any[];
+    };
+    designSystem?: DesignSystem;
+    components?: GeneratedComponent[];
+    componentValidation?: {
+      totalComponents: number;
+      passedComponents: number;
+      failedComponents: number;
+      averageAccuracy: number;
+      flaggedComponents: string[];
+    };
+    overallAccuracy?: number;
+  } = {
+    captureResult,
+    responsiveData,
+    designSystem,
+    components,
+  };
+
+  // Update context with restored state
+  agentContext.updateState({
+    status: 'scaffolding',
+    captureResult,
+    designSystem,
+    components,
+  });
+
+  const maxRetries = options.maxRetries ?? 3;
+
+  try {
+    // ========================================
+    // PHASE 4: SCAFFOLD (55-65%)
+    // ========================================
+    emitProgress('scaffolding', 57, 'Phase 4/7: Building Next.js project...');
+
+    const scaffoldResult = await delegateToScaffoldAgent(agentContext);
+    if (!scaffoldResult.success) {
+      console.warn('Scaffold failed, component validation will have limited accuracy:', scaffoldResult.error);
+    } else {
+      emitProgress('scaffolding', 65, 'Project scaffolded successfully');
+    }
+
+    // ========================================
+    // PHASE 5: COMPONENT VALIDATION (65-80%)
+    // ========================================
+    const { enableComponentValidation = true, componentValidationThreshold = 80 } = options;
+
+    if (enableComponentValidation && scaffoldResult.success) {
+      emitProgress('validating', 67, 'Phase 5/7: Validating individual components...');
+
+      const validationResult = await delegateToComponentValidationAgent(agentContext, {
+        threshold: componentValidationThreshold,
+        onProgress: (progress) => {
+          const percent = 67 + ((progress.current / progress.total) * 13);
+          emitProgress('validating', percent, `Validating ${progress.componentName}...`);
+        },
+      });
+
+      if (validationResult.success) {
+        pipelineResult.componentValidation = {
+          totalComponents: validationResult.totalComponents,
+          passedComponents: validationResult.passedComponents,
+          failedComponents: validationResult.failedComponents,
+          averageAccuracy: validationResult.averageAccuracy,
+          flaggedComponents: validationResult.flaggedComponents,
+        };
+
+        const flaggedMsg = validationResult.flaggedComponents.length > 0
+          ? ` | Flagged (<${componentValidationThreshold}%): ${validationResult.flaggedComponents.join(', ')}`
+          : '';
+        emitProgress(
+          'validating',
+          80,
+          `Component validation: ${validationResult.passedComponents}/${validationResult.totalComponents} passed (${validationResult.averageAccuracy.toFixed(1)}% avg)${flaggedMsg}`
+        );
+      } else {
+        console.warn('[Orchestrator] Component validation failed (non-fatal), continuing...');
+        emitProgress('validating', 80, 'Component validation skipped due to error');
+      }
+    } else {
+      if (!scaffoldResult.success) {
+        emitProgress('validating', 80, 'Component validation skipped (scaffold failed)');
+      } else {
+        emitProgress('validating', 80, 'Component validation disabled');
+      }
+    }
+
+    // ========================================
+    // PHASE 6: COMPARE (80-95%)
+    // ========================================
+    emitProgress('comparing', 82, 'Phase 6/7: Running full-page comparison...');
+
+    const comparatorRetry = await withRetry(
+      async () => {
+        const result = await delegateToComparatorAgent(agentContext, components);
+        if (!result.success || !result.data) {
+          throw new Error(result.error?.message || 'Comparison failed');
+        }
+        return result;
+      },
+      maxRetries,
+      'Compare phase'
+    );
+
+    if (!comparatorRetry.success || !comparatorRetry.result?.data) {
+      throw new Error(comparatorRetry.error || 'Compare phase failed');
+    }
+
+    pipelineResult.overallAccuracy = comparatorRetry.result.data.overallAccuracy;
+    emitProgress('comparing', 95, `Full-page comparison complete: ${pipelineResult.overallAccuracy?.toFixed(1)}% accuracy`);
+
+    // ========================================
+    // PHASE 7 (OPTIONAL): IMPROVE (95-100%)
+    // ========================================
+    const { autoImprove = false, targetAccuracy = 80 } = options;
+
+    if (autoImprove && pipelineResult.overallAccuracy < targetAccuracy) {
+      emitProgress('improving', 96, 'Running improvement agents...');
+
+      if (process.env.ANTHROPIC_API_KEY) {
+        try {
+          const { improveWebsite } = await import('../improvement-orchestrator');
+          const improvementResult = await improveWebsite(websiteId);
+
+          if (improvementResult.success) {
+            emitProgress('improving', 98, 'Improvements applied, re-comparing...');
+
+            const recompareResult = await delegateToComparatorAgent(agentContext, components);
+
+            if (recompareResult.success && recompareResult.data) {
+              pipelineResult.overallAccuracy = recompareResult.data.overallAccuracy;
+            }
+          }
+        } catch (improvementError) {
+          console.warn('[Orchestrator] Improvement phase failed:', improvementError);
+        }
+      } else {
+        console.warn('[Orchestrator] Skipping improvement: ANTHROPIC_API_KEY not set');
+      }
+    }
+
+    // ========================================
+    // PIPELINE COMPLETE - Delete checkpoint
+    // ========================================
+    await deleteCheckpoint(websiteId);
+
+    const finalMessage = autoImprove
+      ? `Extraction pipeline completed with ${pipelineResult.overallAccuracy?.toFixed(1)}% accuracy`
+      : 'Extraction pipeline completed successfully';
+
+    emitProgress('complete', 100, finalMessage);
+    agentContext.complete();
+    publishPipelineCompleted(websiteId, finalMessage);
+
+    return {
+      success: true,
+      agentType: 'orchestrator',
+      message: finalMessage,
+      data: pipelineResult,
+    };
+  } catch (error) {
+    const extractionError = createError(
+      0,
+      error instanceof Error ? error : String(error),
+      false
+    );
+
+    emitProgress('failed', 0, `Pipeline failed: ${extractionError.message}`);
+    agentContext.fail(extractionError);
+    publishPipelineFailed(websiteId, extractionError);
+
+    return {
+      success: false,
+      agentType: 'orchestrator',
+      message: 'Extraction pipeline failed',
+      data: pipelineResult,
+      error: {
+        message: extractionError.message,
+        details: extractionError.details,
+        recoverable: false,
+      },
+    };
+  }
+}
+
+/**
+ * Check if a website has a pending checkpoint awaiting approval
+ */
+export async function hasCheckpoint(websiteId: string): Promise<boolean> {
+  const checkpoint = await loadCheckpoint(websiteId);
+  return checkpoint !== null && checkpoint.phase === 'awaiting_approval';
+}
+
+/**
+ * Get checkpoint details for a website
+ */
+export async function getCheckpointInfo(websiteId: string): Promise<{
+  exists: boolean;
+  phase?: string;
+  savedAt?: string;
+  componentCount?: number;
+} | null> {
+  const checkpoint = await loadCheckpoint(websiteId);
+  if (!checkpoint) {
+    return { exists: false };
+  }
+  return {
+    exists: true,
+    phase: checkpoint.phase,
+    savedAt: checkpoint.savedAt,
+    componentCount: checkpoint.components.length,
   };
 }

@@ -7,11 +7,26 @@
 
 import fs from 'fs';
 import path from 'path';
+import {
+  detectPlatform,
+  extractFramerConfig,
+  getFramerWrapperClasses,
+  transformGlobalsCssForFramer,
+  type Platform,
+} from '../platform';
 
 interface ScaffoldOptions {
   websiteId: string;
   websitesDir: string;
   siteName?: string;
+  /** Force a specific platform (auto-detected if not provided) */
+  platform?: Platform;
+}
+
+interface PlatformConfig {
+  platform: Platform;
+  wrapperClasses: string;
+  transformCss: (css: string) => string;
 }
 
 /**
@@ -117,13 +132,38 @@ module.exports = {
 /**
  * Get globals.css template
  */
-function getGlobalsCss(): string {
-  return `@tailwind base;
+function getGlobalsCss(platformConfig?: PlatformConfig): string {
+  const baseCss = platformConfig?.platform === 'framer'
+    ? `/* Tailwind base/components removed to preserve Framer CSS layout */
+@tailwind utilities;`
+    : `@tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities;`;
+
+  return `${baseCss}
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Base resets for extracted content */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* SVG placeholder styling */
+.svg-placeholder {
+  width: 24px;
+  height: 24px;
+  background: currentColor;
+  opacity: 0.2;
+  border-radius: 4px;
 }
 `;
 }
@@ -155,24 +195,284 @@ export default function RootLayout({
 }
 
 /**
- * Generate page.tsx that renders all components
+ * Get preview page template for isolated component rendering
+ * Creates a dynamic route at /preview/[component]
  */
-function getPageTsx(componentNames: string[]): string {
+function getPreviewPage(componentNames: string[]): string {
+  // Build the component map entries
+  const componentMapEntries = componentNames
+    .map(name => {
+      const key = name.toLowerCase();
+      return `  '${key}': dynamic(() => import('@/components/${name}').then(mod => mod.${name}), { ssr: false }),`;
+    })
+    .join('\n');
+
+  // Build original names mapping
+  const originalNamesEntries = componentNames
+    .map(name => `  '${name.toLowerCase()}': '${name}',`)
+    .join('\n');
+
+  return `'use client';
+
+import dynamic from 'next/dynamic';
+
+// Component mapping - dynamically import components based on URL param
+const componentMap: Record<string, React.ComponentType<Record<string, unknown>>> = {
+${componentMapEntries}
+};
+
+// Get all available component names for the 404 message
+const availableComponents = Object.keys(componentMap);
+
+// Original component name mapping (for data attributes)
+const originalNames: Record<string, string> = {
+${originalNamesEntries}
+};
+
+interface PreviewPageProps {
+  params: { component: string };
+}
+
+export default function PreviewPage({ params }: PreviewPageProps) {
+  const componentKey = params.component.toLowerCase();
+  const Component = componentMap[componentKey];
+
+  if (!Component) {
+    return (
+      <div style={{
+        padding: '40px',
+        fontFamily: 'system-ui, sans-serif',
+        maxWidth: '600px',
+        margin: '0 auto'
+      }}>
+        <h1 style={{ color: '#e53e3e', marginBottom: '16px' }}>
+          Component Not Found
+        </h1>
+        <p style={{ marginBottom: '16px' }}>
+          The component <code style={{
+            backgroundColor: '#f0f0f0',
+            padding: '2px 6px',
+            borderRadius: '4px'
+          }}>{params.component}</code> was not found.
+        </p>
+        <p style={{ marginBottom: '8px' }}>Available components:</p>
+        <ul style={{ listStyle: 'disc', paddingLeft: '24px' }}>
+          {availableComponents.map(name => (
+            <li key={name}>
+              <a
+                href={\`/preview/\${name}\`}
+                style={{ color: '#3182ce', textDecoration: 'underline' }}
+              >
+                {name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  const originalName = originalNames[componentKey] || params.component;
+  const componentType = originalName.replace(/\\d+$/, '').toLowerCase();
+
+  return (
+    <div
+      data-component-name={originalName}
+      data-component-type={componentType}
+      style={{
+        width: '1440px',
+        margin: '0 auto',
+        backgroundColor: '#ffffff'
+      }}
+    >
+      <Component />
+    </div>
+  );
+}
+`;
+}
+
+/**
+ * Get components gallery page template
+ * Creates a page at /preview/components that shows all components stacked vertically
+ */
+function getComponentsGalleryPage(componentNames: string[]): string {
   const imports = componentNames
     .map(name => `import { ${name} } from '@/components/${name}';`)
     .join('\n');
 
-  const components = componentNames
-    .map(name => `      <${name} />`)
+  const componentsArray = componentNames
+    .map(name => `  { name: '${name}', Component: ${name} },`)
     .join('\n');
+
+  return `'use client';
+
+${imports}
+
+const components = [
+${componentsArray}
+];
+
+export default function ComponentsPreviewPage() {
+  return (
+    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh', padding: '20px 0' }}>
+      <div style={{
+        maxWidth: '1480px',
+        margin: '0 auto',
+        padding: '0 20px'
+      }}>
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: 'bold',
+          marginBottom: '8px',
+          fontFamily: 'system-ui, sans-serif'
+        }}>
+          Component Gallery
+        </h1>
+        <p style={{
+          color: '#666',
+          marginBottom: '32px',
+          fontFamily: 'system-ui, sans-serif'
+        }}>
+          All generated components rendered at 1440px width
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          {components.map(({ name, Component }) => (
+            <div key={name} style={{ position: 'relative' }}>
+              {/* Component Label */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '12px'
+              }}>
+                <span style={{
+                  backgroundColor: '#000',
+                  color: '#fff',
+                  padding: '4px 12px',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  fontFamily: 'system-ui, sans-serif'
+                }}>
+                  {name}
+                </span>
+                <a
+                  href={\`/preview/\${name.toLowerCase()}\`}
+                  style={{
+                    color: '#3182ce',
+                    fontSize: '14px',
+                    textDecoration: 'underline',
+                    fontFamily: 'system-ui, sans-serif'
+                  }}
+                >
+                  View isolated →
+                </a>
+              </div>
+
+              {/* Component Container */}
+              <div
+                data-component-name={name}
+                data-component-type={name.replace(/\\d+$/, '').toLowerCase()}
+                style={{
+                  width: '1440px',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  borderRadius: '8px',
+                  overflow: 'hidden'
+                }}
+              >
+                <Component />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{
+          marginTop: '40px',
+          padding: '20px',
+          backgroundColor: '#e2e8f0',
+          borderRadius: '8px',
+          fontFamily: 'system-ui, sans-serif'
+        }}>
+          <strong>Quick Links:</strong>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+            {components.map(({ name }) => (
+              <a
+                key={name}
+                href={\`/preview/\${name.toLowerCase()}\`}
+                style={{
+                  backgroundColor: '#fff',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  color: '#333',
+                  textDecoration: 'none',
+                  border: '1px solid #ccc'
+                }}
+              >
+                {name}
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+`;
+}
+
+/**
+ * Extract base section type from component name (e.g., "Features2" -> "features")
+ */
+function getBaseType(componentName: string): string {
+  // Remove trailing numbers and convert to lowercase
+  return componentName.replace(/\d+$/, '').toLowerCase();
+}
+
+/**
+ * Generate page.tsx that renders all components
+ * Each component is wrapped with a data-component-type attribute for reliable type detection
+ */
+function getPageTsx(componentNames: string[], platformConfig?: PlatformConfig): string {
+  const imports = componentNames
+    .map(name => `import { ${name} } from '@/components/${name}';`)
+    .join('\n');
+
+  // Wrap each component with a div containing data-component-type for detection
+  const components = componentNames
+    .map(name => {
+      const baseType = getBaseType(name);
+      return `      <div data-component-type="${baseType}" data-component-name="${name}">
+        <${name} />
+      </div>`;
+    })
+    .join('\n');
+
+  // Determine wrapper element and classes based on platform
+  let wrapperTag = 'main';
+  let wrapperClasses = 'min-h-screen';
+  let containerStyle = '';
+
+  if (platformConfig?.platform === 'framer' && platformConfig.wrapperClasses) {
+    // Framer needs a div with specific framer-* classes
+    wrapperTag = 'div';
+    wrapperClasses = platformConfig.wrapperClasses;
+    // Add max-width constraint for Framer sites to match original layout
+    containerStyle = ' style={{ maxWidth: "1300px", margin: "0 auto", width: "100%" }}';
+  }
+
+  const idAttr = platformConfig?.platform === 'framer' ? ' id="main"' : '';
 
   return `${imports}
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <${wrapperTag}${idAttr} className="${wrapperClasses}"${containerStyle}>
 ${components}
-    </main>
+    </${wrapperTag}>
   );
 }
 `;
@@ -254,6 +554,7 @@ function getComponentNames(componentsDir: string): string[] {
 export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
   success: boolean;
   generatedPath: string;
+  platform?: Platform;
   error?: string;
 }> {
   const { websiteId, websitesDir, siteName = 'Generated Site' } = options;
@@ -283,6 +584,34 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
       };
     }
 
+    // Detect platform from extracted CSS/HTML
+    let platformConfig: PlatformConfig | undefined;
+    const framerStylesPath = path.join(websiteDir, 'framer-styles.css');
+    const htmlSnapshotPath = path.join(websiteDir, 'page-snapshot.html');
+
+    if (options.platform === 'framer' || fs.existsSync(framerStylesPath)) {
+      // Read Framer CSS to extract configuration
+      const framerCss = fs.existsSync(framerStylesPath)
+        ? fs.readFileSync(framerStylesPath, 'utf-8')
+        : '';
+      const htmlSnapshot = fs.existsSync(htmlSnapshotPath)
+        ? fs.readFileSync(htmlSnapshotPath, 'utf-8')
+        : '';
+
+      // Detect platform if not forced
+      const detectedPlatform = options.platform || (framerCss ? 'framer' : detectPlatform(htmlSnapshot, framerCss).platform);
+
+      if (detectedPlatform === 'framer') {
+        const framerConfig = extractFramerConfig(framerCss);
+        platformConfig = {
+          platform: 'framer',
+          wrapperClasses: getFramerWrapperClasses(framerConfig),
+          transformCss: transformGlobalsCssForFramer,
+        };
+        console.log(`[Scaffold] Detected Framer platform, wrapper classes: ${platformConfig.wrapperClasses}`);
+      }
+    }
+
     // Create generated directory
     if (fs.existsSync(generatedDir)) {
       fs.rmSync(generatedDir, { recursive: true });
@@ -300,10 +629,20 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
     fs.writeFileSync(path.join(generatedDir, 'postcss.config.js'), getPostCssConfig());
     fs.writeFileSync(path.join(generatedDir, 'tailwind.config.js'), getTailwindConfig());
 
-    // Write app files
-    fs.writeFileSync(path.join(generatedDir, 'src', 'app', 'globals.css'), getGlobalsCss());
+    // Write app files with platform-specific configuration
+    fs.writeFileSync(path.join(generatedDir, 'src', 'app', 'globals.css'), getGlobalsCss(platformConfig));
     fs.writeFileSync(path.join(generatedDir, 'src', 'app', 'layout.tsx'), getLayout(siteName));
-    fs.writeFileSync(path.join(generatedDir, 'src', 'app', 'page.tsx'), getPageTsx(componentNames));
+    fs.writeFileSync(path.join(generatedDir, 'src', 'app', 'page.tsx'), getPageTsx(componentNames, platformConfig));
+
+    // Create preview route for isolated component rendering
+    const previewDir = path.join(generatedDir, 'src', 'app', 'preview', '[component]');
+    fs.mkdirSync(previewDir, { recursive: true });
+    fs.writeFileSync(path.join(previewDir, 'page.tsx'), getPreviewPage(componentNames));
+
+    // Create components gallery page
+    const componentsGalleryDir = path.join(generatedDir, 'src', 'app', 'preview', 'components');
+    fs.mkdirSync(componentsGalleryDir, { recursive: true });
+    fs.writeFileSync(path.join(componentsGalleryDir, 'page.tsx'), getComponentsGalleryPage(componentNames));
 
     // Copy components from current/ to generated/
     copyDirRecursive(componentsSourceDir, path.join(generatedDir, 'src', 'components'));
@@ -323,6 +662,13 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
       fs.appendFileSync(globalsPath, '\n\n/* Design System Variables */\n' + variablesCss);
     }
 
+    // Copy Framer styles if extracted (reuse framerStylesPath from platform detection)
+    if (fs.existsSync(framerStylesPath)) {
+      const extractedFramerCss = fs.readFileSync(framerStylesPath, 'utf-8');
+      const globalsPathForFramer = path.join(generatedDir, 'src', 'app', 'globals.css');
+      fs.appendFileSync(globalsPathForFramer, '\n\n/* Framer Extracted Styles */\n' + extractedFramerCss);
+    }
+
     // Run npm install
     const { execSync } = await import('child_process');
     try {
@@ -339,6 +685,7 @@ export async function scaffoldGeneratedSite(options: ScaffoldOptions): Promise<{
     return {
       success: true,
       generatedPath: generatedDir,
+      platform: platformConfig?.platform,
     };
   } catch (error) {
     return {

@@ -2,7 +2,7 @@
 
 import type { RawPageData } from '@/lib/design-system/synthesizer';
 
-export type WebsiteStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+export type WebsiteStatus = 'pending' | 'in_progress' | 'awaiting_approval' | 'completed' | 'failed';
 
 export type WebsitePlatform =
   | 'framer'
@@ -333,7 +333,9 @@ export type CapturePhase =
   | 'sections'
   | 'extracting'
   | 'generating'
+  | 'awaiting_approval'
   | 'scaffolding'
+  | 'validating'
   | 'comparing'
   | 'improving'
   | 'complete'
