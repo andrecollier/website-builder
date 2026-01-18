@@ -30,17 +30,41 @@ import { randomUUID } from 'crypto';
 export function normalizeFramerStyles(html: string): string {
   if (!html) return html;
 
+  // First pass: detect and mark noise overlay elements
+  // Framer uses small repeating textures (256x256) as noise overlays
+  const isNoiseOverlay = (styleContent: string): boolean => {
+    const hasNoiseTexture = /background-image\s*:\s*url\([^)]*(?:width=256|height=256|noise|grain|texture)[^)]*\)/i.test(styleContent);
+    const isAbsolute = /position\s*:\s*absolute/i.test(styleContent);
+    const hasZIndex = /z-index\s*:\s*[1-9]/i.test(styleContent) || /zIndex\s*:\s*['"]?[1-9]/i.test(styleContent);
+    return hasNoiseTexture && isAbsolute && hasZIndex;
+  };
+
   // Pattern to match inline style attributes
   // Handles both style="..." and style='...'
   return html.replace(/style=(["'])(.*?)\1/gi, (match, quote, styleContent) => {
     let normalized = styleContent;
 
-    // Remove opacity: 0 (with various formats)
-    // opacity: 0, opacity:0, opacity: '0', opacity:"0"
-    normalized = normalized.replace(
-      /opacity\s*:\s*['"]?0['"]?\s*;?/gi,
-      'opacity: 1;'
-    );
+    // Detect Framer noise overlay and add proper blend mode/opacity
+    if (isNoiseOverlay(normalized)) {
+      // Add mix-blend-mode and low opacity for noise texture overlays
+      if (!/mix-blend-mode/i.test(normalized)) {
+        normalized += '; mix-blend-mode: overlay';
+      }
+      if (!/opacity\s*:\s*0\.[0-5]/i.test(normalized)) {
+        // Set low opacity for noise overlay (0.15 for subtle effect)
+        normalized = normalized.replace(/opacity\s*:\s*['"]?1['"]?\s*;?/gi, 'opacity: 0.15;');
+        if (!/opacity/i.test(normalized)) {
+          normalized += '; opacity: 0.15';
+        }
+      }
+    } else {
+      // Remove opacity: 0 (with various formats) for non-overlay elements
+      // opacity: 0, opacity:0, opacity: '0', opacity:"0"
+      normalized = normalized.replace(
+        /opacity\s*:\s*['"]?0['"]?\s*;?/gi,
+        'opacity: 1;'
+      );
+    }
 
     // Remove transform animations (translateY, translateX, scale, rotate)
     // Keep transform: none or simple transforms

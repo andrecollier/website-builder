@@ -58,6 +58,12 @@ const STYLE_PROPERTIES = [
   'opacity',
   'overflow',
   'objectFit',
+
+  // Blend modes (important for Framer overlays)
+  'mixBlendMode',
+  'backgroundBlendMode',
+  'filter',
+  'backdropFilter',
 ];
 
 /**
