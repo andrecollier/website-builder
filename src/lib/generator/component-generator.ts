@@ -22,6 +22,7 @@ import type {
   ComponentType,
   DesignSystem,
   WebsitePlatform,
+  SectionContent,
 } from '@/types';
 import { CAPTURE_CONFIG } from '@/types';
 import { detectAllComponents, getComponentDisplayName, normalizeFramerStyles } from './component-detector';
@@ -79,6 +80,8 @@ export interface ReferenceSection {
     width: number;
     height: number;
   };
+  /** Extracted semantic content (headings, paragraphs, buttons, etc.) */
+  content?: SectionContent;
 }
 
 /**
@@ -789,6 +792,8 @@ export async function generateComponents(
             screenshotPath: '',
             htmlSnapshot: html,
             styles: elementData?.styles ?? {},
+            // Include extracted semantic content from reference metadata
+            content: section.content,
           });
         } catch (error) {
           console.error(`Error extracting section ${i}:`, error);
@@ -801,6 +806,7 @@ export async function generateComponents(
             screenshotPath: '',
             htmlSnapshot: '',
             styles: {},
+            content: section.content,
           });
         }
       }

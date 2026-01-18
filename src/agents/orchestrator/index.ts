@@ -774,10 +774,12 @@ async function delegateToGeneratorAgent(
     await page.waitForTimeout(1000);
 
     // Get reference sections from capture result to ensure section types match
+    // Include extracted content for AI-powered component generation
     const referenceSections = captureResult.sections?.map((s) => ({
       id: s.id,
       type: s.type,
       boundingBox: s.boundingBox,
+      content: s.content, // Extracted semantic content (headings, paragraphs, buttons)
     }));
 
     // Generate components using the real generator with reference sections

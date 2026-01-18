@@ -368,6 +368,18 @@ export interface CaptureProgress {
   totalSections?: number;
 }
 
+export interface SectionContent {
+  headings: Array<{ level: number; text: string }>;
+  paragraphs: string[];
+  buttons: Array<{ text: string; href?: string; isPrimary: boolean }>;
+  links: Array<{ text: string; href: string }>;
+  images: Array<{ src: string; alt: string; role: 'hero' | 'icon' | 'decorative' | 'avatar' }>;
+  lists: Array<{ type: 'ul' | 'ol'; items: string[] }>;
+  layout: 'centered' | 'split' | 'grid' | 'cards' | 'list' | 'unknown';
+  stats?: Array<{ value: string; label: string }>;
+  badges?: string[];
+}
+
 export interface SectionInfo {
   id: string;
   type: SectionType;
@@ -378,6 +390,8 @@ export interface SectionInfo {
     height: number;
   };
   screenshotPath: string;
+  /** Extracted semantic content from the section */
+  content?: SectionContent;
 }
 
 export interface CaptureResult {
@@ -589,6 +603,8 @@ export interface DetectedComponent {
   screenshotPath: string;
   htmlSnapshot: string;
   styles: Record<string, string>;
+  /** Extracted semantic content (headings, paragraphs, buttons, etc.) */
+  content?: SectionContent;
 }
 
 // Generated Component Variant

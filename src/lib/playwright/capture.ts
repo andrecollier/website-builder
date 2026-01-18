@@ -18,7 +18,7 @@ import {
   waitForAnimations,
   dismissCookieConsent,
 } from './scroll-loader';
-import { detectAllSections, getPageDimensions } from './section-detector';
+import { detectAllSections, getPageDimensions, extractAllSectionContent } from './section-detector';
 import { getCached, setCache, copyCacheToWebsite } from '@/lib/cache';
 import type { RawPageData } from '@/lib/design-system/synthesizer';
 
@@ -383,7 +383,7 @@ async function captureSections(
 }
 
 /**
- * Save capture metadata
+ * Save capture metadata including extracted content
  */
 function saveMetadata(
   referenceDir: string,
@@ -404,6 +404,8 @@ function saveMetadata(
       id: s.id,
       type: s.type,
       boundingBox: s.boundingBox,
+      // Include extracted content if available
+      content: s.content,
     })),
   };
 
@@ -757,8 +759,12 @@ export async function captureWebsite(options: CaptureOptions): Promise<CaptureRe
     emitProgress('sections', 65, 'Detecting page sections...');
     const detectedSections = await detectAllSections(page);
 
+    // Extract semantic content from each section
+    emitProgress('extracting', 68, 'Extracting section content...');
+    const sectionsWithContent = await extractAllSectionContent(page, detectedSections);
+
     // Capture sections (partial failures don't block the process)
-    const capturedSections = await captureSections(page, detectedSections, sectionsDir, emitProgress);
+    const capturedSections = await captureSections(page, sectionsWithContent, sectionsDir, emitProgress);
 
     // Filter to only successfully captured sections
     const successfulSections = capturedSections.filter((s) => s.screenshotPath !== '');

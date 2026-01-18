@@ -571,8 +571,23 @@ export default ${componentName};
 }
 
 /**
+ * Escape text for use in JSX templates
+ */
+function escapeJsxText(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\$/g, '\\$')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '\\"')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
  * Generate semantic variant code
  * Focuses on clean code architecture with proper HTML semantics
+ * Uses extracted SectionContent when available
  *
  * @param component - Detected component
  * @param componentName - Name for the component
@@ -582,8 +597,7 @@ function generateSemanticVariant(
   component: DetectedComponent,
   componentName: string
 ): string {
-  const { type } = component;
-  const content = parseHtmlContent(component.htmlSnapshot);
+  const { type, content: sectionContent } = component;
 
   // Select semantic HTML element based on component type
   const semanticElements: Record<ComponentType, { tag: string; role?: string }> = {
@@ -606,45 +620,73 @@ function generateSemanticVariant(
   const { tag, role } = semanticElements[type];
   const roleAttr = role ? ` role="${role}"` : '';
 
-  // Generate semantic structure based on component type
+  // Extract actual content from SectionContent
+  const headings = sectionContent?.headings || [];
+  const paragraphs = sectionContent?.paragraphs || [];
+  const buttons = sectionContent?.buttons || [];
+  const links = sectionContent?.links || [];
+
+  // Get primary content
+  const h1 = headings.find(h => h.level === 1)?.text || '';
+  const h2 = headings.find(h => h.level === 2)?.text || headings[0]?.text || '';
+  const firstParagraph = paragraphs[0] || '';
+  const primaryButton = buttons.find(b => b.isPrimary) || buttons[0];
+  const secondaryButton = buttons.find(b => !b.isPrimary && b !== primaryButton) || buttons[1];
+
+  // Generate semantic structure with ACTUAL content
   let innerContent: string;
 
   switch (type) {
     case 'header':
+      const navLinksHtml = links.slice(0, 5).map(l =>
+        `<a href="${l.href}" className="text-gray-600 hover:text-gray-900 transition-colors">${escapeJsxText(l.text)}</a>`
+      ).join('\n            ');
+      const headerCtaHtml = primaryButton
+        ? `<a href="${primaryButton.href || '#'}" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">${escapeJsxText(primaryButton.text)}</a>`
+        : '{/* CTA button */}';
+
       innerContent = `<div className="container mx-auto flex items-center justify-between px-4 py-4">
-        <div className="logo">
-          {/* Logo */}
+        <div className="logo font-bold text-xl">
+          ${h1 ? escapeJsxText(h1) : 'Logo'}
         </div>
-        <nav className="navigation">
-          {/* Navigation links */}
+        <nav className="hidden md:flex items-center gap-6">
+          ${navLinksHtml || '{/* Navigation links */}'}
         </nav>
         <div className="actions">
-          {/* CTA buttons */}
+          ${headerCtaHtml}
         </div>
       </div>`;
       break;
 
     case 'hero':
-      innerContent = `<div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold mb-4">
-          {/* Headline */}
+      const heroButtonsHtml = buttons.slice(0, 2).map((b, i) => {
+        const isPrimary = b.isPrimary || i === 0;
+        const classes = isPrimary
+          ? 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors'
+          : 'border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors';
+        return `<a href="${b.href || '#'}" className="${classes}">${escapeJsxText(b.text)}</a>`;
+      }).join('\n          ');
+
+      innerContent = `<div className="container mx-auto px-4 py-16 md:py-24 text-center">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          ${h1 ? escapeJsxText(h1) : 'Your Headline Here'}
         </h1>
-        <p className="text-xl text-gray-600 mb-8">
-          {/* Subheadline */}
+        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          ${firstParagraph ? escapeJsxText(firstParagraph) : 'Your description text goes here'}
         </p>
-        <div className="cta-buttons">
-          {/* Call to action buttons */}
+        <div className="flex flex-wrap justify-center gap-4">
+          ${heroButtonsHtml || '{/* Call to action buttons */}'}
         </div>
       </div>`;
       break;
 
     case 'features':
       innerContent = `<div className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          {/* Section title */}
+        <h2 className="text-3xl font-bold text-center mb-4">
+          ${h2 ? escapeJsxText(h2) : 'Features'}
         </h2>
+        ${firstParagraph ? `<p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">${escapeJsxText(firstParagraph)}</p>` : ''}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Feature cards */}
           {children}
         </div>
       </div>`;
@@ -653,10 +695,9 @@ function generateSemanticVariant(
     case 'testimonials':
       innerContent = `<div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-12">
-          {/* Section title */}
+          ${h2 ? escapeJsxText(h2) : 'What Our Customers Say'}
         </h2>
-        <div className="testimonials-grid">
-          {/* Testimonial cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {children}
         </div>
       </div>`;
@@ -664,32 +705,65 @@ function generateSemanticVariant(
 
     case 'pricing':
       innerContent = `<div className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          {/* Pricing title */}
+        <h2 className="text-3xl font-bold text-center mb-4">
+          ${h2 ? escapeJsxText(h2) : 'Pricing'}
         </h2>
+        ${firstParagraph ? `<p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">${escapeJsxText(firstParagraph)}</p>` : ''}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Pricing cards */}
           {children}
         </div>
       </div>`;
       break;
 
-    case 'footer':
-      innerContent = `<div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Footer columns */}
+    case 'cta':
+      const ctaButtonHtml = primaryButton
+        ? `<a href="${primaryButton.href || '#'}" className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg hover:bg-blue-700 transition-colors">${escapeJsxText(primaryButton.text)}</a>`
+        : '{/* CTA button */}';
+
+      innerContent = `<div className="container mx-auto px-4 py-16 text-center">
+        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          ${h2 ? escapeJsxText(h2) : 'Ready to Get Started?'}
+        </h2>
+        ${firstParagraph ? `<p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">${escapeJsxText(firstParagraph)}</p>` : ''}
+        <div className="flex justify-center">
+          ${ctaButtonHtml}
         </div>
-        <div className="border-t mt-8 pt-8 text-center text-gray-500">
-          {/* Copyright */}
+      </div>`;
+      break;
+
+    case 'footer':
+      const footerLinksHtml = links.slice(0, 8).map(l =>
+        `<a href="${l.href}" className="text-gray-400 hover:text-white transition-colors">${escapeJsxText(l.text)}</a>`
+      ).join('\n            ');
+
+      innerContent = `<div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="col-span-2 md:col-span-1">
+            <div className="font-bold text-lg mb-4">${h2 ? escapeJsxText(h2) : 'Company'}</div>
+            ${firstParagraph ? `<p className="text-gray-400 text-sm">${escapeJsxText(firstParagraph)}</p>` : ''}
+          </div>
+          <nav className="flex flex-col gap-2">
+            ${footerLinksHtml || '{/* Footer links */}'}
+          </nav>
+        </div>
+        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400 text-sm">
+          <p>© ${new Date().getFullYear()} All rights reserved.</p>
         </div>
       </div>`;
       break;
 
     default:
       innerContent = `<div className="container mx-auto px-4 py-16">
+        ${h2 ? `<h2 className="text-3xl font-bold text-center mb-8">${escapeJsxText(h2)}</h2>` : ''}
+        ${firstParagraph ? `<p className="text-gray-600 text-center mb-8">${escapeJsxText(firstParagraph)}</p>` : ''}
         {children}
       </div>`;
   }
+
+  // Content summary for docs
+  const contentSummary = sectionContent
+    ? `Content: ${headings.length} headings, ${paragraphs.length} paragraphs, ${buttons.length} buttons`
+    : 'No content extracted';
 
   return `'use client';
 
@@ -705,6 +779,7 @@ interface ${componentName}Props {
  *
  * Clean code architecture with proper HTML semantics.
  * Uses semantic <${tag}> element${role ? ` with role="${role}"` : ''}.
+ * ${contentSummary}
  */
 export function ${componentName}({ className, children }: ${componentName}Props) {
   return (
@@ -723,6 +798,7 @@ export default ${componentName};
 /**
  * Generate modernized variant code
  * Focuses on accessibility, performance, and modern best practices
+ * Uses extracted SectionContent when available
  *
  * @param component - Detected component
  * @param componentName - Name for the component
@@ -732,7 +808,7 @@ function generateModernizedVariant(
   component: DetectedComponent,
   componentName: string
 ): string {
-  const { type } = component;
+  const { type, content: sectionContent } = component;
 
   // Map component types to ARIA landmarks and roles
   const ariaConfig: Record<ComponentType, {
@@ -759,6 +835,18 @@ function generateModernizedVariant(
 
   const { tag, role, ariaLabel, landmark } = ariaConfig[type];
 
+  // Extract actual content from SectionContent
+  const headings = sectionContent?.headings || [];
+  const paragraphs = sectionContent?.paragraphs || [];
+  const buttons = sectionContent?.buttons || [];
+  const links = sectionContent?.links || [];
+
+  // Get primary content
+  const h1 = headings.find(h => h.level === 1)?.text || '';
+  const h2 = headings.find(h => h.level === 2)?.text || headings[0]?.text || '';
+  const firstParagraph = paragraphs[0] || '';
+  const primaryButton = buttons.find(b => b.isPrimary) || buttons[0];
+
   // Build ARIA attributes
   const ariaAttrs: string[] = [];
   if (role && !landmark) {
@@ -768,36 +856,51 @@ function generateModernizedVariant(
 
   const ariaString = ariaAttrs.join('\n      ');
 
-  // Generate modernized content with accessibility features
+  // Generate modernized content with accessibility features and actual content
   let innerContent: string;
 
   switch (type) {
     case 'header':
+      const headerNavLinks = links.slice(0, 5).map(l =>
+        `<li><a href="${l.href}" className="text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors">${escapeJsxText(l.text)}</a></li>`
+      ).join('\n              ');
+      const headerCta = primaryButton
+        ? `<a href="${primaryButton.href || '#'}" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">${escapeJsxText(primaryButton.text)}</a>`
+        : '{/* CTA button */}';
+
       innerContent = `<div className="container mx-auto flex items-center justify-between px-4 py-4">
-        <a href="/" aria-label="Go to homepage" className="logo">
-          {/* Logo with proper alt text */}
+        <a href="/" aria-label="Go to homepage" className="logo font-bold text-xl focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+          ${h1 ? escapeJsxText(h1) : 'Logo'}
         </a>
-        <nav aria-label="Main navigation">
+        <nav aria-label="Main navigation" className="hidden md:block">
           <ul role="list" className="flex gap-6">
-            {/* Navigation items with keyboard support */}
+            ${headerNavLinks || '{/* Navigation items */}'}
           </ul>
         </nav>
         <div className="actions flex gap-4">
-          {/* Accessible CTA buttons */}
+          ${headerCta}
         </div>
       </div>`;
       break;
 
     case 'hero':
-      innerContent = `<div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-bold mb-4">
-          {/* Primary heading - only one h1 per page */}
+      const heroButtons = buttons.slice(0, 2).map((b, i) => {
+        const isPrimary = b.isPrimary || i === 0;
+        const classes = isPrimary
+          ? 'bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors'
+          : 'border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors';
+        return `<a href="${b.href || '#'}" className="${classes}">${escapeJsxText(b.text)}</a>`;
+      }).join('\n          ');
+
+      innerContent = `<div className="container mx-auto px-4 py-16 md:py-24 text-center">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+          ${h1 ? escapeJsxText(h1) : 'Your Headline Here'}
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          {/* Descriptive subheadline */}
+          ${firstParagraph ? escapeJsxText(firstParagraph) : 'Your description text goes here'}
         </p>
-        <div className="cta-buttons flex justify-center gap-4" role="group" aria-label="Call to action">
-          {/* Buttons with proper focus styles */}
+        <div className="cta-buttons flex flex-wrap justify-center gap-4" role="group" aria-label="Call to action">
+          ${heroButtons || '{/* CTA buttons */}'}
         </div>
       </div>`;
       break;
@@ -805,13 +908,10 @@ function generateModernizedVariant(
     case 'features':
       innerContent = `<div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-4">
-          {/* Section heading */}
+          ${h2 ? escapeJsxText(h2) : 'Features'}
         </h2>
-        <p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">
-          {/* Section description */}
-        </p>
+        ${firstParagraph ? `<p className="text-gray-600 text-center mb-12 max-w-2xl mx-auto">${escapeJsxText(firstParagraph)}</p>` : ''}
         <ul role="list" className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Feature items with proper list semantics */}
           {children}
         </ul>
       </div>`;
@@ -820,15 +920,13 @@ function generateModernizedVariant(
     case 'testimonials':
       innerContent = `<div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-12">
-          {/* Section heading */}
+          ${h2 ? escapeJsxText(h2) : 'What Our Customers Say'}
         </h2>
         <div
-          className="testimonials-carousel"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           role="region"
-          aria-roledescription="carousel"
           aria-label="Customer testimonials"
         >
-          {/* Testimonials with proper cite and blockquote */}
           {children}
         </div>
       </div>`;
@@ -837,51 +935,54 @@ function generateModernizedVariant(
     case 'pricing':
       innerContent = `<div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-4">
-          {/* Pricing heading */}
+          ${h2 ? escapeJsxText(h2) : 'Pricing'}
         </h2>
-        <p className="text-gray-600 text-center mb-12">
-          {/* Pricing description */}
-        </p>
+        ${firstParagraph ? `<p className="text-gray-600 text-center mb-12">${escapeJsxText(firstParagraph)}</p>` : ''}
         <div
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
           role="list"
           aria-label="Pricing tiers"
         >
-          {/* Pricing cards with clear price announcements */}
           {children}
         </div>
       </div>`;
       break;
 
+    case 'cta':
+      const ctaBtn = primaryButton
+        ? `<a href="${primaryButton.href || '#'}" className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">${escapeJsxText(primaryButton.text)}</a>`
+        : '{/* CTA button */}';
+
+      innerContent = `<div className="container mx-auto px-4 py-16 text-center">
+        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          ${h2 ? escapeJsxText(h2) : 'Ready to Get Started?'}
+        </h2>
+        ${firstParagraph ? `<p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">${escapeJsxText(firstParagraph)}</p>` : ''}
+        <div className="flex justify-center">
+          ${ctaBtn}
+        </div>
+      </div>`;
+      break;
+
     case 'footer':
+      const footerLinks = links.slice(0, 8).map(l =>
+        `<li><a href="${l.href}" className="text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 rounded transition-colors">${escapeJsxText(l.text)}</a></li>`
+      ).join('\n              ');
+
       innerContent = `<div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            {/* Company info */}
+            <div className="font-bold text-lg mb-4">${h2 ? escapeJsxText(h2) : 'Company'}</div>
+            ${firstParagraph ? `<p className="text-gray-400 text-sm">${escapeJsxText(firstParagraph)}</p>` : ''}
           </div>
-          <nav aria-label="Footer navigation - Products">
-            <h3 className="font-bold mb-4">Products</h3>
-            <ul role="list">
-              {/* Product links */}
-            </ul>
-          </nav>
-          <nav aria-label="Footer navigation - Company">
-            <h3 className="font-bold mb-4">Company</h3>
-            <ul role="list">
-              {/* Company links */}
-            </ul>
-          </nav>
-          <nav aria-label="Footer navigation - Legal">
-            <h3 className="font-bold mb-4">Legal</h3>
-            <ul role="list">
-              {/* Legal links */}
+          <nav aria-label="Footer navigation">
+            <ul role="list" className="flex flex-col gap-2">
+              ${footerLinks || '{/* Footer links */}'}
             </ul>
           </nav>
         </div>
-        <div className="border-t mt-8 pt-8 text-center text-gray-500">
-          <p>
-            {/* Copyright with current year */}
-          </p>
+        <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-500">
+          <p>© ${new Date().getFullYear()} All rights reserved.</p>
         </div>
       </div>`;
       break;
@@ -889,10 +990,9 @@ function generateModernizedVariant(
     case 'faq':
       innerContent = `<div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center mb-12">
-          {/* FAQ heading */}
+          ${h2 ? escapeJsxText(h2) : 'Frequently Asked Questions'}
         </h2>
         <dl className="max-w-3xl mx-auto divide-y">
-          {/* FAQ items using description list for semantics */}
           {children}
         </dl>
       </div>`;
@@ -900,9 +1000,16 @@ function generateModernizedVariant(
 
     default:
       innerContent = `<div className="container mx-auto px-4 py-16">
+        ${h2 ? `<h2 className="text-3xl font-bold text-center mb-8">${escapeJsxText(h2)}</h2>` : ''}
+        ${firstParagraph ? `<p className="text-gray-600 text-center mb-8">${escapeJsxText(firstParagraph)}</p>` : ''}
         {children}
       </div>`;
   }
+
+  // Content summary for docs
+  const contentSummary = sectionContent
+    ? `Content: ${headings.length} headings, ${paragraphs.length} paragraphs, ${buttons.length} buttons`
+    : 'No content extracted';
 
   // Generate component with performance optimizations
   return `'use client';
@@ -926,6 +1033,8 @@ interface ${componentName}Props {
  * - ARIA label: "${ariaLabel}"
  * - Semantic HTML structure
  * - Keyboard navigation support
+ *
+ * ${contentSummary}
  */
 function ${componentName}Base({ className, children, id }: ${componentName}Props) {
   return (

@@ -864,6 +864,304 @@ async function detectFixedNavigation(page: Page): Promise<SectionInfo | null> {
 }
 
 // ====================
+// CONTENT EXTRACTION
+// ====================
+
+/**
+ * Extracted content from a section
+ */
+export interface SectionContent {
+  headings: Array<{ level: number; text: string }>;
+  paragraphs: string[];
+  buttons: Array<{ text: string; href?: string; isPrimary: boolean }>;
+  links: Array<{ text: string; href: string }>;
+  images: Array<{ src: string; alt: string; role: 'hero' | 'icon' | 'decorative' | 'avatar' }>;
+  lists: Array<{ type: 'ul' | 'ol'; items: string[] }>;
+  layout: 'centered' | 'split' | 'grid' | 'cards' | 'list' | 'unknown';
+  stats?: Array<{ value: string; label: string }>;
+  badges?: string[];
+}
+
+/**
+ * Extract semantic content from a section
+ *
+ * @param page - Playwright Page instance
+ * @param boundingBox - Section bounding box
+ * @returns Promise with extracted SectionContent
+ */
+export async function extractSectionContent(
+  page: Page,
+  boundingBox: BoundingBox
+): Promise<SectionContent> {
+  const content = await page.evaluate(
+    ({ box }) => {
+      // Helper to get all elements within bounding box
+      const getElementsInBox = (selector: string): Element[] => {
+        const elements = Array.from(document.querySelectorAll(selector));
+        return elements.filter(el => {
+          const rect = el.getBoundingClientRect();
+          const absY = rect.y + window.scrollY;
+          return (
+            absY >= box.y &&
+            absY + rect.height <= box.y + box.height + 50 && // Allow small tolerance
+            rect.width > 0 &&
+            rect.height > 0
+          );
+        });
+      };
+
+      // Helper to clean text
+      const cleanText = (text: string): string => {
+        return text.replace(/\s+/g, ' ').trim();
+      };
+
+      // Extract headings
+      const headings: Array<{ level: number; text: string }> = [];
+      for (let level = 1; level <= 6; level++) {
+        const els = getElementsInBox(`h${level}`);
+        els.forEach(el => {
+          const text = cleanText(el.textContent || '');
+          if (text.length > 0 && text.length < 500) {
+            headings.push({ level, text });
+          }
+        });
+      }
+
+      // Extract paragraphs
+      const paragraphs: string[] = [];
+      const pEls = getElementsInBox('p');
+      pEls.forEach(el => {
+        const text = cleanText(el.textContent || '');
+        // Filter out empty paragraphs and very short ones that might be labels
+        if (text.length > 20 && text.length < 2000) {
+          paragraphs.push(text);
+        }
+      });
+
+      // Also look for div-based paragraphs (common in Framer)
+      const divParagraphs = getElementsInBox('[data-framer-name*="Text"], [class*="paragraph"], [class*="description"]');
+      divParagraphs.forEach(el => {
+        const text = cleanText(el.textContent || '');
+        if (text.length > 30 && text.length < 2000 && !paragraphs.includes(text)) {
+          // Avoid duplicates from nested elements
+          const isDuplicate = paragraphs.some(p => p.includes(text) || text.includes(p));
+          if (!isDuplicate) {
+            paragraphs.push(text);
+          }
+        }
+      });
+
+      // Extract buttons
+      const buttons: Array<{ text: string; href?: string; isPrimary: boolean }> = [];
+      const buttonEls = getElementsInBox('button, a[class*="button"], a[class*="btn"], [role="button"], [data-framer-name*="Button"]');
+      buttonEls.forEach(el => {
+        const text = cleanText(el.textContent || '');
+        if (text.length > 0 && text.length < 100) {
+          const href = el.getAttribute('href') || undefined;
+          const computed = window.getComputedStyle(el);
+          const bgColor = computed.backgroundColor;
+          // Primary buttons typically have a solid background
+          const isPrimary = bgColor !== 'transparent' &&
+                           bgColor !== 'rgba(0, 0, 0, 0)' &&
+                           !el.classList.toString().includes('secondary') &&
+                           !el.classList.toString().includes('outline');
+
+          // Avoid duplicate buttons
+          if (!buttons.some(b => b.text === text)) {
+            buttons.push({ text, href, isPrimary });
+          }
+        }
+      });
+
+      // Extract regular links (not buttons)
+      const links: Array<{ text: string; href: string }> = [];
+      const linkEls = getElementsInBox('a:not([class*="button"]):not([class*="btn"]):not([role="button"])');
+      linkEls.forEach(el => {
+        const text = cleanText(el.textContent || '');
+        const href = el.getAttribute('href');
+        if (text.length > 0 && text.length < 100 && href && !href.startsWith('#')) {
+          // Avoid adding buttons again
+          if (!buttons.some(b => b.text === text)) {
+            links.push({ text, href });
+          }
+        }
+      });
+
+      // Extract images
+      const images: Array<{ src: string; alt: string; role: 'hero' | 'icon' | 'decorative' | 'avatar' }> = [];
+      const imgEls = getElementsInBox('img, [style*="background-image"]');
+      imgEls.forEach(el => {
+        let src = '';
+        let alt = '';
+
+        if (el.tagName === 'IMG') {
+          src = (el as HTMLImageElement).src || (el as HTMLImageElement).dataset.src || '';
+          alt = (el as HTMLImageElement).alt || '';
+        } else {
+          // Background image
+          const style = window.getComputedStyle(el);
+          const bgImage = style.backgroundImage;
+          const match = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+          if (match) {
+            src = match[1];
+          }
+        }
+
+        if (src) {
+          const rect = el.getBoundingClientRect();
+          // Classify image role
+          let role: 'hero' | 'icon' | 'decorative' | 'avatar' = 'decorative';
+
+          if (rect.width > 400 && rect.height > 300) {
+            role = 'hero';
+          } else if (rect.width < 100 && rect.height < 100) {
+            if (el.closest('[class*="avatar"], [class*="profile"], [class*="author"]')) {
+              role = 'avatar';
+            } else {
+              role = 'icon';
+            }
+          }
+
+          // Avoid SVG data URIs and tiny tracking pixels
+          if (!src.startsWith('data:image/svg') && rect.width > 10) {
+            images.push({ src, alt, role });
+          }
+        }
+      });
+
+      // Extract lists
+      const lists: Array<{ type: 'ul' | 'ol'; items: string[] }> = [];
+      const listEls = getElementsInBox('ul, ol');
+      listEls.forEach(el => {
+        const type = el.tagName.toLowerCase() as 'ul' | 'ol';
+        const items: string[] = [];
+        el.querySelectorAll('li').forEach(li => {
+          const text = cleanText(li.textContent || '');
+          if (text.length > 0 && text.length < 500) {
+            items.push(text);
+          }
+        });
+        if (items.length > 0) {
+          lists.push({ type, items });
+        }
+      });
+
+      // Extract stats (numbers with labels)
+      const stats: Array<{ value: string; label: string }> = [];
+      const statContainers = getElementsInBox('[class*="stat"], [class*="metric"], [class*="number"], [data-framer-name*="Stat"]');
+      statContainers.forEach(el => {
+        // Look for a large number followed by a label
+        const numbers = el.querySelectorAll('[class*="number"], [class*="value"], strong, b');
+        const labels = el.querySelectorAll('[class*="label"], [class*="text"], span, p');
+
+        if (numbers.length > 0 && labels.length > 0) {
+          const value = cleanText(numbers[0].textContent || '');
+          const label = cleanText(labels[labels.length - 1].textContent || '');
+          if (value && label && value !== label) {
+            stats.push({ value, label });
+          }
+        }
+      });
+
+      // Extract badges/tags
+      const badges: string[] = [];
+      const badgeEls = getElementsInBox('[class*="badge"], [class*="tag"], [class*="chip"], [class*="pill"]');
+      badgeEls.forEach(el => {
+        const text = cleanText(el.textContent || '');
+        if (text.length > 0 && text.length < 50) {
+          badges.push(text);
+        }
+      });
+
+      // Determine layout
+      let layout: 'centered' | 'split' | 'grid' | 'cards' | 'list' | 'unknown' = 'unknown';
+
+      // Check for grid patterns
+      const gridContainers = getElementsInBox('[class*="grid"], [style*="grid"]');
+      const flexContainers = getElementsInBox('[style*="flex"]');
+
+      if (gridContainers.length > 0) {
+        // Check if it's a card grid
+        const cards = getElementsInBox('[class*="card"]');
+        if (cards.length >= 3) {
+          layout = 'cards';
+        } else {
+          layout = 'grid';
+        }
+      } else if (flexContainers.length > 0) {
+        // Check if content is centered
+        const firstContainer = flexContainers[0];
+        const computed = window.getComputedStyle(firstContainer);
+        if (computed.justifyContent === 'center' || computed.alignItems === 'center') {
+          layout = 'centered';
+        } else if (computed.justifyContent === 'space-between') {
+          layout = 'split';
+        }
+      }
+
+      // Check for list layout
+      if (lists.length > 0 && layout === 'unknown') {
+        layout = 'list';
+      }
+
+      // Check for split/two-column layout
+      const directChildren = getElementsInBox('section > div, [class*="container"] > div');
+      if (directChildren.length === 2 && layout === 'unknown') {
+        const child1 = directChildren[0].getBoundingClientRect();
+        const child2 = directChildren[1].getBoundingClientRect();
+        if (Math.abs(child1.width - child2.width) < 200) {
+          layout = 'split';
+        }
+      }
+
+      // Default to centered for simple sections
+      if (layout === 'unknown' && headings.length <= 2 && paragraphs.length <= 2) {
+        layout = 'centered';
+      }
+
+      return {
+        headings,
+        paragraphs,
+        buttons,
+        links,
+        images,
+        lists,
+        layout,
+        stats: stats.length > 0 ? stats : undefined,
+        badges: badges.length > 0 ? badges : undefined,
+      };
+    },
+    { box: boundingBox }
+  );
+
+  return content;
+}
+
+/**
+ * Extract content for all detected sections
+ *
+ * @param page - Playwright Page instance
+ * @param sections - Array of detected sections
+ * @returns Promise with sections and their content
+ */
+export async function extractAllSectionContent(
+  page: Page,
+  sections: SectionInfo[]
+): Promise<Array<SectionInfo & { content: SectionContent }>> {
+  const sectionsWithContent: Array<SectionInfo & { content: SectionContent }> = [];
+
+  for (const section of sections) {
+    const content = await extractSectionContent(page, section.boundingBox);
+    sectionsWithContent.push({
+      ...section,
+      content,
+    });
+  }
+
+  return sectionsWithContent;
+}
+
+// ====================
 // UTILITY FUNCTIONS
 // ====================
 
