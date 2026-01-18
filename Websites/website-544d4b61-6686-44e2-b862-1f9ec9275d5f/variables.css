@@ -1,0 +1,130 @@
+/**
+ * Design System CSS Variables
+ * Generated from: https://fluence.framer.website/
+ * Generated at: 2026-01-17T20:00:39.305Z
+ * Version: 1
+ */
+
+:root {
+  /* Primary Colors */
+  --primary: #3b82f6;
+  --primary-rgb: 59 130 246;
+
+  /* Secondary Colors */
+  --secondary: #6366f1;
+  --secondary-rgb: 99 102 241;
+
+  /* Neutral Colors */
+  --background: #18181b;
+  --background-rgb: 24 24 27;
+  --foreground: #f4f4f5;
+  --foreground-rgb: 244 244 245;
+  --muted: #71717a;
+  --muted-rgb: 113 113 122;
+
+  /* Semantic Colors */
+  --success: #22c55e;
+  --success-rgb: 34 197 94;
+  --error: #ef4444;
+  --error-rgb: 239 68 68;
+  --warning: #f59e0b;
+  --warning-rgb: 245 158 11;
+  --info: #3b82f6;
+  --info-rgb: 59 130 246;
+
+  /* Blue Palette */
+  --blue-50: #f0f6ff;
+  --blue-100: #e0ecff;
+  --blue-200: #b8d3ff;
+  --blue-300: #8ab4fa;
+  --blue-400: #4689f6;
+  --blue-500: #0b64f4;
+  --blue-600: #0954cd;
+  --blue-700: #0846ab;
+  --blue-800: #0d3982;
+  --blue-900: #0a2d66;
+  --blue-950: #061d41;
+
+  /* Gray Palette */
+  --gray-50: #f7f7f8;
+  --gray-100: #efeff0;
+  --gray-200: #dadadd;
+  --gray-300: #bfbfc4;
+  --gray-400: #9a9aa2;
+  --gray-500: #7b7b84;
+  --gray-600: #67676f;
+  --gray-700: #56565d;
+  --gray-800: #45454a;
+  --gray-900: #36363a;
+  --gray-950: #222225;
+
+  /* Font Families */
+  --font-heading: "system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif", system-ui, sans-serif;
+  --font-body: "system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif", system-ui, sans-serif;
+  --font-sans: "system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace", ui-monospace, SFMono-Regular, monospace;
+
+  /* Font Sizes */
+  --text-display: 3.75rem;
+  --text-5-xl: 2.25rem;
+  --text-4-xl: 1.875rem;
+  --text-3-xl: 1.5rem;
+  --text-2-xl: 1.25rem;
+  --text-xl: 1.125rem;
+  --text-lg: 1rem;
+  --text-base: 1rem;
+  --text-sm: 0.875rem;
+  --text-xs: 0.75rem;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* Spacing Base */
+  --spacing-unit: 4px;
+
+  /* Spacing Scale */
+  --spacing-0: 0rem;
+  --spacing-4: 0.25rem;
+  --spacing-8: 0.5rem;
+  --spacing-12: 0.75rem;
+  --spacing-16: 1rem;
+  --spacing-20: 1.25rem;
+  --spacing-24: 1.5rem;
+  --spacing-32: 2rem;
+  --spacing-40: 2.5rem;
+  --spacing-48: 3rem;
+  --spacing-64: 4rem;
+  --spacing-80: 5rem;
+  --spacing-96: 6rem;
+  --spacing-128: 8rem;
+
+  /* Container & Section */
+  --container-max-width: 1280px;
+  --section-padding-mobile: 16px;
+  --section-padding-desktop: 32px;
+
+  /* Box Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Border Radii */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-normal: 200ms;
+  --transition-slow: 300ms;
+}

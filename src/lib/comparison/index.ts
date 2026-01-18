@@ -23,3 +23,11 @@ export {
   startGeneratedSite,
   stopGeneratedSite,
 } from './server-manager';
+
+export {
+  captureAndCompareComponent,
+  validateAllComponents,
+  getExistingValidationReport,
+  type ComponentValidationResult,
+  type ComponentValidationReport,
+} from './component-validation';

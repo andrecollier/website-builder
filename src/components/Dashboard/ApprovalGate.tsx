@@ -96,8 +96,8 @@ export function ApprovalGate({
             Awaiting Approval
           </h3>
           <p className="text-sm text-[rgb(var(--muted-foreground))] mt-1">
-            Component generation complete for <span className="font-medium">{websiteName}</span>.
-            {componentCount && ` ${componentCount} components generated.`}
+            Components generated and scaffolded for <span className="font-medium">{websiteName}</span>.
+            {componentCount && ` ${componentCount} components ready for preview.`}
           </p>
         </div>
       </div>
@@ -268,7 +268,7 @@ export function ApprovalGate({
 
       {/* Info text */}
       <p className="mt-4 text-xs text-[rgb(var(--muted-foreground))]">
-        Approving will continue the pipeline with scaffolding, validation, and comparison.
+        Approving will continue the pipeline with component validation and full-page comparison.
         Rejecting will delete this extraction.
       </p>
     </div>

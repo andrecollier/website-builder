@@ -540,6 +540,9 @@ export async function detectAllSections(
 ): Promise<SectionInfo[]> {
   const useGenericFallback = options?.useGenericFallback ?? true;
 
+  // First, detect fixed navigation (often missed by bounding box detection)
+  const fixedNav = await detectFixedNavigation(page);
+
   // Get page dimensions to check coverage
   const pageHeight = await page.evaluate(() =>
     Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)
@@ -549,22 +552,104 @@ export async function detectAllSections(
   const specificSections = await detectSections(page, options);
 
   // Check if detected sections cover most of the page (> 80%)
+  let sections = specificSections;
   if (specificSections.length >= 3) {
     const coveredHeight = specificSections.reduce((sum, s) => sum + s.boundingBox.height, 0);
     const coverage = coveredHeight / pageHeight;
 
-    if (coverage > 0.8) {
-      return specificSections;
+    if (coverage <= 0.8 && useGenericFallback) {
+      // Use viewport-based splitting to ensure full page coverage
+      sections = await viewportBasedSplitting(page, options);
+    }
+  } else if (useGenericFallback) {
+    sections = await viewportBasedSplitting(page, options);
+  }
+
+  // If we found fixed navigation, add it as metadata to the first section (header)
+  // or include it separately if it's not already captured
+  if (fixedNav) {
+    const firstSection = sections[0];
+    if (firstSection && firstSection.type === 'header') {
+      // Merge fixed nav HTML with header
+      firstSection.metadata = {
+        ...firstSection.metadata,
+        fixedNavHtml: fixedNav.htmlSnapshot,
+        hasFixedNav: true,
+      };
     }
   }
 
-  // Use viewport-based splitting to ensure full page coverage
-  if (useGenericFallback) {
-    const viewportSections = await viewportBasedSplitting(page, options);
-    return viewportSections;
-  }
+  return sections;
+}
 
-  return specificSections;
+// ====================
+// FIXED NAVIGATION DETECTION
+// ====================
+
+/**
+ * Detect fixed/sticky navigation elements that may be missed by bounding box detection
+ * These elements have position: fixed or position: sticky and typically contain nav links
+ */
+async function detectFixedNavigation(page: Page): Promise<SectionInfo | null> {
+  const navInfo = await page.evaluate(() => {
+    // Look for fixed/sticky navigation elements
+    const selectors = [
+      'nav[data-framer-name*="Navigation"]',
+      'nav[data-framer-name*="Nav"]',
+      'nav',
+      '[role="navigation"]',
+      'header nav',
+    ];
+
+    for (const sel of selectors) {
+      const elements = document.querySelectorAll(sel);
+      for (const el of elements) {
+        const computed = window.getComputedStyle(el);
+        const position = computed.position;
+
+        // Check if it's fixed or sticky
+        if (position === 'fixed' || position === 'sticky') {
+          const rect = el.getBoundingClientRect();
+          // Must be at or near top of viewport
+          if (rect.top <= 50 && rect.height > 40 && rect.height < 200) {
+            // Check if it has navigation-like content (links)
+            const links = el.querySelectorAll('a');
+            if (links.length >= 3) {
+              return {
+                html: el.outerHTML,
+                boundingBox: {
+                  x: rect.x + window.scrollX,
+                  y: 0, // Fixed elements start at top
+                  width: rect.width,
+                  height: rect.height,
+                },
+                hasLogo: el.querySelector('img, svg') !== null,
+                linkCount: links.length,
+              };
+            }
+          }
+        }
+      }
+    }
+    return null;
+  });
+
+  if (navInfo) {
+    return {
+      id: `nav-${randomUUID().slice(0, 8)}`,
+      type: 'header', // Navigation is part of header
+      boundingBox: navInfo.boundingBox,
+      screenshotPath: '',
+      htmlSnapshot: navInfo.html,
+      confidence: 0.95,
+      metadata: {
+        isFixedNav: true,
+        hasLogo: navInfo.hasLogo,
+        linkCount: navInfo.linkCount,
+      },
+    };
+  }
+  return null;
 }
 
 // ====================

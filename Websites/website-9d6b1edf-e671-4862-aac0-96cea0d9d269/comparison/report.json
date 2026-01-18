@@ -1,0 +1,153 @@
+{
+  "websiteId": "website-9d6b1edf-e671-4862-aac0-96cea0d9d269",
+  "timestamp": "2026-01-17T20:07:18.490Z",
+  "overallAccuracy": 77.68,
+  "sections": [
+    {
+      "sectionName": "01-header",
+      "sectionType": "header",
+      "accuracy": 63.14,
+      "mismatchedPixels": 477642,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/01-header-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/01-header.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/01-header.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "02-hero",
+      "sectionType": "hero",
+      "accuracy": 83.95,
+      "mismatchedPixels": 208026,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/02-hero-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/02-hero.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/02-hero.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "03-features",
+      "sectionType": "features",
+      "accuracy": 90.13,
+      "mismatchedPixels": 127914,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/03-features-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/03-features.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/03-features.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "04-testimonials",
+      "sectionType": "testimonials",
+      "accuracy": 81.34,
+      "mismatchedPixels": 241786,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/04-testimonials-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/04-testimonials.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/05-testimonials.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "05-pricing",
+      "sectionType": "pricing",
+      "accuracy": 85.27,
+      "mismatchedPixels": 190942,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/05-pricing-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/05-pricing.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/07-pricing.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "06-features",
+      "sectionType": "features",
+      "accuracy": 89.19,
+      "mismatchedPixels": 140039,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/06-features-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/06-features.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/04-features2.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "07-testimonials",
+      "sectionType": "testimonials",
+      "accuracy": 57.14,
+      "mismatchedPixels": 555432,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/07-testimonials-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/07-testimonials.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/06-testimonials2.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "08-pricing",
+      "sectionType": "pricing",
+      "accuracy": 91.44,
+      "mismatchedPixels": 110988,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/08-pricing-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/08-pricing.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/08-pricing2.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "09-cta",
+      "sectionType": "cta",
+      "accuracy": 93.59,
+      "mismatchedPixels": 83026,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/09-cta-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/09-cta.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/09-calltoaction.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "sectionName": "10-footer",
+      "sectionType": "footer",
+      "accuracy": 41.6,
+      "mismatchedPixels": 756906,
+      "totalPixels": 1296000,
+      "diffImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/comparison/diffs/10-footer-diff.png",
+      "referenceImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/reference/sections/10-footer.png",
+      "generatedImagePath": "/Users/andrecollier/Personal/website-builder/Websites/website-9d6b1edf-e671-4862-aac0-96cea0d9d269/generated/screenshots/10-footer.png",
+      "dimensions": {
+        "width": 1440,
+        "height": 900
+      }
+    }
+  ],
+  "summary": {
+    "totalSections": 10,
+    "sectionsAbove90": 3,
+    "sectionsAbove80": 4,
+    "sectionsBelow80": 3
+  }
+}

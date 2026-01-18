@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { AccuracyBadge, SectionComparison } from '@/components/Comparison';
+import { ComponentComparisonPanel } from '@/components/ComponentComparison';
 
 interface ComparisonResult {
   sectionName: string;
@@ -29,6 +30,8 @@ interface ComparisonReport {
   };
 }
 
+type ViewType = 'panel' | 'list';
+
 export default function ComparePage() {
   const params = useParams();
   const websiteId = params.id as string;
@@ -37,6 +40,7 @@ export default function ComparePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [viewType, setViewType] = useState<ViewType>('panel');
 
   // Fetch existing report
   useEffect(() => {
@@ -143,81 +147,119 @@ export default function ComparePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Actions */}
-        <div className="mb-8 flex items-center gap-4">
-          <button
-            onClick={() => runComparison(false)}
-            disabled={isRunning}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {isRunning ? 'Running...' : 'Run Comparison'}
-          </button>
-          <button
-            onClick={() => runComparison(true)}
-            disabled={isRunning}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Force Recapture
-          </button>
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => runComparison(false)}
+              disabled={isRunning}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isRunning ? 'Running...' : 'Run Comparison'}
+            </button>
+            <button
+              onClick={() => runComparison(true)}
+              disabled={isRunning}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Force Recapture
+            </button>
 
-          {error && (
-            <div className="text-red-600 text-sm">
-              Error: {error}
+            {error && (
+              <div className="text-red-600 text-sm">
+                Error: {error}
+              </div>
+            )}
+          </div>
+
+          {/* View Toggle */}
+          {report && (
+            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewType('panel')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  viewType === 'panel'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Panel View
+              </button>
+              <button
+                onClick={() => setViewType('list')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  viewType === 'list'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                List View
+              </button>
             </div>
           )}
         </div>
 
-        {/* Summary Cards */}
-        {report && (
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="text-sm text-gray-500 mb-1">Overall Accuracy</div>
-              <div className="text-2xl font-bold text-gray-900">
-                {report.overallAccuracy.toFixed(1)}%
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="text-sm text-gray-500 mb-1">Sections ≥90%</div>
-              <div className="text-2xl font-bold text-green-600">
-                {report.summary.sectionsAbove90}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="text-sm text-gray-500 mb-1">Sections 80-90%</div>
-              <div className="text-2xl font-bold text-yellow-600">
-                {report.summary.sectionsAbove80}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="text-sm text-gray-500 mb-1">Sections &lt;80%</div>
-              <div className="text-2xl font-bold text-red-600">
-                {report.summary.sectionsBelow80}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Section Comparisons */}
+        {/* Content based on view type */}
         {report ? (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Section Comparisons ({report.sections.length})
-            </h2>
+          viewType === 'panel' ? (
+            /* New Component Comparison Panel */
+            <ComponentComparisonPanel
+              report={report}
+              getImageUrl={getImageUrl}
+            />
+          ) : (
+            /* Legacy List View */
+            <>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-4 gap-4 mb-8">
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Overall Accuracy</div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {report.overallAccuracy.toFixed(1)}%
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Sections &ge;90%</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {report.summary.sectionsAbove90}
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Sections 80-90%</div>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {report.summary.sectionsAbove80}
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Sections &lt;80%</div>
+                  <div className="text-2xl font-bold text-red-600">
+                    {report.summary.sectionsBelow80}
+                  </div>
+                </div>
+              </div>
 
-            {report.sections.map((section, index) => (
-              <SectionComparison
-                key={section.sectionName}
-                sectionName={section.sectionName}
-                sectionType={section.sectionType}
-                accuracy={section.accuracy}
-                referenceImage={getImageUrl(section.referenceImagePath)}
-                generatedImage={getImageUrl(section.generatedImagePath)}
-                diffImage={getImageUrl(section.diffImagePath)}
-                mismatchedPixels={section.mismatchedPixels}
-                totalPixels={section.totalPixels}
-                defaultExpanded={index === 0}
-              />
-            ))}
-          </div>
+              {/* Section Comparisons */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                  Section Comparisons ({report.sections.length})
+                </h2>
+
+                {report.sections.map((section, index) => (
+                  <SectionComparison
+                    key={section.sectionName}
+                    sectionName={section.sectionName}
+                    sectionType={section.sectionType}
+                    accuracy={section.accuracy}
+                    referenceImage={getImageUrl(section.referenceImagePath)}
+                    generatedImage={getImageUrl(section.generatedImagePath)}
+                    diffImage={getImageUrl(section.diffImagePath)}
+                    mismatchedPixels={section.mismatchedPixels}
+                    totalPixels={section.totalPixels}
+                    defaultExpanded={index === 0}
+                  />
+                ))}
+              </div>
+            </>
+          )
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-500 mb-4">

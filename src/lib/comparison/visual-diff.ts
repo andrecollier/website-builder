@@ -180,6 +180,9 @@ export async function compareImages(
 /**
  * Compare all sections for a website
  *
+ * Uses type-based matching: matches reference sections to generated sections
+ * by section type (header, hero, features, etc.) rather than by index.
+ *
  * @param websiteId - The website ID
  * @param websitesDir - Base directory for websites
  * @returns Full comparison report
@@ -206,25 +209,68 @@ export async function compareAllSections(
     sections = metadata.sections || [];
   }
 
-  // Get list of reference screenshots
+  // Get list of reference and generated screenshots
   const referenceFiles = fs.readdirSync(referenceDir)
     .filter(f => f.endsWith('.png'))
     .sort();
+
+  const generatedFiles = fs.existsSync(generatedDir)
+    ? fs.readdirSync(generatedDir).filter(f => f.endsWith('.png')).sort()
+    : [];
+
+  // Normalize type names to handle aliases (e.g., calltoaction -> cta)
+  const normalizeType = (type: string): string => {
+    const typeAliases: Record<string, string> = {
+      'calltoaction': 'cta',
+      'call-to-action': 'cta',
+      'contactform': 'contact',
+      'featurelist': 'features',
+    };
+    return typeAliases[type] || type;
+  };
+
+  // Build a map of generated screenshots by type
+  // e.g., { header: ['01-header.png'], hero: ['02-hero.png', '03-hero.png'], features: [...] }
+  const generatedByType = new Map<string, string[]>();
+  for (const genFile of generatedFiles) {
+    // Extract type from filename (e.g., "02-hero.png" -> "hero")
+    const match = genFile.match(/^\d+-([a-z]+)(?:\d+)?\.png$/i);
+    if (match) {
+      const type = normalizeType(match[1].toLowerCase());
+      if (!generatedByType.has(type)) {
+        generatedByType.set(type, []);
+      }
+      generatedByType.get(type)!.push(genFile);
+    }
+  }
+
+  // Track which generated files have been used (for type-based matching)
+  const usedGeneratedByType = new Map<string, number>();
 
   const results: ComparisonResult[] = [];
 
   for (let i = 0; i < referenceFiles.length; i++) {
     const refFile = referenceFiles[i];
     const refPath = path.join(referenceDir, refFile);
-    const genPath = path.join(generatedDir, refFile);
     const diffPath = path.join(diffDir, refFile.replace('.png', '-diff.png'));
 
     // Get section info from metadata
     const sectionInfo = sections[i] || { id: `section-${i}`, type: 'unknown' };
     const sectionName = refFile.replace('.png', '');
+    const sectionType = sectionInfo.type.toLowerCase();
+
+    // Find matching generated screenshot by type
+    let genPath = '';
+    const typeMatches = generatedByType.get(sectionType) || [];
+    const typeIndex = usedGeneratedByType.get(sectionType) || 0;
+
+    if (typeIndex < typeMatches.length) {
+      genPath = path.join(generatedDir, typeMatches[typeIndex]);
+      usedGeneratedByType.set(sectionType, typeIndex + 1);
+    }
 
     // Check if generated screenshot exists
-    if (!fs.existsSync(genPath)) {
+    if (!genPath || !fs.existsSync(genPath)) {
       // No generated screenshot, 0% accuracy
       results.push({
         sectionName,

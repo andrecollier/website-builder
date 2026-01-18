@@ -1,1 +1,78 @@
-{}
+{
+  "app/preview/[component]/page.tsx -> @/components/Blog": {
+    "id": 9301,
+    "files": [
+      "static/chunks/301.7c43222faab39cd9.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/CallToAction": {
+    "id": 9122,
+    "files": [
+      "static/chunks/122.52e832671e392cc4.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Features": {
+    "id": 9014,
+    "files": [
+      "static/chunks/509-6573bed82d4d1b22.js",
+      "static/chunks/14.c406998265c0a2ed.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Features2": {
+    "id": 7866,
+    "files": [
+      "static/chunks/866.8ed6088476f7faa0.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Footer": {
+    "id": 3961,
+    "files": [
+      "static/chunks/188-4e9c4ca4545a85fc.js",
+      "static/chunks/961.1103c56c3842b433.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Header": {
+    "id": 1402,
+    "files": [
+      "static/chunks/222-51076c63c55d0d4d.js",
+      "static/chunks/402.09a94130e24ed5f2.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Hero": {
+    "id": 3871,
+    "files": [
+      "static/chunks/749-d114c6265d522e5f.js",
+      "static/chunks/871.bd8379896f20cfcb.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/HowItWorks": {
+    "id": 8331,
+    "files": [
+      "static/chunks/331.762d6e3af772d7f4.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Pricing": {
+    "id": 4833,
+    "files": [
+      "static/chunks/833.5dbd7419b4dbdb91.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Pricing2": {
+    "id": 8784,
+    "files": [
+      "static/chunks/784.fb1576e2cf231321.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Testimonials": {
+    "id": 4578,
+    "files": [
+      "static/chunks/578.8c36bdcc884d7f85.js"
+    ]
+  },
+  "app/preview/[component]/page.tsx -> @/components/Testimonials2": {
+    "id": 4542,
+    "files": [
+      "static/chunks/542.f18884a14bdacb80.js"
+    ]
+  }
+}

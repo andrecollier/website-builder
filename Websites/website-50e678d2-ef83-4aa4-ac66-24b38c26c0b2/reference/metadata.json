@@ -1,0 +1,110 @@
+{
+  "url": "https://fluence.framer.website/",
+  "capturedAt": "2026-01-17T16:26:32.541Z",
+  "viewportWidth": 1440,
+  "viewportHeight": 900,
+  "fullPageHeight": 0,
+  "sectionCount": 10,
+  "sections": [
+    {
+      "id": "section-ba522c97-afb1-4ce2-bccf-929a1a5363cf",
+      "type": "header",
+      "boundingBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-a3ffcaa3-d924-4222-8a91-de0d6522c7fa",
+      "type": "hero",
+      "boundingBox": {
+        "x": 0,
+        "y": 1440,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-2c56a0d4-e921-42fd-ad1c-06581ba621cc",
+      "type": "features",
+      "boundingBox": {
+        "x": 0,
+        "y": 2880,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-c5c98588-7958-42d2-bc34-3ab426c31cb8",
+      "type": "testimonials",
+      "boundingBox": {
+        "x": 0,
+        "y": 4320,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-038ac082-c21c-4f0e-8c4c-6e366240599f",
+      "type": "pricing",
+      "boundingBox": {
+        "x": 0,
+        "y": 5760,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-7bef7d7e-379f-4314-b1b4-ee4fa5354139",
+      "type": "features",
+      "boundingBox": {
+        "x": 0,
+        "y": 7200,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-a7b26926-ab96-4b01-b46c-d9a63b3d2299",
+      "type": "testimonials",
+      "boundingBox": {
+        "x": 0,
+        "y": 8640,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-2e17c912-494a-4211-a67b-7758aa0b939d",
+      "type": "pricing",
+      "boundingBox": {
+        "x": 0,
+        "y": 10080,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-83c14732-2724-4198-b9c5-cc6f2fdcc57c",
+      "type": "cta",
+      "boundingBox": {
+        "x": 0,
+        "y": 11520,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-157c5545-24c1-45fe-824f-2b11c2265453",
+      "type": "footer",
+      "boundingBox": {
+        "x": 0,
+        "y": 12960,
+        "width": 1440,
+        "height": 1434
+      }
+    }
+  ]
+}

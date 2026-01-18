@@ -662,8 +662,7 @@ function capitalize(str: string): string {
 }
 
 // ====================
-// EXPORTS
+// EXPORTS (types only - functions exported inline)
 // ====================
 
-export { generateChangelog, generateVersionChangelog };
 export type { ChangelogResult, TokenDiff, FileDiff };

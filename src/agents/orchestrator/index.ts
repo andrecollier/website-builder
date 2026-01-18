@@ -988,11 +988,24 @@ export async function executeOrchestrator(
     emitProgress('generating', 55, 'Components generated successfully (with responsive Tailwind classes)');
 
     // ========================================
-    // APPROVAL GATE (if enabled)
+    // PHASE 4: SCAFFOLD (55-65%)
+    // ========================================
+    emitProgress('scaffolding', 57, 'Phase 4/7: Building Next.js project...');
+
+    const scaffoldResult = await delegateToScaffoldAgent(agentContext);
+    if (!scaffoldResult.success) {
+      // Scaffold failure is non-fatal - continue with validation (will have 0% accuracy)
+      console.warn('Scaffold failed, component validation will have limited accuracy:', scaffoldResult.error);
+    } else {
+      emitProgress('scaffolding', 65, 'Project scaffolded successfully');
+    }
+
+    // ========================================
+    // APPROVAL GATE (if enabled) - After scaffold so user can preview
     // ========================================
     const { requireApproval = false } = options;
 
-    if (requireApproval) {
+    if (requireApproval && scaffoldResult.success) {
       // Save checkpoint for later resumption
       const checkpoint: PipelineCheckpoint = {
         websiteId,
@@ -1019,7 +1032,7 @@ export async function executeOrchestrator(
 
       await saveCheckpoint(checkpoint);
 
-      emitProgress('awaiting_approval', 55, 'Components generated - awaiting user approval before scaffolding');
+      emitProgress('awaiting_approval', 65, 'Scaffold complete - preview available. Awaiting approval to continue validation.');
 
       // Update context to awaiting_approval status
       agentContext.updateState({
@@ -1029,26 +1042,14 @@ export async function executeOrchestrator(
       return {
         success: true,
         agentType: 'orchestrator',
-        message: 'Pipeline paused - awaiting user approval to continue',
+        message: 'Pipeline paused - scaffold complete, preview available. Awaiting user approval to continue.',
         data: {
           ...pipelineResult,
           status: 'awaiting_approval',
           checkpointSaved: true,
+          scaffoldPath: scaffoldResult,
         },
       };
-    }
-
-    // ========================================
-    // PHASE 4: SCAFFOLD (55-65%)
-    // ========================================
-    emitProgress('scaffolding', 57, 'Phase 4/7: Building Next.js project...');
-
-    const scaffoldResult = await delegateToScaffoldAgent(agentContext);
-    if (!scaffoldResult.success) {
-      // Scaffold failure is non-fatal - continue with validation (will have 0% accuracy)
-      console.warn('Scaffold failed, component validation will have limited accuracy:', scaffoldResult.error);
-    } else {
-      emitProgress('scaffolding', 65, 'Project scaffolded successfully');
     }
 
     // ========================================

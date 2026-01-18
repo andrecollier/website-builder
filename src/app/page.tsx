@@ -410,7 +410,7 @@ export default function Home() {
                 htmlFor="require-approval"
                 className="text-sm text-[rgb(var(--muted-foreground))]"
               >
-                Pause for approval after component generation
+                Pause for approval after scaffold (allows preview before validation)
               </label>
             </div>
           )}

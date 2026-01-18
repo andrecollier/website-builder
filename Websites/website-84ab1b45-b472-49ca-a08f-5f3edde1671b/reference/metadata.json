@@ -1,0 +1,110 @@
+{
+  "url": "https://fluence.framer.website/",
+  "capturedAt": "2026-01-18T08:55:30.523Z",
+  "viewportWidth": 1440,
+  "viewportHeight": 900,
+  "fullPageHeight": 0,
+  "sectionCount": 10,
+  "sections": [
+    {
+      "id": "section-adb47b35-1f70-4c1a-8b5a-f316cb9e7fcb",
+      "type": "header",
+      "boundingBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-fa521c7d-12ae-43f9-991c-65efaf90165e",
+      "type": "hero",
+      "boundingBox": {
+        "x": 0,
+        "y": 1440,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-9cafc7cb-92e3-4a75-8e8f-cf5d34afcd94",
+      "type": "features",
+      "boundingBox": {
+        "x": 0,
+        "y": 2880,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-80627f39-a1e4-411f-ad44-a332213573ca",
+      "type": "testimonials",
+      "boundingBox": {
+        "x": 0,
+        "y": 4320,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-f0d9d971-fbc2-4458-a916-f68019326a10",
+      "type": "pricing",
+      "boundingBox": {
+        "x": 0,
+        "y": 5760,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-6a5ebce4-b054-431d-add1-d77f645da459",
+      "type": "features",
+      "boundingBox": {
+        "x": 0,
+        "y": 7200,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-94bce128-0d4e-4e08-b2ca-51e9f0a1f454",
+      "type": "testimonials",
+      "boundingBox": {
+        "x": 0,
+        "y": 8640,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-3f311f75-7c22-409a-8c14-dadc6e692585",
+      "type": "pricing",
+      "boundingBox": {
+        "x": 0,
+        "y": 10080,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-ceab0245-7e59-4c60-9dfa-3a9e824d1ebf",
+      "type": "cta",
+      "boundingBox": {
+        "x": 0,
+        "y": 11520,
+        "width": 1440,
+        "height": 1440
+      }
+    },
+    {
+      "id": "section-02831259-65a3-48d3-ba7d-c2f0c685b415",
+      "type": "footer",
+      "boundingBox": {
+        "x": 0,
+        "y": 12960,
+        "width": 1440,
+        "height": 1434
+      }
+    }
+  ]
+}

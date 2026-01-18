@@ -1,0 +1,269 @@
+{
+  "url": "https://fluence.framer.website/",
+  "capturedAt": "2026-01-18T08:56:01.422Z",
+  "viewports": [
+    {
+      "name": "mobile",
+      "width": 375,
+      "height": 812,
+      "tailwindPrefix": "",
+      "isBase": true
+    },
+    {
+      "name": "tablet",
+      "width": 768,
+      "height": 1024,
+      "tailwindPrefix": "md:",
+      "isBase": false
+    },
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "tailwindPrefix": "lg:",
+      "isBase": false
+    }
+  ],
+  "sections": [
+    {
+      "id": "section-6cb21eb0-9e60-4605-b5e2-1943c3fa6a63",
+      "type": "header",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 0,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 0,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-131cdc33-5924-46cb-9a30-43df4671a9b8",
+      "type": "hero",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 1766,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 1818,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 1440,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-c6b2ae04-fb11-45e6-8705-3723233e95b6",
+      "type": "features",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 3532,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 3636,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 2880,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-e829fd56-36cc-4c18-8a16-a4057486e42c",
+      "type": "testimonials",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 5298,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 5454,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 4320,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-507020a6-2012-45f2-8de3-0c1ec753daea",
+      "type": "pricing",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 7064,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 7272,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 5760,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-394bc818-583d-4b83-8c87-d6ba44a65ae8",
+      "type": "features",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 3532,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 3636,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 2880,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-6aae0cd1-a478-48d8-b51e-8ec283cc8719",
+      "type": "testimonials",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 5298,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 5454,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 4320,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-c3eecb68-2c87-4a32-a2a1-4f41a9f59b5c",
+      "type": "pricing",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 7064,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 7272,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 5760,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-3bf7be43-af8b-4384-a814-7dcbbfc23929",
+      "type": "cta",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 14128,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 14544,
+          "width": 768,
+          "height": 1818
+        },
+        "desktop": {
+          "x": 0,
+          "y": 11520,
+          "width": 1440,
+          "height": 1440
+        }
+      }
+    },
+    {
+      "id": "section-e0098a00-35c3-4be7-8582-99101b914b1d",
+      "type": "footer",
+      "responsiveBoundingBox": {
+        "mobile": {
+          "x": 0,
+          "y": 15894,
+          "width": 375,
+          "height": 1766
+        },
+        "tablet": {
+          "x": 0,
+          "y": 16362,
+          "width": 768,
+          "height": 1817
+        },
+        "desktop": {
+          "x": 0,
+          "y": 12960,
+          "width": 1440,
+          "height": 1434
+        }
+      }
+    }
+  ]
+}

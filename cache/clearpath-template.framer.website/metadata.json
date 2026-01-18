@@ -1,0 +1,118 @@
+{
+  "domain": "clearpath-template.framer.website",
+  "capturedAt": "2026-01-18T14:14:24.311Z",
+  "expiresAt": "2026-01-19T02:14:24.311Z",
+  "fullPagePath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/full-page.png",
+  "sections": [
+    {
+      "id": "section-4fa8d73e-243f-4785-8582-ab4a494a7423",
+      "type": "header",
+      "boundingBox": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/01-header.png"
+    },
+    {
+      "id": "section-49e62c3e-2d44-4d6e-9fbc-0232edaa8583",
+      "type": "hero",
+      "boundingBox": {
+        "x": 0,
+        "y": 1702,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/02-hero.png"
+    },
+    {
+      "id": "section-7a0c67b3-7c67-4dc6-a6ab-46a6bd695c86",
+      "type": "features",
+      "boundingBox": {
+        "x": 0,
+        "y": 3404,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/03-features.png"
+    },
+    {
+      "id": "section-b3445fa1-80d3-4d20-849a-7147419cd4f0",
+      "type": "testimonials",
+      "boundingBox": {
+        "x": 0,
+        "y": 5106,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/04-testimonials.png"
+    },
+    {
+      "id": "section-28c9da88-bed7-4ea0-8d15-666259f4b02d",
+      "type": "pricing",
+      "boundingBox": {
+        "x": 0,
+        "y": 6808,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/05-pricing.png"
+    },
+    {
+      "id": "section-13c9157a-9ee6-49c6-98aa-e580f7fefb73",
+      "type": "features",
+      "boundingBox": {
+        "x": 0,
+        "y": 8510,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/06-features.png"
+    },
+    {
+      "id": "section-4a0c3dc2-331b-458b-97ca-85b359f7fa7c",
+      "type": "testimonials",
+      "boundingBox": {
+        "x": 0,
+        "y": 10212,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/07-testimonials.png"
+    },
+    {
+      "id": "section-0b386bbf-cd9b-4533-90a5-bbebf6be726d",
+      "type": "pricing",
+      "boundingBox": {
+        "x": 0,
+        "y": 11914,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/08-pricing.png"
+    },
+    {
+      "id": "section-60dc4736-8f4f-4a41-9f8c-d14805731fc6",
+      "type": "cta",
+      "boundingBox": {
+        "x": 0,
+        "y": 13616,
+        "width": 1440,
+        "height": 1702
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/09-cta.png"
+    },
+    {
+      "id": "section-706f70e7-2a64-41ee-8507-582beb8e3320",
+      "type": "footer",
+      "boundingBox": {
+        "x": 0,
+        "y": 15318,
+        "width": 1440,
+        "height": 1696
+      },
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/clearpath-template.framer.website/screenshots/sections/10-footer.png"
+    }
+  ]
+}

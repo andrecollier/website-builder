@@ -1,11 +1,11 @@
 {
   "domain": "fluence.framer.website",
-  "capturedAt": "2026-01-16T07:52:11.343Z",
-  "expiresAt": "2026-01-16T19:52:11.343Z",
+  "capturedAt": "2026-01-18T08:55:29.479Z",
+  "expiresAt": "2026-01-18T20:55:29.479Z",
   "fullPagePath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/full-page.png",
   "sections": [
     {
-      "id": "section-79351544-4414-4ea8-8ead-d79d1cd7778f",
+      "id": "section-adb47b35-1f70-4c1a-8b5a-f316cb9e7fcb",
       "type": "header",
       "boundingBox": {
         "x": 0,
@@ -13,10 +13,14 @@
         "width": 1440,
         "height": 1440
       },
-      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/01-header.png"
+      "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/01-header.png",
+      "metadata": {
+        "fixedNavHtml": "<nav class=\"framer-1sdp29d\" data-framer-layout-hint-center-x=\"true\" data-framer-name=\"Navigation\"><div class=\"ssr-variant hidden-u81ilo hidden-wmf85w\"><div class=\"framer-1sldrq9-container\"><nav class=\"framer-sDySi framer-104c2vm framer-v-104c2vm\" data-border=\"true\" data-framer-name=\"Desktop\" style=\"--border-bottom-width: 1px; --border-color: rgba(255, 255, 255, 0.25); --border-left-width: 1px; --border-right-width: 1px; --border-style: solid; --border-top-width: 1px; backdrop-filter: blur(6px); background-color: rgba(255, 255, 255, 0.1); max-width: 100%; border-radius: 16px; box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 0px; will-change: auto; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-o4hpju\" data-framer-name=\"Container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-gr748x\" data-framer-name=\"Top\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-1ijnz8s framer-1sh8x86\" data-framer-name=\"Logo\" href=\"./\" data-framer-page-link-current=\"true\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><div data-framer-component-type=\"SVG\" data-framer-name=\"Frame 1618873088\" parentsize=\"0\" _constraints=\"[object Object]\" rotation=\"0\" shadows=\"\" class=\"framer-t2zt2m\" aria-hidden=\"true\" style=\"image-rendering: pixelated; flex-shrink: 0; fill: rgb(0, 0, 0); color: rgb(0, 0, 0); transform: none; transform-origin: 50% 50% 0px;\"><div class=\"svgContainer\" style=\"width:100%;height:100%;aspect-ratio:inherit\"><svg style=\"width:100%;height:100%;\" viewBox=\"0 0 40 40\" preserveAspectRatio=\"none\" width=\"100%\" height=\"100%\"><use href=\"#svg-2084145981_3760\"></use></svg></div></div><div class=\"framer-11zot9h\" data-framer-name=\"Logo Text\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: var(--token-7bddd129-833e-4592-8d35-b38628f5587c, rgb(27, 12, 37)); --framer-paragraph-spacing: 0px; transform: none; transform-origin: 50% 50% 0px;\"><p class=\"framer-text\" style=\"--font-selector: RlM7R2VuZXJhbCBTYW5zLW1lZGl1bQ==; --framer-font-family: &quot;General Sans&quot;, &quot;General Sans Placeholder&quot;, sans-serif; --framer-font-size: 28px; --framer-font-weight: 500; --framer-line-height: 40px; --framer-text-color: var(--extracted-r6o4lv, var(--token-7bddd129-833e-4592-8d35-b38628f5587c, rgb(27, 12, 37))); --framer-text-transform: capitalize;\">Fluence AI</p></div></a><!--/$--></div><div class=\"framer-7m6hda\" data-framer-name=\"Links\" style=\"transform: translateY(-50%); transform-origin: 50% 50% 0px;\"><!--$--><div class=\"framer-7i8p8f-container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-G9KJV framer-ps8w1 framer-1dcnasi framer-v-1dcnasi framer-13r0fai\" data-framer-name=\"Variant 1\" href=\"./#feature\" style=\"height: 100%; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-192gyzj\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: rgba(28, 12, 38, 0.8); --framer-paragraph-spacing: 0px; opacity: 0.7; transform: none; transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-alignment:left;--framer-text-color:var(--extracted-r6o4lv, rgba(28, 12, 38, 0.8))\">Features</p></div></a><!--/$--></div><!--/$--><!--$--><div class=\"framer-188db75-container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-G9KJV framer-ps8w1 framer-1dcnasi framer-v-1dcnasi framer-13r0fai\" data-framer-name=\"Variant 1\" href=\"./#about\" style=\"height: 100%; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-192gyzj\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: rgba(28, 12, 38, 0.8); --framer-paragraph-spacing: 0px; opacity: 0.7; transform: none; transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-alignment:left;--framer-text-color:var(--extracted-r6o4lv, rgba(28, 12, 38, 0.8))\">About</p></div></a><!--/$--></div><!--/$--><!--$--><div class=\"framer-fyzvho-container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-G9KJV framer-ps8w1 framer-1dcnasi framer-v-1dcnasi framer-13r0fai\" data-framer-name=\"Variant 1\" href=\"./#testimonial\" style=\"height: 100%; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-192gyzj\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: rgba(28, 12, 38, 0.8); --framer-paragraph-spacing: 0px; opacity: 0.7; transform: none; transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-alignment:left;--framer-text-color:var(--extracted-r6o4lv, rgba(28, 12, 38, 0.8))\">Testimonial</p></div></a><!--/$--></div><!--/$--><!--$--><div class=\"framer-7xv52l-container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-G9KJV framer-ps8w1 framer-1dcnasi framer-v-1dcnasi framer-13r0fai\" data-framer-name=\"Variant 1\" href=\"./#pricing\" style=\"height: 100%; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-192gyzj\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: rgba(28, 12, 38, 0.8); --framer-paragraph-spacing: 0px; opacity: 0.7; transform: none; transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-alignment:left;--framer-text-color:var(--extracted-r6o4lv, rgba(28, 12, 38, 0.8))\">Pricing</p></div></a><!--/$--></div><!--/$--><!--$--><div class=\"framer-25ll1x-container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-G9KJV framer-ps8w1 framer-1dcnasi framer-v-1dcnasi framer-13r0fai\" data-framer-name=\"Variant 1\" href=\"./#faq\" style=\"height: 100%; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-192gyzj\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: rgba(28, 12, 38, 0.8); --framer-paragraph-spacing: 0px; opacity: 0.7; transform: none; transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-alignment:left;--framer-text-color:var(--extracted-r6o4lv, rgba(28, 12, 38, 0.8))\">Faq</p></div></a><!--/$--></div><!--/$--></div><!--$--><div class=\"framer-14a7o1c-container\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><!--$--><a class=\"framer-TYIWZ framer-ps8w1 framer-1jf35qu framer-v-1m9g0po framer-1pv4xz5\" data-framer-name=\"Small\" href=\"./contact\" style=\"--border-bottom-width: 0px; --border-color: rgba(0, 0, 0, 0); --border-left-width: 0px; --border-right-width: 0px; --border-style: solid; --border-top-width: 0px; backdrop-filter: blur(6px); background-color: var(--token-7bddd129-833e-4592-8d35-b38628f5587c, rgb(27, 12, 37)); height: 100%; width: 100%; border-radius: 8px; box-shadow: rgba(255, 255, 255, 0.4) 0px 1px 2px 0px inset, rgba(0, 0, 0, 0.1) 0px 1px 2px 0px; transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-j6xjan\" data-framer-name=\"Text\" style=\"transform: none; transform-origin: 50% 50% 0px;\"><div class=\"framer-1k2zu1p\" data-framer-name=\"Text 1\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: var(--token-2ff9a6d4-dab7-4ef6-b4fa-9e88617ec594, rgb(255, 255, 255)); --framer-paragraph-spacing: 0px; opacity: 1; transform: translate(-50%, -50%); transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-color:var(--extracted-r6o4lv, var(--token-2ff9a6d4-dab7-4ef6-b4fa-9e88617ec594, rgb(255, 255, 255)))\">Contact</p></div><div class=\"framer-119r11v\" data-framer-name=\"Text 2\" data-framer-component-type=\"RichTextContainer\" style=\"--extracted-r6o4lv: var(--token-2ff9a6d4-dab7-4ef6-b4fa-9e88617ec594, rgb(255, 255, 255)); --framer-paragraph-spacing: 0px; opacity: 0; transform: translate(-50%, -50%); transform-origin: 50% 50% 0px;\"><p class=\"framer-text framer-styles-preset-amoww1\" data-styles-preset=\"RzAhCiscr\" style=\"--framer-text-color:var(--extracted-r6o4lv, var(--token-2ff9a6d4-dab7-4ef6-b4fa-9e88617ec594, rgb(255, 255, 255)))\">Contact</p></div></div></a><!--/$--></div><!--/$--></div></nav></div></div></nav>",
+        "hasFixedNav": true
+      }
     },
     {
-      "id": "section-5f0ae269-7158-4d5a-99f6-4d34d488adc8",
+      "id": "section-fa521c7d-12ae-43f9-991c-65efaf90165e",
       "type": "hero",
       "boundingBox": {
         "x": 0,
@@ -27,7 +31,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/02-hero.png"
     },
     {
-      "id": "section-4cd09910-59f6-4f46-b2ca-c7bb5ca12160",
+      "id": "section-9cafc7cb-92e3-4a75-8e8f-cf5d34afcd94",
       "type": "features",
       "boundingBox": {
         "x": 0,
@@ -38,7 +42,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/03-features.png"
     },
     {
-      "id": "section-de914c3f-1b0a-4244-b59d-6827c008cfd5",
+      "id": "section-80627f39-a1e4-411f-ad44-a332213573ca",
       "type": "testimonials",
       "boundingBox": {
         "x": 0,
@@ -49,7 +53,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/04-testimonials.png"
     },
     {
-      "id": "section-564db8be-c276-49d6-ac4d-80996b7bb1cf",
+      "id": "section-f0d9d971-fbc2-4458-a916-f68019326a10",
       "type": "pricing",
       "boundingBox": {
         "x": 0,
@@ -60,7 +64,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/05-pricing.png"
     },
     {
-      "id": "section-99cacebd-9fdd-4eea-904f-309fd4bc1bc1",
+      "id": "section-6a5ebce4-b054-431d-add1-d77f645da459",
       "type": "features",
       "boundingBox": {
         "x": 0,
@@ -71,7 +75,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/06-features.png"
     },
     {
-      "id": "section-6f6c63eb-25e0-453b-ac85-82683982c414",
+      "id": "section-94bce128-0d4e-4e08-b2ca-51e9f0a1f454",
       "type": "testimonials",
       "boundingBox": {
         "x": 0,
@@ -82,7 +86,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/07-testimonials.png"
     },
     {
-      "id": "section-eca2cc11-a60f-4389-aaca-cacc6948bc3d",
+      "id": "section-3f311f75-7c22-409a-8c14-dadc6e692585",
       "type": "pricing",
       "boundingBox": {
         "x": 0,
@@ -93,7 +97,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/08-pricing.png"
     },
     {
-      "id": "section-46bd2ce2-cf32-4d53-8b82-debd8d9b5a06",
+      "id": "section-ceab0245-7e59-4c60-9dfa-3a9e824d1ebf",
       "type": "cta",
       "boundingBox": {
         "x": 0,
@@ -104,7 +108,7 @@
       "screenshotPath": "/Users/andrecollier/Personal/website-builder/cache/fluence.framer.website/screenshots/sections/09-cta.png"
     },
     {
-      "id": "section-d1363f31-4bdd-4ace-97fa-3276fffc3b61",
+      "id": "section-02831259-65a3-48d3-ba7d-c2f0c685b415",
       "type": "footer",
       "boundingBox": {
         "x": 0,
